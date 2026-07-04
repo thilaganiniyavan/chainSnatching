@@ -3,7 +3,7 @@ from configs.detection_config import (
     CONFIDENCE_THRESHOLD,
     ALLOWED_CLASSES
 )
-from src.detection.models import Detection
+from src.core.models import Detection
 
 
 class Detector:

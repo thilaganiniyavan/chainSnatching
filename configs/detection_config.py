@@ -22,12 +22,6 @@ ALLOWED_CLASSES = {
 
     "bus",
 
-    "truck",
-
-    "backpack",
-
-    "handbag",
-
-    "suitcase"
+    "truck"
 
 }
