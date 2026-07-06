@@ -1,54 +1,34 @@
 import math
-from typing import List
+from typing import Any
 from src.core.models.track import Track
 from src.core.models.relationship import Relationship
 
 class RelationshipEngine:
-    """Computes spatial relationships between tracked objects."""
+    """Engine to compute simple spatial relationships between tracked objects."""
 
     def __init__(self, distance_threshold: float = 150.0):
         self.distance_threshold = distance_threshold
         self.vehicle_classes = {"bicycle", "motorcycle", "car", "bus", "truck"}
+        self.person_class = "person"
 
-    def compute(self, tracks: List[Track], timestamp: float) -> List[Relationship]:
-        """
-        Calculates spatial relationships between tracks.
-        Currently focuses on finding the nearest vehicle for each person.
-        """
+    def compute(self, tracks: list[Track], timestamp: float) -> list[Relationship]:
+        """Computes spatial relationships between persons and vehicles."""
         relationships = []
-        
-        # Separate people and vehicles
-        people = [t for t in tracks if t.class_name == "person"]
-        vehicles = [t for t in tracks if t.class_name in self.vehicle_classes]
 
-        # Ensure both lists are not empty
-        if not people or not vehicles:
-            return relationships
+        persons = [t for t in tracks if t.class_name == self.person_class and t.center is not None]
+        vehicles = [t for t in tracks if t.class_name in self.vehicle_classes and t.center is not None]
 
-        for person in people:
-            # We need valid centers to compute distance
-            if not person.center:
-                continue
-                
+        for person in persons:
             nearest_vehicle = None
             min_distance = float('inf')
 
-            # Find nearest vehicle
             for vehicle in vehicles:
-                if not vehicle.center:
-                    continue
-                    
-                px, py = person.center
-                vx, vy = vehicle.center
-                
-                dist = math.hypot(vx - px, vy - py)
-                
+                dist = self._euclidean_distance(person.center, vehicle.center)
                 if dist < min_distance:
                     min_distance = dist
                     nearest_vehicle = vehicle
 
-            # If the nearest vehicle is within the threshold, create a relationship
-            if nearest_vehicle and min_distance < self.distance_threshold:
+            if nearest_vehicle is not None and min_distance < self.distance_threshold:
                 rel = Relationship(
                     subject_id=person.tracking_id,
                     subject_class=person.class_name,
@@ -56,8 +36,13 @@ class RelationshipEngine:
                     object_class=nearest_vehicle.class_name,
                     relationship_type="near",
                     distance=min_distance,
-                    timestamp=timestamp
+                    timestamp=timestamp,
+                    metadata={}
                 )
                 relationships.append(rel)
 
         return relationships
+
+    @staticmethod
+    def _euclidean_distance(p1: tuple[int, int], p2: tuple[int, int]) -> float:
+        return math.sqrt((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2)

@@ -35,12 +35,21 @@ class RelationshipStage(Stage):
                 # Draw thin line between objects
                 cv2.line(viz_frame, p1, p2, (0, 0, 255), 1)
                 
-                # Display distance at the midpoint
+                # Display text at the midpoint
                 midpoint = ((p1[0] + p2[0]) // 2, (p1[1] + p2[1]) // 2)
                 cv2.putText(
                     viz_frame, 
-                    f"{rel.distance:.1f}px", 
-                    (midpoint[0] + 5, midpoint[1] - 5), 
+                    "Near", 
+                    (midpoint[0] + 5, midpoint[1] - 15), 
+                    cv2.FONT_HERSHEY_SIMPLEX, 
+                    0.5, 
+                    (0, 0, 255), 
+                    1
+                )
+                cv2.putText(
+                    viz_frame, 
+                    f"Distance: {rel.distance:.0f} px", 
+                    (midpoint[0] + 5, midpoint[1] + 5), 
                     cv2.FONT_HERSHEY_SIMPLEX, 
                     0.5, 
                     (0, 0, 255), 
