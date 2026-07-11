@@ -10,8 +10,10 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from src.detection.detector import Detector
 from src.pipeline.pipeline import Pipeline
 from src.pipeline.tracking_stage import TrackingStage
+from src.pipeline.depth_stage import DepthStage
 from src.pipeline.relationship_stage import RelationshipStage
 from src.core.models.frame_context import FrameContext
+from src.utils.geometry import estimate_intrinsics, pixel_to_3d, calculate_3d_distance
 
 def main():
     parser = argparse.ArgumentParser(description="Complete AI Surveillance Pipeline")
@@ -54,11 +56,11 @@ def main():
         # Initialize existing modules
         mog2 = cv2.createBackgroundSubtractorMOG2(history=500, varThreshold=16, detectShadows=True)
         detector = Detector()
-        
+        depth_stage = DepthStage()
         tracking_stage = TrackingStage()
         relationship_stage = RelationshipStage(distance_threshold=150.0)
         
-        pipeline = Pipeline(stages=[tracking_stage, relationship_stage])
+        pipeline = Pipeline(stages=[depth_stage, tracking_stage, relationship_stage])
 
         # Statistics
         stats_total_frames = 0
@@ -142,6 +144,8 @@ def main():
                     
                     # Motion Features
                     features_text = []
+                    if track.depth is not None:
+                        features_text.append(f"Depth: {track.depth:.2f}")
                     if track.instantaneous_speed is not None:
                         features_text.append(f"Spd: {track.instantaneous_speed:.1f}")
                     if track.average_speed is not None:
@@ -155,6 +159,35 @@ def main():
                         features_str = " | ".join(features_text)
                         cv2.putText(viz_frame, features_str, (x1, text_y - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 255), 1)
 
+            # Calculate and Draw 3D distances between pairs of tracks
+            frame_height, frame_width = frame.shape[:2]
+            fx, fy, cx, cy = estimate_intrinsics(frame_width, frame_height)
+            
+            for i in range(len(context.tracks)):
+                for j in range(i + 1, len(context.tracks)):
+                    track1 = context.tracks[i]
+                    track2 = context.tracks[j]
+                    if track1.depth is not None and track2.depth is not None:
+                        box1 = track1.metadata.get("bbox")
+                        box2 = track2.metadata.get("bbox")
+                        if box1 and box2:
+                            c1_x = (box1[0] + box1[2]) // 2
+                            c1_y = (box1[1] + box1[3]) // 2
+                            c2_x = (box2[0] + box2[2]) // 2
+                            c2_y = (box2[1] + box2[3]) // 2
+                            
+                            p1 = pixel_to_3d(c1_x, c1_y, track1.depth, fx, fy, cx, cy)
+                            p2 = pixel_to_3d(c2_x, c2_y, track2.depth, fx, fy, cx, cy)
+                            
+                            dist3d = calculate_3d_distance(p1, p2)
+                            
+                            # Draw line and distance text between the two objects
+                            cv2.line(viz_frame, (c1_x, c1_y), (c2_x, c2_y), (0, 0, 255), 2)
+                            mid_x = (c1_x + c2_x) // 2
+                            mid_y = (c1_y + c2_y) // 2
+                            cv2.putText(viz_frame, f"{dist3d:.1f}", (mid_x, mid_y - 10), 
+                                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+
             # Draw Frame Information (Top-Left)
             cv2.putText(viz_frame, f"Frame Number: {stats_total_frames}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
             cv2.putText(viz_frame, f"Timestamp: {current_timestamp:.2f}s", (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
@@ -166,6 +199,11 @@ def main():
 
             if args.show:
                 cv2.imshow("Surveillance Pipeline", viz_frame)
+                if "depth_visualization" in context.metadata:
+                    cv2.imshow(
+                        "Depth Map",
+                        context.metadata["depth_visualization"]
+                    )
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
 

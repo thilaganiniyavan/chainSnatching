@@ -6,17 +6,27 @@ from typing import Any
 
 @dataclass
 class Track:
-    """Placeholder model representing a tracked object."""
+    """Represents a tracked object across video frames."""
 
     tracking_id: int
     class_name: str
+
     detections: list[Any] = field(default_factory=list)
     trajectory: list[Any] = field(default_factory=list)
+
     first_seen: float = 0.0
     last_seen: float = 0.0
+
     metadata: dict[str, Any] = field(default_factory=dict)
+
     center: tuple[int, int] | None = None
+
     history: Any = None
+
+    # ---------- Depth ----------
+    depth: float | None = None
+
+    # ---------- Motion Features ----------
     instantaneous_speed: float | None = None
     average_speed: float | None = None
     direction: float | None = None
