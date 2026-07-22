@@ -1,0 +1,10 @@
+Metric,Value
+Total Videos,42
+Total File Size (MB),1801.74
+Total Duration (seconds),3839.75
+Average Duration (seconds),91.42
+Unique Resolutions,1006x720; 1056x780; 1152x720; 1280x720; 1920x1080; 198x360; 294x240; 320x240; 352x288; 364x360; 384x288; 400x224; 400x328; 480x360; 640x352; 640x360; 658x480; 800x480
+Unique FPS Rates,23.98; 24.0; 25.0; 29.97; 30.0
+Codecs Found,FMP4; h264
+Corrupted Videos,0
+Duplicate Videos,0

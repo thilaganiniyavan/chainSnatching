@@ -3,6 +3,9 @@ venv/
 __pycache__/
 *.pyc
 .DS_Store
-outputs/
+outputs/temp/
 *.avi
 *.mp4
+*.zip
+Depth-Anything-V2-main/
+Depth-Anything-V2/

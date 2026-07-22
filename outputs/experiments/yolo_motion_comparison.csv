@@ -1,0 +1,3 @@
+video_name,method,total_frames,frames_sent_to_yolo,yolo_calls,total_time,yolo_time,person_count,vehicle_count,average_confidence
+cctv_sample.avi,YOLO_Every_Frame,746,746,746,23.239080000000286,22.769422699999268,1183,0,0.9035471124056529
+cctv_sample.avi,Motion_Filtered_YOLO,746,233,233,6.805519100000311,4.61153029999241,366,0,0.8784673217215825

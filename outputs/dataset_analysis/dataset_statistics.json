@@ -1,0 +1,85 @@
+{
+    "dataset_overview": {
+        "total_files_scanned": 43,
+        "total_usable_videos": 43,
+        "total_recording_duration_sec": 3877.05,
+        "total_recording_duration_min": 64.62,
+        "usable_recording_duration_sec": 3877.05,
+        "usable_recording_duration_min": 64.62,
+        "total_size_mb": 1805.91,
+        "mean_video_duration_sec": 90.16,
+        "median_video_duration_sec": 9.67,
+        "min_video_duration_sec": 2.24,
+        "max_video_duration_sec": 687.0
+    },
+    "anomalies_and_quality": {
+        "corrupted_videos": 0,
+        "unreadable_metadata": 0,
+        "inconsistent_fps_or_resolution": 0,
+        "exact_duplicates": 0,
+        "near_duplicates": 0
+    },
+    "distributions": {
+        "resolution": {
+            "1280x720": 17,
+            "352x288": 5,
+            "480x360": 3,
+            "640x352": 2,
+            "1920x1080": 2,
+            "640x480": 1,
+            "320x240": 1,
+            "1006x720": 1,
+            "400x328": 1,
+            "294x240": 1,
+            "640x360": 1,
+            "1152x720": 1,
+            "658x480": 1,
+            "364x360": 1,
+            "400x224": 1,
+            "1056x780": 1,
+            "384x288": 1,
+            "800x480": 1,
+            "198x360": 1
+        },
+        "fps": {
+            "25.0": 32,
+            "29.97": 7,
+            "20.0": 1,
+            "24.0": 1,
+            "23.98": 1,
+            "30.0": 1
+        },
+        "lighting": {
+            "Day": 37,
+            "Mixed": 5,
+            "Night": 1
+        },
+        "camera_type": {
+            "Static": 41,
+            "PTZ": 1,
+            "Moving": 1
+        },
+        "scene_type": {
+            "Outdoor": 43
+        },
+        "crowd_density": {
+            "Unknown": 43
+        },
+        "vehicle_activity": {
+            "Unknown": 43
+        },
+        "pedestrian_activity": {
+            "Unknown": 43
+        },
+        "motion_intensity": {
+            "High": 22,
+            "Medium": 12,
+            "Low": 8,
+            "Very Low": 1
+        },
+        "codec": {
+            "FMP4": 25,
+            "h264": 18
+        }
+    }
+}

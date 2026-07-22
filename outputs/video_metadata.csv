@@ -1,0 +1,43 @@
+filename,folder,file_size_mb,duration_seconds,frame_count,width,height,fps,codec,corrupted,is_duplicate,duplicate_of,day_night,camera_type,indoor_outdoor,density,traffic,path
+s_11.avi,Normal,251.29,501.0,12525,1280,720,25.0,h264,False,False,,Night,Static,,,,Snatch 1.0\Chain Snatching Videos\Normal\s_11.avi
+s_12.avi,Normal,251.34,501.0,12525,1280,720,25.0,h264,False,False,,Night,Static,,,,Snatch 1.0\Chain Snatching Videos\Normal\s_12.avi
+s_15.avi,Normal,251.33,501.0,12525,1280,720,25.0,h264,False,False,,Day,Static,,,,Snatch 1.0\Chain Snatching Videos\Normal\s_15.avi
+s_18.avi,Normal,251.42,501.0,12525,1280,720,25.0,h264,False,False,,Day,Static,,,,Snatch 1.0\Chain Snatching Videos\Normal\s_18.avi
+s_20.avi,Normal,251.08,687.0,17175,1280,720,25.0,h264,False,False,,Day,Static,,,,Snatch 1.0\Chain Snatching Videos\Normal\s_20.avi
+s_23.avi,Normal,251.49,298.0,7450,1920,1080,25.0,h264,False,False,,Day,Static,,,,Snatch 1.0\Chain Snatching Videos\Normal\s_23.avi
+s_24.avi,Normal,251.35,514.0,12850,1920,1080,25.0,h264,False,False,,Day,Static,,,,Snatch 1.0\Chain Snatching Videos\Normal\s_24.avi
+1.mp4,Snatch Theft,1.49,20.52,615,640,360,29.97,h264,False,False,,Day,Static,,,,Snatch 1.0\Chain Snatching Videos\Snatch Theft\1.mp4
+10.mp4,Snatch Theft,3.38,12.61,378,1280,720,29.97,h264,False,False,,Day,Movement,,,,Snatch 1.0\Chain Snatching Videos\Snatch Theft\10.mp4
+10_0.mp4,Snatch Theft,1.25,44.0,1100,320,240,25.0,FMP4,False,False,,Day,Static,,,,Snatch 1.0\Chain Snatching Videos\Snatch Theft\10_0.mp4
+11.mp4,Snatch Theft,2.39,8.74,262,1280,720,29.97,h264,False,False,,Day,Movement,,,,Snatch 1.0\Chain Snatching Videos\Snatch Theft\11.mp4
+11_0.mp4,Snatch Theft,0.39,4.24,106,1006,720,25.0,FMP4,False,False,,Day,Static,,,,Snatch 1.0\Chain Snatching Videos\Snatch Theft\11_0.mp4
+12.mp4,Snatch Theft,3.47,14.68,440,1280,720,29.97,h264,False,False,,Day,Static,,,,Snatch 1.0\Chain Snatching Videos\Snatch Theft\12.mp4
+13_0.mp4,Snatch Theft,0.52,13.84,346,352,288,25.0,FMP4,False,False,,Day,Static,,,,Snatch 1.0\Chain Snatching Videos\Snatch Theft\13_0.mp4
+14.mp4,Snatch Theft,11.18,9.67,232,1280,720,24.0,h264,False,False,,Day,Movement,,,,Snatch 1.0\Chain Snatching Videos\Snatch Theft\14.mp4
+14_0.mp4,Snatch Theft,0.36,7.24,181,480,360,25.0,FMP4,False,False,,Day,Static,,,,Snatch 1.0\Chain Snatching Videos\Snatch Theft\14_0.mp4
+16.mp4,Snatch Theft,0.67,12.3,295,400,328,23.98,h264,False,False,,Day,Static,,,,Snatch 1.0\Chain Snatching Videos\Snatch Theft\16.mp4
+16_0.mp4,Snatch Theft,0.42,11.24,281,352,288,25.0,FMP4,False,False,,Day,Static,,,,Snatch 1.0\Chain Snatching Videos\Snatch Theft\16_0.mp4
+17.mp4,Snatch Theft,1.66,13.88,416,1280,720,29.97,h264,False,False,,Night,Static,,,,Snatch 1.0\Chain Snatching Videos\Snatch Theft\17.mp4
+17_0.mp4,Snatch Theft,0.12,2.24,56,294,240,25.0,FMP4,False,False,,Day,Static,,,,Snatch 1.0\Chain Snatching Videos\Snatch Theft\17_0.mp4
+18_0.mp4,Snatch Theft,1.03,11.36,284,1152,720,25.0,FMP4,False,False,,Day,Static,,,,Snatch 1.0\Chain Snatching Videos\Snatch Theft\18_0.mp4
+1_0.mp4,Snatch Theft,0.3,3.32,83,658,480,25.0,FMP4,False,False,,Day,Static,,,,Snatch 1.0\Chain Snatching Videos\Snatch Theft\1_0.mp4
+20_0.mp4,Snatch Theft,0.71,19.24,481,364,360,25.0,FMP4,False,False,,Day,Static,,,,Snatch 1.0\Chain Snatching Videos\Snatch Theft\20_0.mp4
+21_0.mp4,Snatch Theft,1.22,12.4,310,1280,720,25.0,FMP4,False,False,,Day,Static,,,,Snatch 1.0\Chain Snatching Videos\Snatch Theft\21_0.mp4
+22_0.mp4,Snatch Theft,0.15,2.28,57,480,360,25.0,FMP4,False,False,,Day,Static,,,,Snatch 1.0\Chain Snatching Videos\Snatch Theft\22_0.mp4
+23_0.mp4,Snatch Theft,0.17,2.84,71,352,288,25.0,FMP4,False,False,,Day,Static,,,,Snatch 1.0\Chain Snatching Videos\Snatch Theft\23_0.mp4
+24_0.mp4,Snatch Theft,0.23,5.24,131,640,352,25.0,FMP4,False,False,,Day,Static,,,,Snatch 1.0\Chain Snatching Videos\Snatch Theft\24_0.mp4
+25_0.mp4,Snatch Theft,0.74,4.24,106,1280,720,25.0,FMP4,False,False,,Day,Static,,,,Snatch 1.0\Chain Snatching Videos\Snatch Theft\25_0.mp4
+26_0.mp4,Snatch Theft,0.56,9.04,226,400,224,25.0,FMP4,False,False,,Day,Static,,,,Snatch 1.0\Chain Snatching Videos\Snatch Theft\26_0.mp4
+27_0.mp4,Snatch Theft,0.37,8.04,201,480,360,25.0,FMP4,False,False,,Day,Static,,,,Snatch 1.0\Chain Snatching Videos\Snatch Theft\27_0.mp4
+2_0.mp4,Snatch Theft,0.26,3.64,91,640,352,25.0,FMP4,False,False,,Day,Static,,,,Snatch 1.0\Chain Snatching Videos\Snatch Theft\2_0.mp4
+30_0.mp4,Snatch Theft,0.5,2.64,66,1056,780,25.0,FMP4,False,False,,Day,Static,,,,Snatch 1.0\Chain Snatching Videos\Snatch Theft\30_0.mp4
+3_0.mp4,Snatch Theft,0.58,6.0,150,1280,720,25.0,FMP4,False,False,,Day,Static,,,,Snatch 1.0\Chain Snatching Videos\Snatch Theft\3_0.mp4
+4_0.mp4,Snatch Theft,0.24,4.24,106,352,288,25.0,FMP4,False,False,,Day,Static,,,,Snatch 1.0\Chain Snatching Videos\Snatch Theft\4_0.mp4
+5_0.mp4,Snatch Theft,0.62,8.04,201,1280,720,25.0,FMP4,False,False,,Day,Static,,,,Snatch 1.0\Chain Snatching Videos\Snatch Theft\5_0.mp4
+6.mp4,Snatch Theft,0.81,9.6,240,384,288,25.0,h264,False,False,,Day,Static,,,,Snatch 1.0\Chain Snatching Videos\Snatch Theft\6.mp4
+6_0.mp4,Snatch Theft,0.57,9.44,236,800,480,25.0,FMP4,False,False,,Day,Static,,,,Snatch 1.0\Chain Snatching Videos\Snatch Theft\6_0.mp4
+7.mp4,Snatch Theft,0.34,7.0,210,198,360,30.0,h264,False,False,,Day,Static,,,,Snatch 1.0\Chain Snatching Videos\Snatch Theft\7.mp4
+7_0.mp4,Snatch Theft,0.81,4.04,101,1280,720,25.0,FMP4,False,False,,Day,Static,,,,Snatch 1.0\Chain Snatching Videos\Snatch Theft\7_0.mp4
+8.mp4,Snatch Theft,2.23,9.71,291,1280,720,29.97,h264,False,False,,Day,Static,,,,Snatch 1.0\Chain Snatching Videos\Snatch Theft\8.mp4
+9.mp4,Snatch Theft,2.2,10.64,319,1280,720,29.97,h264,False,False,,Day,Static,,,,Snatch 1.0\Chain Snatching Videos\Snatch Theft\9.mp4
+9_0.mp4,Snatch Theft,0.5,8.56,214,352,288,25.0,FMP4,False,False,,Day,Static,,,,Snatch 1.0\Chain Snatching Videos\Snatch Theft\9_0.mp4

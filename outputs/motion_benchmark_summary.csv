@@ -1,0 +1,216 @@
+video_name,relative_path,detector,total_frames,motion_frames,discarded_frames,reduction_percentage,processing_time_seconds,fps,continuity_score,num_segments,avg_segment_length,average_motion_area_ratio
+cctv_sample.avi,datasets/videos/cctv_sample.avi,Baseline,746,746,0,0.0,0.253,2948.5292,0.9987,1,746.0,1.0
+cctv_sample.avi,datasets/videos/cctv_sample.avi,Frame Difference,746,233,513,68.7668,0.5608,1330.2499,0.7253,64,3.6406,0.112055
+cctv_sample.avi,datasets/videos/cctv_sample.avi,MOG2,746,744,2,0.2681,1.9251,387.5095,0.996,3,248.0,0.19894
+cctv_sample.avi,datasets/videos/cctv_sample.avi,KNN,746,746,0,0.0,4.7539,156.9235,0.9987,1,746.0,0.335681
+cctv_sample.avi,datasets/videos/cctv_sample.avi,GMM,746,530,216,28.9544,4.1278,180.7254,0.9849,8,66.25,0.132586
+s_11.avi,Snatch 1.0/Chain Snatching Videos/Normal/s_11.avi,Baseline,12525,12525,0,0.0,27.1187,461.8591,0.9999,1,12525.0,1.0
+s_11.avi,Snatch 1.0/Chain Snatching Videos/Normal/s_11.avi,Frame Difference,12525,12216,309,2.4671,44.0357,284.4281,0.9954,56,218.1429,0.04456
+s_11.avi,Snatch 1.0/Chain Snatching Videos/Normal/s_11.avi,MOG2,12525,12525,0,0.0,87.2236,143.5964,0.9999,1,12525.0,0.130394
+s_11.avi,Snatch 1.0/Chain Snatching Videos/Normal/s_11.avi,KNN,12525,12525,0,0.0,120.0681,104.3158,0.9999,1,12525.0,0.174557
+s_11.avi,Snatch 1.0/Chain Snatching Videos/Normal/s_11.avi,GMM,12525,12466,59,0.4711,206.5934,60.6263,0.9994,8,1558.25,0.042129
+s_12.avi,Snatch 1.0/Chain Snatching Videos/Normal/s_12.avi,Baseline,12525,12525,0,0.0,23.9668,522.5982,0.9999,1,12525.0,1.0
+s_12.avi,Snatch 1.0/Chain Snatching Videos/Normal/s_12.avi,Frame Difference,12525,12441,84,0.6707,37.0806,337.7775,0.9982,22,565.5,0.052892
+s_12.avi,Snatch 1.0/Chain Snatching Videos/Normal/s_12.avi,MOG2,12525,12525,0,0.0,91.4348,136.9829,0.9999,1,12525.0,0.192879
+s_12.avi,Snatch 1.0/Chain Snatching Videos/Normal/s_12.avi,KNN,12525,12525,0,0.0,131.6793,95.1175,0.9999,1,12525.0,0.234842
+s_12.avi,Snatch 1.0/Chain Snatching Videos/Normal/s_12.avi,GMM,12525,12499,26,0.2076,210.6252,59.4658,0.9998,3,4166.3333,0.038032
+s_15.avi,Snatch 1.0/Chain Snatching Videos/Normal/s_15.avi,Baseline,12525,12525,0,0.0,24.1431,518.7825,0.9999,1,12525.0,1.0
+s_15.avi,Snatch 1.0/Chain Snatching Videos/Normal/s_15.avi,Frame Difference,12525,12486,39,0.3114,44.3894,282.162,0.9992,10,1248.6,0.068013
+s_15.avi,Snatch 1.0/Chain Snatching Videos/Normal/s_15.avi,MOG2,12525,12525,0,0.0,89.9128,139.3016,0.9999,1,12525.0,0.25774
+s_15.avi,Snatch 1.0/Chain Snatching Videos/Normal/s_15.avi,KNN,12525,12525,0,0.0,163.5988,76.5593,0.9999,1,12525.0,0.33804
+s_15.avi,Snatch 1.0/Chain Snatching Videos/Normal/s_15.avi,GMM,12525,12524,1,0.008,345.1099,36.2928,0.9999,1,12524.0,0.06001
+s_18.avi,Snatch 1.0/Chain Snatching Videos/Normal/s_18.avi,Baseline,12525,12525,0,0.0,49.7107,251.9576,0.9999,1,12525.0,1.0
+s_18.avi,Snatch 1.0/Chain Snatching Videos/Normal/s_18.avi,Frame Difference,12525,8602,3923,31.3214,87.7364,142.7572,0.9844,134,64.194,0.023196
+s_18.avi,Snatch 1.0/Chain Snatching Videos/Normal/s_18.avi,MOG2,12525,12525,0,0.0,187.8076,66.6906,0.9999,1,12525.0,0.07296
+s_18.avi,Snatch 1.0/Chain Snatching Videos/Normal/s_18.avi,KNN,12525,12525,0,0.0,265.5212,47.1714,0.9999,1,12525.0,0.088345
+s_18.avi,Snatch 1.0/Chain Snatching Videos/Normal/s_18.avi,GMM,12525,12301,224,1.7884,435.6599,28.7495,0.999,12,1025.0833,0.031759
+s_20.avi,Snatch 1.0/Chain Snatching Videos/Normal/s_20.avi,Baseline,17175,17175,0,0.0,69.8766,245.7905,0.9999,1,17175.0,1.0
+s_20.avi,Snatch 1.0/Chain Snatching Videos/Normal/s_20.avi,Frame Difference,17175,5592,11583,67.441,116.9066,146.9122,0.9753,138,40.5217,0.032764
+s_20.avi,Snatch 1.0/Chain Snatching Videos/Normal/s_20.avi,MOG2,17175,13212,3963,23.0742,240.9727,71.2736,0.997,40,330.3,0.082372
+s_20.avi,Snatch 1.0/Chain Snatching Videos/Normal/s_20.avi,KNN,17175,14951,2224,12.9491,277.4473,61.9036,0.9973,40,373.775,0.068288
+s_20.avi,Snatch 1.0/Chain Snatching Videos/Normal/s_20.avi,GMM,17175,10765,6410,37.3217,584.2658,29.3959,0.9961,42,256.3095,0.043417
+s_23.avi,Snatch 1.0/Chain Snatching Videos/Normal/s_23.avi,Baseline,7450,7450,0,0.0,75.966,98.0702,0.9999,1,7450.0,1.0
+s_23.avi,Snatch 1.0/Chain Snatching Videos/Normal/s_23.avi,Frame Difference,7450,7327,123,1.651,150.3939,49.5366,0.9995,4,1831.75,0.078463
+s_23.avi,Snatch 1.0/Chain Snatching Videos/Normal/s_23.avi,MOG2,7450,7450,0,0.0,328.95,22.6478,0.9999,1,7450.0,0.228482
+s_23.avi,Snatch 1.0/Chain Snatching Videos/Normal/s_23.avi,KNN,7450,7450,0,0.0,608.7413,12.2384,0.9999,1,7450.0,0.271044
+s_23.avi,Snatch 1.0/Chain Snatching Videos/Normal/s_23.avi,GMM,7450,7449,1,0.0134,666.7361,11.1738,0.9999,1,7449.0,0.061875
+s_24.avi,Snatch 1.0/Chain Snatching Videos/Normal/s_24.avi,Baseline,12850,12850,0,0.0,128.4449,100.0429,0.9999,1,12850.0,1.0
+s_24.avi,Snatch 1.0/Chain Snatching Videos/Normal/s_24.avi,Frame Difference,12850,12847,3,0.0233,241.2215,53.2705,0.9998,2,6423.5,0.083875
+s_24.avi,Snatch 1.0/Chain Snatching Videos/Normal/s_24.avi,MOG2,12850,12850,0,0.0,565.7293,22.714,0.9999,1,12850.0,0.247366
+s_24.avi,Snatch 1.0/Chain Snatching Videos/Normal/s_24.avi,KNN,12850,12850,0,0.0,1038.582,12.3726,0.9999,1,12850.0,0.298935
+s_24.avi,Snatch 1.0/Chain Snatching Videos/Normal/s_24.avi,GMM,12850,12849,1,0.0078,1121.0094,11.4629,0.9999,1,12849.0,0.062446
+1.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/1.mp4,Baseline,599,599,0,0.0,0.5859,1022.3143,0.9983,1,599.0,1.0
+1.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/1.mp4,Frame Difference,599,113,486,81.1352,1.1981,499.9557,0.5398,52,2.1731,0.082303
+1.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/1.mp4,MOG2,599,599,0,0.0,2.9832,200.7884,0.9983,1,599.0,0.234969
+1.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/1.mp4,KNN,599,599,0,0.0,6.1824,96.8874,0.9983,1,599.0,0.318052
+1.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/1.mp4,GMM,599,574,25,4.1736,5.51,108.7119,0.9965,2,287.0,0.133823
+10.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/10.mp4,Baseline,241,241,0,0.0,1.1869,203.0536,0.9959,1,241.0,1.0
+10.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/10.mp4,Frame Difference,241,240,1,0.4149,1.8062,133.4266,0.9958,1,240.0,0.19961
+10.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/10.mp4,MOG2,241,241,0,0.0,6.1303,39.3132,0.9959,1,241.0,0.555462
+10.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/10.mp4,KNN,241,241,0,0.0,15.4883,15.5601,0.9959,1,241.0,0.774586
+10.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/10.mp4,GMM,241,240,1,0.4149,9.2886,25.9458,0.9958,1,240.0,0.07909
+10_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/10_0.mp4,Baseline,1100,1100,0,0.0,0.3896,2823.2325,0.9991,1,1100.0,1.0
+10_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/10_0.mp4,Frame Difference,1100,13,1087,98.8182,1.1154,986.2031,0.4615,7,1.8571,0.083425
+10_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/10_0.mp4,MOG2,1100,1040,60,5.4545,5.5706,197.4644,0.9971,3,346.6667,0.13229
+10_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/10_0.mp4,KNN,1100,1100,0,0.0,8.1929,134.2625,0.9991,1,1100.0,0.167442
+10_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/10_0.mp4,GMM,1100,339,761,69.1818,3.4101,322.5704,0.9823,6,56.5,0.090004
+11.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/11.mp4,Baseline,181,181,0,0.0,0.808,224.004,0.9945,1,181.0,1.0
+11.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/11.mp4,Frame Difference,181,180,1,0.5525,1.4291,126.6508,0.9944,1,180.0,0.192031
+11.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/11.mp4,MOG2,181,181,0,0.0,3.934,46.009,0.9945,1,181.0,0.445541
+11.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/11.mp4,KNN,181,181,0,0.0,10.4312,17.3517,0.9945,1,181.0,0.67166
+11.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/11.mp4,GMM,181,180,1,0.5525,7.0465,25.6867,0.9944,1,180.0,0.096232
+11_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/11_0.mp4,Baseline,106,106,0,0.0,0.3427,309.3105,0.9906,1,106.0,1.0
+11_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/11_0.mp4,Frame Difference,106,87,19,17.9245,0.6317,167.804,0.8276,15,5.8,0.050538
+11_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/11_0.mp4,MOG2,106,106,0,0.0,1.3927,76.1129,0.9906,1,106.0,0.198933
+11_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/11_0.mp4,KNN,106,106,0,0.0,2.5183,42.0922,0.9906,1,106.0,0.228529
+11_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/11_0.mp4,GMM,106,104,2,1.8868,2.9093,36.4354,0.9904,1,104.0,0.042833
+12.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/12.mp4,Baseline,300,300,0,0.0,1.3133,228.4389,0.9967,1,300.0,1.0
+12.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/12.mp4,Frame Difference,300,299,1,0.3333,2.2712,132.0888,0.9967,1,299.0,0.142208
+12.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/12.mp4,MOG2,300,300,0,0.0,7.2041,41.6429,0.9967,1,300.0,0.59776
+12.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/12.mp4,KNN,300,300,0,0.0,18.9212,15.8552,0.9967,1,300.0,0.801985
+12.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/12.mp4,GMM,300,299,1,0.3333,12.3525,24.2866,0.9967,1,299.0,0.114925
+13_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/13_0.mp4,Baseline,346,346,0,0.0,0.1599,2164.1894,0.9971,1,346.0,1.0
+13_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/13_0.mp4,Frame Difference,346,0,346,100.0,0.4094,845.0647,0.0,0,0.0,0.0
+13_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/13_0.mp4,MOG2,346,342,4,1.1561,1.4918,231.9378,0.9854,5,68.4,0.187304
+13_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/13_0.mp4,KNN,346,346,0,0.0,2.5301,136.7524,0.9971,1,346.0,0.180216
+13_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/13_0.mp4,GMM,346,56,290,83.815,1.3535,255.6387,0.9821,1,56.0,0.060191
+14.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/14.mp4,Baseline,232,232,0,0.0,0.9391,247.0417,0.9957,1,232.0,1.0
+14.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/14.mp4,Frame Difference,232,135,97,41.8103,1.7334,133.84,0.8074,26,5.1923,0.100723
+14.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/14.mp4,MOG2,232,232,0,0.0,5.8508,39.6526,0.9957,1,232.0,0.501332
+14.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/14.mp4,KNN,232,232,0,0.0,12.5245,18.5238,0.9957,1,232.0,0.630719
+14.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/14.mp4,GMM,232,228,4,1.7241,9.5416,24.3146,0.9956,1,228.0,0.173976
+14_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/14_0.mp4,Baseline,181,181,0,0.0,0.1174,1541.957,0.9945,1,181.0,1.0
+14_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/14_0.mp4,Frame Difference,181,0,181,100.0,0.2824,640.8643,0.0,0,0.0,0.0
+14_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/14_0.mp4,MOG2,181,164,17,9.3923,0.7777,232.7281,0.9817,3,54.6667,0.123864
+14_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/14_0.mp4,KNN,181,181,0,0.0,1.1273,160.5571,0.9945,1,181.0,0.095462
+14_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/14_0.mp4,GMM,181,0,181,100.0,1.1444,158.1668,0.0,0,0.0,0.0
+16.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/16.mp4,Baseline,263,263,0,0.0,0.1369,1921.165,0.9962,1,263.0,1.0
+16.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/16.mp4,Frame Difference,263,42,221,84.0304,0.3523,746.4711,0.6667,14,3.0,0.067734
+16.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/16.mp4,MOG2,263,256,7,2.6616,1.2782,205.7555,0.9844,4,64.0,0.182943
+16.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/16.mp4,KNN,263,263,0,0.0,2.2395,117.4345,0.9962,1,263.0,0.186085
+16.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/16.mp4,GMM,263,132,131,49.8099,1.3199,199.2506,0.947,7,18.8571,0.049427
+16_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/16_0.mp4,Baseline,281,281,0,0.0,0.1277,2200.1804,0.9964,1,281.0,1.0
+16_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/16_0.mp4,Frame Difference,281,1,280,99.6441,0.324,867.3177,0.0,1,1.0,0.056433
+16_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/16_0.mp4,MOG2,281,276,5,1.7794,1.0317,272.3585,0.9928,2,138.0,0.121363
+16_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/16_0.mp4,KNN,281,281,0,0.0,1.7131,164.0257,0.9964,1,281.0,0.175177
+16_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/16_0.mp4,GMM,281,4,277,98.5765,1.0608,264.8945,0.5,2,2.0,0.058549
+17.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/17.mp4,Baseline,391,391,0,0.0,1.5032,260.1189,0.9974,1,391.0,1.0
+17.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/17.mp4,Frame Difference,391,116,275,70.3325,2.8688,136.294,0.6724,38,3.0526,0.013611
+17.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/17.mp4,MOG2,391,388,3,0.7673,4.8086,81.3133,0.9897,4,97.0,0.039094
+17.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/17.mp4,KNN,391,391,0,0.0,5.4663,71.5292,0.9974,1,391.0,0.045394
+17.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/17.mp4,GMM,391,302,89,22.7621,13.5726,28.808,0.9934,2,151.0,0.018385
+17_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/17_0.mp4,Baseline,56,56,0,0.0,0.0302,1856.5054,0.9821,1,56.0,1.0
+17_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/17_0.mp4,Frame Difference,56,1,55,98.2143,0.0633,883.9933,0.0,1,1.0,0.098299
+17_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/17_0.mp4,MOG2,56,45,11,19.6429,0.2535,220.9289,0.9556,2,22.5,0.16896
+17_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/17_0.mp4,KNN,56,56,0,0.0,0.3947,141.8876,0.9821,1,56.0,0.241576
+17_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/17_0.mp4,GMM,56,27,29,51.7857,0.1733,323.2163,0.963,1,27.0,0.101821
+18_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/18_0.mp4,Baseline,284,284,0,0.0,1.0801,262.9439,0.9965,1,284.0,1.0
+18_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/18_0.mp4,Frame Difference,284,169,115,40.493,1.6111,176.2795,0.3964,102,1.6569,0.047735
+18_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/18_0.mp4,MOG2,284,282,2,0.7042,4.6145,61.5453,0.9894,3,94.0,0.17785
+18_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/18_0.mp4,KNN,284,284,0,0.0,7.0971,40.0164,0.9965,1,284.0,0.193262
+18_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/18_0.mp4,GMM,284,280,4,1.4085,9.1483,31.0441,0.9964,1,280.0,0.055697
+1_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/1_0.mp4,Baseline,83,83,0,0.0,0.0893,929.2505,0.988,1,83.0,1.0
+1_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/1_0.mp4,Frame Difference,83,22,61,73.494,0.2133,389.0757,0.3182,15,1.4667,0.020391
+1_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/1_0.mp4,MOG2,83,82,1,1.2048,0.469,176.9562,0.9756,2,41.0,0.119358
+1_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/1_0.mp4,KNN,83,83,0,0.0,0.6599,125.7729,0.988,1,83.0,0.120447
+1_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/1_0.mp4,GMM,83,9,74,89.1566,0.935,88.7732,0.8889,1,9.0,0.017237
+20_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/20_0.mp4,Baseline,481,481,0,0.0,0.2195,2190.8838,0.9979,1,481.0,1.0
+20_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/20_0.mp4,Frame Difference,481,0,481,100.0,0.6613,727.4044,0.0,0,0.0,0.0
+20_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/20_0.mp4,MOG2,481,469,12,2.4948,1.9104,251.7817,0.9915,4,117.25,0.085773
+20_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/20_0.mp4,KNN,481,481,0,0.0,2.3126,207.9941,0.9979,1,481.0,0.08468
+20_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/20_0.mp4,GMM,481,42,439,91.2682,2.3319,206.2713,0.881,5,8.4,0.039717
+21_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/21_0.mp4,Baseline,310,310,0,0.0,1.2218,253.7245,0.9968,1,310.0,1.0
+21_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/21_0.mp4,Frame Difference,310,220,90,29.0323,2.0219,153.318,0.6273,82,2.6829,0.026761
+21_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/21_0.mp4,MOG2,310,307,3,0.9677,5.458,56.7974,0.987,4,76.75,0.20702
+21_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/21_0.mp4,KNN,310,310,0,0.0,8.8235,35.1335,0.9968,1,310.0,0.222382
+21_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/21_0.mp4,GMM,310,307,3,0.9677,10.7952,28.7166,0.9967,1,307.0,0.05929
+22_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/22_0.mp4,Baseline,57,57,0,0.0,0.0449,1269.3436,0.9825,1,57.0,1.0
+22_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/22_0.mp4,Frame Difference,57,33,24,42.1053,0.0973,585.9574,0.9091,3,11.0,0.037574
+22_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/22_0.mp4,MOG2,57,57,0,0.0,0.2309,246.8861,0.9825,1,57.0,0.127157
+22_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/22_0.mp4,KNN,57,57,0,0.0,0.3887,146.6568,0.9825,1,57.0,0.16649
+22_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/22_0.mp4,GMM,57,23,34,59.6491,0.368,154.8942,0.9565,1,23.0,0.039672
+23_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/23_0.mp4,Baseline,71,71,0,0.0,0.0425,1669.4962,0.9859,1,71.0,1.0
+23_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/23_0.mp4,Frame Difference,71,11,60,84.507,0.0966,735.0315,0.8182,2,5.5,0.051906
+23_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/23_0.mp4,MOG2,71,62,9,12.6761,0.2711,261.9303,0.9194,5,12.4,0.152478
+23_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/23_0.mp4,KNN,71,71,0,0.0,0.3996,177.6681,0.9859,1,71.0,0.170908
+23_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/23_0.mp4,GMM,71,18,53,74.6479,0.29,244.7944,0.9444,1,18.0,0.062114
+24_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/24_0.mp4,Baseline,131,131,0,0.0,0.1133,1155.7858,0.9924,1,131.0,1.0
+24_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/24_0.mp4,Frame Difference,131,60,71,54.1985,0.2291,571.8446,0.5333,28,2.1429,0.049518
+24_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/24_0.mp4,MOG2,131,131,0,0.0,0.7778,168.4254,0.9924,1,131.0,0.224735
+24_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/24_0.mp4,KNN,131,131,0,0.0,1.4286,91.6998,0.9924,1,131.0,0.325877
+24_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/24_0.mp4,GMM,131,101,30,22.9008,1.1105,117.9683,0.9703,3,33.6667,0.090623
+25_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/25_0.mp4,Baseline,106,106,0,0.0,0.3995,265.3482,0.9906,1,106.0,1.0
+25_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/25_0.mp4,Frame Difference,106,105,1,0.9434,0.7036,150.6577,0.9905,1,105.0,0.048811
+25_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/25_0.mp4,MOG2,106,106,0,0.0,1.6406,64.6121,0.9906,1,106.0,0.175976
+25_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/25_0.mp4,KNN,106,106,0,0.0,2.7312,38.8113,0.9906,1,106.0,0.216216
+25_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/25_0.mp4,GMM,106,105,1,0.9434,3.9069,27.1318,0.9905,1,105.0,0.05059
+26_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/26_0.mp4,Baseline,226,226,0,0.0,0.0949,2381.9913,0.9956,1,226.0,1.0
+26_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/26_0.mp4,Frame Difference,226,0,226,100.0,0.2482,910.4878,0.0,0,0.0,0.0
+26_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/26_0.mp4,MOG2,226,193,33,14.6018,1.3694,165.0351,0.9689,6,32.1667,0.141279
+26_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/26_0.mp4,KNN,226,178,48,21.2389,1.4678,153.9743,0.9831,3,59.3333,0.102584
+26_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/26_0.mp4,GMM,226,0,226,100.0,0.7995,282.6633,0.0,0,0.0,0.0
+27_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/27_0.mp4,Baseline,201,201,0,0.0,0.1639,1226.166,0.995,1,201.0,1.0
+27_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/27_0.mp4,Frame Difference,201,6,195,97.0149,0.3085,651.5308,0.3333,4,1.5,0.055366
+27_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/27_0.mp4,MOG2,201,201,0,0.0,1.1098,181.1126,0.995,1,201.0,0.347315
+27_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/27_0.mp4,KNN,201,201,0,0.0,2.6818,74.9508,0.995,1,201.0,0.454847
+27_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/27_0.mp4,GMM,201,191,10,4.9751,1.4142,142.1313,0.9895,2,95.5,0.059534
+2_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/2_0.mp4,Baseline,91,91,0,0.0,0.0754,1206.1095,0.989,1,91.0,1.0
+2_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/2_0.mp4,Frame Difference,91,23,68,74.7253,0.1588,573.1814,0.1739,19,1.2105,0.036032
+2_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/2_0.mp4,MOG2,91,86,5,5.4945,0.4276,212.8207,0.9302,6,14.3333,0.108459
+2_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/2_0.mp4,KNN,91,91,0,0.0,0.6477,140.5031,0.989,1,91.0,0.126962
+2_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/2_0.mp4,GMM,91,41,50,54.9451,0.8079,112.6441,0.8537,6,6.8333,0.026333
+30_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/30_0.mp4,Baseline,66,66,0,0.0,0.2746,240.358,0.9848,1,66.0,1.0
+30_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/30_0.mp4,Frame Difference,66,65,1,1.5152,0.4085,161.5665,0.9846,1,65.0,0.048462
+30_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/30_0.mp4,MOG2,66,66,0,0.0,0.9236,71.459,0.9848,1,66.0,0.142137
+30_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/30_0.mp4,KNN,66,66,0,0.0,1.5179,43.4798,0.9848,1,66.0,0.212455
+30_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/30_0.mp4,GMM,66,65,1,1.5152,2.1051,31.3519,0.9846,1,65.0,0.032488
+3_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/3_0.mp4,Baseline,150,150,0,0.0,0.7601,197.3382,0.9933,1,150.0,1.0
+3_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/3_0.mp4,Frame Difference,150,121,29,19.3333,0.939,159.7378,0.7934,25,4.84,0.019964
+3_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/3_0.mp4,MOG2,150,149,1,0.6667,2.5385,59.0899,0.9866,2,74.5,0.203326
+3_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/3_0.mp4,KNN,150,150,0,0.0,3.8868,38.5923,0.9933,1,150.0,0.206802
+3_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/3_0.mp4,GMM,150,146,4,2.6667,5.2417,28.6165,0.9863,2,73.0,0.029144
+4_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/4_0.mp4,Baseline,106,106,0,0.0,0.0547,1936.5612,0.9906,1,106.0,1.0
+4_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/4_0.mp4,Frame Difference,106,1,105,99.0566,0.1306,811.615,0.0,1,1.0,0.059294
+4_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/4_0.mp4,MOG2,106,69,37,34.9057,0.3142,337.4124,0.9565,3,23.0,0.111924
+4_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/4_0.mp4,KNN,106,80,26,24.5283,0.5042,210.2269,0.975,2,40.0,0.133496
+4_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/4_0.mp4,GMM,106,0,106,100.0,0.404,262.3631,0.0,0,0.0,0.0
+5_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/5_0.mp4,Baseline,201,201,0,0.0,0.8088,248.5277,0.995,1,201.0,1.0
+5_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/5_0.mp4,Frame Difference,201,72,129,64.1791,1.2666,158.6927,0.0,72,1.0,0.015661
+5_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/5_0.mp4,MOG2,201,197,4,1.99,2.5231,79.6638,0.9746,5,39.4,0.058706
+5_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/5_0.mp4,KNN,201,201,0,0.0,3.1058,64.7186,0.995,1,201.0,0.062503
+5_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/5_0.mp4,GMM,201,149,52,25.8706,6.871,29.2534,0.9664,5,29.8,0.021109
+6.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/6.mp4,Baseline,225,225,0,0.0,0.1162,1936.2517,0.9956,1,225.0,1.0
+6.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/6.mp4,Frame Difference,225,99,126,56.0,0.2795,805.0061,0.9192,8,12.375,0.191746
+6.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/6.mp4,MOG2,225,225,0,0.0,1.2359,182.0605,0.9956,1,225.0,0.407435
+6.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/6.mp4,KNN,225,225,0,0.0,2.4536,91.7037,0.9956,1,225.0,0.49481
+6.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/6.mp4,GMM,225,102,123,54.6667,1.1859,189.7277,0.951,5,20.4,0.186984
+6_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/6_0.mp4,Baseline,236,236,0,0.0,0.4483,526.3792,0.9958,1,236.0,1.0
+6_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/6_0.mp4,Frame Difference,236,0,236,100.0,0.7396,319.0761,0.0,0,0.0,0.0
+6_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/6_0.mp4,MOG2,236,100,136,57.6271,1.5001,157.3226,0.94,6,16.6667,0.05111
+6_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/6_0.mp4,KNN,236,60,176,74.5763,1.5616,151.1255,0.9333,4,15.0,0.083468
+6_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/6_0.mp4,GMM,236,0,236,100.0,3.3457,70.5391,0.0,0,0.0,0.0
+7.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/7.mp4,Baseline,180,180,0,0.0,0.078,2306.746,0.9944,1,180.0,1.0
+7.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/7.mp4,Frame Difference,180,41,139,77.2222,0.1945,925.2377,0.8293,7,5.8571,0.184784
+7.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/7.mp4,MOG2,180,175,5,2.7778,1.1097,162.2085,0.9886,2,87.5,0.412635
+7.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/7.mp4,KNN,180,180,0,0.0,2.5144,71.5874,0.9944,1,180.0,0.577207
+7.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/7.mp4,GMM,180,86,94,52.2222,0.5646,318.7976,0.9535,4,21.5,0.289966
+7_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/7_0.mp4,Baseline,101,101,0,0.0,0.3986,253.418,0.9901,1,101.0,1.0
+7_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/7_0.mp4,Frame Difference,101,100,1,0.9901,0.6401,157.7854,0.99,1,100.0,0.122506
+7_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/7_0.mp4,MOG2,101,101,0,0.0,1.9674,51.3369,0.9901,1,101.0,0.237026
+7_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/7_0.mp4,KNN,101,101,0,0.0,4.0775,24.7702,0.9901,1,101.0,0.352166
+7_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/7_0.mp4,GMM,101,100,1,0.9901,3.8414,26.2922,0.99,1,100.0,0.058323
+8.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/8.mp4,Baseline,241,241,0,0.0,1.1512,209.3523,0.9959,1,241.0,1.0
+8.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/8.mp4,Frame Difference,241,230,11,4.5643,1.7652,136.5306,0.9913,2,115.0,0.200483
+8.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/8.mp4,MOG2,241,241,0,0.0,6.3836,37.7532,0.9959,1,241.0,0.616604
+8.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/8.mp4,KNN,241,241,0,0.0,15.2388,15.8149,0.9959,1,241.0,0.814226
+8.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/8.mp4,GMM,241,240,1,0.4149,9.7352,24.7556,0.9958,1,240.0,0.080119
+9.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/9.mp4,Baseline,239,239,0,0.0,1.0976,217.7515,0.9958,1,239.0,1.0
+9.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/9.mp4,Frame Difference,239,238,1,0.4184,1.7842,133.951,0.9958,1,238.0,0.079453
+9.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/9.mp4,MOG2,239,239,0,0.0,5.253,45.4978,0.9958,1,239.0,0.424247
+9.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/9.mp4,KNN,239,239,0,0.0,13.1843,18.1276,0.9958,1,239.0,0.619815
+9.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/9.mp4,GMM,239,238,1,0.4184,9.6725,24.7092,0.9958,1,238.0,0.139883
+9_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/9_0.mp4,Baseline,214,214,0,0.0,0.1057,2025.2494,0.9953,1,214.0,1.0
+9_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/9_0.mp4,Frame Difference,214,0,214,100.0,0.2654,806.4206,0.0,0,0.0,0.0
+9_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/9_0.mp4,MOG2,214,167,47,21.9626,0.7346,291.3198,0.9641,6,27.8333,0.143299
+9_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/9_0.mp4,KNN,214,131,83,38.785,0.8892,240.6533,0.9771,3,43.6667,0.157623
+9_0.mp4,Snatch 1.0/Chain Snatching Videos/Snatch Theft/9_0.mp4,GMM,214,0,214,100.0,0.8572,249.6393,0.0,0,0.0,0.0
