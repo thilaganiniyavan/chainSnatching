@@ -1,0 +1,7 @@
+stage,retained_frames,absolute_reduction_frames,absolute_reduction_pct,relative_reduction_pct,retention_ratio_pct
+Raw Video Input,2227,0,0.0,0.0,100.0
+Motion Filtering,2167,60,2.69,2.69,97.31
+YOLO Detection,1984,183,10.91,8.44,89.09
+Tracking Stage,1984,0,10.91,0.0,89.09
+Relationship Analysis,53,1931,97.62,97.33,2.38
+Candidate Events,53,0,97.62,0.0,2.38

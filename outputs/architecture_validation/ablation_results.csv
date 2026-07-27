@@ -1,0 +1,5 @@
+configuration,runtime_seconds,frames_processed,retained_candidate_frames,total_detections,total_tracks,candidate_events,memory_mb,cpu_pct,computational_cost_index
+Config A (YOLO Only),36.51,2227,1021,2569,0,0,528.9,0.0,20.39
+Config B (Motion + YOLO),95.31,2227,1984,4947,0,0,604.3,0.0,94.44
+Config C (Motion + YOLO + Tracking),196.0,2227,1984,4947,4022,0,613.7,0.0,194.22
+Config D (Full Pipeline),187.4,2227,53,4947,4022,67,743.3,0.0,23.2

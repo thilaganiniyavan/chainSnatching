@@ -1,0 +1,10 @@
+source,target,value
+Raw Video Input,Motion Filtering,2461
+Motion Filtering,YOLO Detection,2167
+Motion Filtering,Filtered (No Motion),294
+YOLO Detection,Tracking Stage,1984
+YOLO Detection,Filtered (No Objects),183
+Tracking Stage,Relationship Analysis,1984
+Tracking Stage,Filtered (No Active Tracks),0
+Relationship Analysis,Candidate Events,53
+Relationship Analysis,Filtered (No Proximity),0

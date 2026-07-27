@@ -1,0 +1,6 @@
+video_name,total_frames,motion_retained,motion_reduction_pct,motion_time_sec,yolo_retained,total_detections,person_count,vehicle_count,avg_confidence,yolo_time_sec,total_tracks,avg_track_len,tracking_time_sec,proximity_events,relationship_time_sec,candidate_events,event_time_sec,total_exec_time_sec,final_remaining_pct
+1.mp4,615,599,0.0,4.3108,463,755,736,19,0.6785,18.3876,5,126.4,19.379,2,0.0565,2,0.0,42.3581,0.33
+10.mp4,378,241,0.0,9.9725,241,1388,530,858,0.6534,8.3021,13,62.31,13.6055,6,0.1316,6,0.0,32.5982,1.59
+10_0.mp4,1100,1040,5.45,3.4075,1002,1984,1926,58,0.7636,62.7397,6,290.17,66.5376,16,0.0291,9,0.0,133.0601,0.82
+11.mp4,262,181,0.0,13.2395,175,635,326,309,0.6324,31.8319,10,38.9,38.1525,40,0.236,34,0.0,84.4819,12.98
+11_0.mp4,106,106,0.0,5.6137,103,185,99,86,0.6658,32.0923,2,66.5,34.0019,3,0.1359,2,0.0,74.6552,1.89

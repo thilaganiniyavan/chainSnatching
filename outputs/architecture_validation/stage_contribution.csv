@@ -1,0 +1,7 @@
+stage,retained_frames,reduction_pct,runtime_sec,cpu_pct,memory_mb
+Input Video,2227,0.0,0.0,0.0,617.6
+Motion Filtering,2167,2.69,31.1461,0.0,617.6
+YOLO Detection,1984,8.44,118.7951,0.0,617.6
+Tracking Stage,1984,0.0,135.3338,0.0,617.6
+Relationship Analysis,53,97.33,0.4648,0.0,617.6
+Candidate Events,53,0.0,0.0,0.0,617.6

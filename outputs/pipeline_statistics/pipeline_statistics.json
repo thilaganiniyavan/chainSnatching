@@ -1,0 +1,352 @@
+[
+  {
+    "video_name": "1.mp4",
+    "video_path": "Snatch 1.0/Chain Snatching Videos/Snatch Theft\\1.mp4",
+    "fps": 29.97002997002997,
+    "input": {
+      "total_video_frames": 615
+    },
+    "motion_filtering": {
+      "frames_entering": 615,
+      "frames_removed": 0,
+      "frames_retained": 599,
+      "reduction_percentage": 0.0,
+      "processing_time_seconds": 4.3108
+    },
+    "yolo_detection": {
+      "frames_processed": 599,
+      "frames_removed": 136,
+      "frames_retained": 463,
+      "stage_reduction_percentage": 22.7,
+      "total_detections": 755,
+      "detections_by_class": {
+        "person": 736,
+        "bicycle": 0,
+        "motorcycle": 0,
+        "car": 19,
+        "bus": 0,
+        "truck": 0
+      },
+      "average_confidence": 0.6785,
+      "inference_time_seconds": 18.3876
+    },
+    "tracking": {
+      "frames_processed": 599,
+      "frames_removed": 136,
+      "frames_retained": 463,
+      "total_tracks": 5,
+      "average_track_length_frames": 126.4,
+      "longest_track_frames": 291,
+      "lost_tracks": 5,
+      "id_switches": 0,
+      "processing_time_seconds": 19.379
+    },
+    "relationship_engine": {
+      "frames_processed": 599,
+      "frames_removed": 597,
+      "frames_retained": 2,
+      "total_person_vehicle_pairs": 3,
+      "proximity_events": 2,
+      "average_interaction_duration_frames": 2.0,
+      "processing_time_seconds": 0.0565
+    },
+    "candidate_event_generation": {
+      "frames_processed": 599,
+      "frames_removed": 597,
+      "frames_retained": 2,
+      "total_candidate_events": 2,
+      "processing_time_seconds": 0.0
+    },
+    "pipeline_summary": {
+      "total_execution_time_seconds": 42.3581,
+      "search_space_remaining_pct": {
+        "Input": 100.0,
+        "Motion": 97.4,
+        "YOLO": 75.28,
+        "Tracking": 75.28,
+        "Relationships": 0.33,
+        "Candidate Events": 0.33
+      }
+    }
+  },
+  {
+    "video_name": "10.mp4",
+    "video_path": "Snatch 1.0/Chain Snatching Videos/Snatch Theft\\10.mp4",
+    "fps": 29.97002997002997,
+    "input": {
+      "total_video_frames": 378
+    },
+    "motion_filtering": {
+      "frames_entering": 378,
+      "frames_removed": 0,
+      "frames_retained": 241,
+      "reduction_percentage": 0.0,
+      "processing_time_seconds": 9.9725
+    },
+    "yolo_detection": {
+      "frames_processed": 241,
+      "frames_removed": 0,
+      "frames_retained": 241,
+      "stage_reduction_percentage": 0.0,
+      "total_detections": 1388,
+      "detections_by_class": {
+        "person": 530,
+        "bicycle": 0,
+        "motorcycle": 0,
+        "car": 847,
+        "bus": 1,
+        "truck": 10
+      },
+      "average_confidence": 0.6534,
+      "inference_time_seconds": 8.3021
+    },
+    "tracking": {
+      "frames_processed": 241,
+      "frames_removed": 0,
+      "frames_retained": 241,
+      "total_tracks": 13,
+      "average_track_length_frames": 62.31,
+      "longest_track_frames": 210,
+      "lost_tracks": 13,
+      "id_switches": 0,
+      "processing_time_seconds": 13.6055
+    },
+    "relationship_engine": {
+      "frames_processed": 241,
+      "frames_removed": 235,
+      "frames_retained": 6,
+      "total_person_vehicle_pairs": 678,
+      "proximity_events": 6,
+      "average_interaction_duration_frames": 6.0,
+      "processing_time_seconds": 0.1316
+    },
+    "candidate_event_generation": {
+      "frames_processed": 241,
+      "frames_removed": 235,
+      "frames_retained": 6,
+      "total_candidate_events": 6,
+      "processing_time_seconds": 0.0
+    },
+    "pipeline_summary": {
+      "total_execution_time_seconds": 32.5982,
+      "search_space_remaining_pct": {
+        "Input": 100.0,
+        "Motion": 63.76,
+        "YOLO": 63.76,
+        "Tracking": 63.76,
+        "Relationships": 1.59,
+        "Candidate Events": 1.59
+      }
+    }
+  },
+  {
+    "video_name": "10_0.mp4",
+    "video_path": "Snatch 1.0/Chain Snatching Videos/Snatch Theft\\10_0.mp4",
+    "fps": 25.0,
+    "input": {
+      "total_video_frames": 1100
+    },
+    "motion_filtering": {
+      "frames_entering": 1100,
+      "frames_removed": 60,
+      "frames_retained": 1040,
+      "reduction_percentage": 5.45,
+      "processing_time_seconds": 3.4075
+    },
+    "yolo_detection": {
+      "frames_processed": 1100,
+      "frames_removed": 98,
+      "frames_retained": 1002,
+      "stage_reduction_percentage": 8.91,
+      "total_detections": 1984,
+      "detections_by_class": {
+        "person": 1926,
+        "bicycle": 14,
+        "motorcycle": 44,
+        "car": 0,
+        "bus": 0,
+        "truck": 0
+      },
+      "average_confidence": 0.7636,
+      "inference_time_seconds": 62.7397
+    },
+    "tracking": {
+      "frames_processed": 1100,
+      "frames_removed": 98,
+      "frames_retained": 1002,
+      "total_tracks": 6,
+      "average_track_length_frames": 290.17,
+      "longest_track_frames": 755,
+      "lost_tracks": 6,
+      "id_switches": 0,
+      "processing_time_seconds": 66.5376
+    },
+    "relationship_engine": {
+      "frames_processed": 1100,
+      "frames_removed": 1091,
+      "frames_retained": 9,
+      "total_person_vehicle_pairs": 32,
+      "proximity_events": 16,
+      "average_interaction_duration_frames": 8.0,
+      "processing_time_seconds": 0.0291
+    },
+    "candidate_event_generation": {
+      "frames_processed": 1100,
+      "frames_removed": 1091,
+      "frames_retained": 9,
+      "total_candidate_events": 9,
+      "processing_time_seconds": 0.0
+    },
+    "pipeline_summary": {
+      "total_execution_time_seconds": 133.0601,
+      "search_space_remaining_pct": {
+        "Input": 100.0,
+        "Motion": 94.55,
+        "YOLO": 91.09,
+        "Tracking": 91.09,
+        "Relationships": 0.82,
+        "Candidate Events": 0.82
+      }
+    }
+  },
+  {
+    "video_name": "11.mp4",
+    "video_path": "Snatch 1.0/Chain Snatching Videos/Snatch Theft\\11.mp4",
+    "fps": 29.97002997002997,
+    "input": {
+      "total_video_frames": 262
+    },
+    "motion_filtering": {
+      "frames_entering": 262,
+      "frames_removed": 0,
+      "frames_retained": 181,
+      "reduction_percentage": 0.0,
+      "processing_time_seconds": 13.2395
+    },
+    "yolo_detection": {
+      "frames_processed": 181,
+      "frames_removed": 6,
+      "frames_retained": 175,
+      "stage_reduction_percentage": 3.31,
+      "total_detections": 635,
+      "detections_by_class": {
+        "person": 326,
+        "bicycle": 1,
+        "motorcycle": 1,
+        "car": 304,
+        "bus": 0,
+        "truck": 3
+      },
+      "average_confidence": 0.6324,
+      "inference_time_seconds": 31.8319
+    },
+    "tracking": {
+      "frames_processed": 181,
+      "frames_removed": 6,
+      "frames_retained": 175,
+      "total_tracks": 10,
+      "average_track_length_frames": 38.9,
+      "longest_track_frames": 77,
+      "lost_tracks": 10,
+      "id_switches": 0,
+      "processing_time_seconds": 38.1525
+    },
+    "relationship_engine": {
+      "frames_processed": 181,
+      "frames_removed": 147,
+      "frames_retained": 34,
+      "total_person_vehicle_pairs": 228,
+      "proximity_events": 40,
+      "average_interaction_duration_frames": 13.33,
+      "processing_time_seconds": 0.236
+    },
+    "candidate_event_generation": {
+      "frames_processed": 181,
+      "frames_removed": 147,
+      "frames_retained": 34,
+      "total_candidate_events": 34,
+      "processing_time_seconds": 0.0
+    },
+    "pipeline_summary": {
+      "total_execution_time_seconds": 84.4819,
+      "search_space_remaining_pct": {
+        "Input": 100.0,
+        "Motion": 69.08,
+        "YOLO": 66.79,
+        "Tracking": 66.79,
+        "Relationships": 12.98,
+        "Candidate Events": 12.98
+      }
+    }
+  },
+  {
+    "video_name": "11_0.mp4",
+    "video_path": "Snatch 1.0/Chain Snatching Videos/Snatch Theft\\11_0.mp4",
+    "fps": 25.0,
+    "input": {
+      "total_video_frames": 106
+    },
+    "motion_filtering": {
+      "frames_entering": 106,
+      "frames_removed": 0,
+      "frames_retained": 106,
+      "reduction_percentage": 0.0,
+      "processing_time_seconds": 5.6137
+    },
+    "yolo_detection": {
+      "frames_processed": 106,
+      "frames_removed": 3,
+      "frames_retained": 103,
+      "stage_reduction_percentage": 2.83,
+      "total_detections": 185,
+      "detections_by_class": {
+        "person": 99,
+        "bicycle": 86,
+        "motorcycle": 0,
+        "car": 0,
+        "bus": 0,
+        "truck": 0
+      },
+      "average_confidence": 0.6658,
+      "inference_time_seconds": 32.0923
+    },
+    "tracking": {
+      "frames_processed": 106,
+      "frames_removed": 3,
+      "frames_retained": 103,
+      "total_tracks": 2,
+      "average_track_length_frames": 66.5,
+      "longest_track_frames": 73,
+      "lost_tracks": 2,
+      "id_switches": 0,
+      "processing_time_seconds": 34.0019
+    },
+    "relationship_engine": {
+      "frames_processed": 106,
+      "frames_removed": 104,
+      "frames_retained": 2,
+      "total_person_vehicle_pairs": 145,
+      "proximity_events": 3,
+      "average_interaction_duration_frames": 3.0,
+      "processing_time_seconds": 0.1359
+    },
+    "candidate_event_generation": {
+      "frames_processed": 106,
+      "frames_removed": 104,
+      "frames_retained": 2,
+      "total_candidate_events": 2,
+      "processing_time_seconds": 0.0
+    },
+    "pipeline_summary": {
+      "total_execution_time_seconds": 74.6552,
+      "search_space_remaining_pct": {
+        "Input": 100.0,
+        "Motion": 100.0,
+        "YOLO": 97.17,
+        "Tracking": 97.17,
+        "Relationships": 1.89,
+        "Candidate Events": 1.89
+      }
+    }
+  }
+]
