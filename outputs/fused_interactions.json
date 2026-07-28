@@ -1,0 +1,123 @@
+{
+  "fused_interactions": [
+    {
+      "fusion_id": "FUSED-INT-0001",
+      "interaction_id": "INT-0001",
+      "person_track_id": -1,
+      "vehicle_track_id": -1,
+      "start_frame": 44,
+      "end_frame": 44,
+      "duration_seconds": 0.033,
+      "behaviour_patterns": [],
+      "action_timeline": [
+        {
+          "frame": 44,
+          "action_label": "Unknown",
+          "action_confidence": 0.9,
+          "model_name": "ST-GCN"
+        }
+      ],
+      "motion_evidence": {
+        "node_count": 0,
+        "edge_count": 0,
+        "average_speed_px": 0.0,
+        "direction_deg": 0.0
+      },
+      "spatial_evidence": {
+        "has_vehicle": false,
+        "min_distance_px": 0.0
+      },
+      "temporal_evidence": {
+        "start_frame": 44,
+        "end_frame": 44,
+        "duration_seconds": 0.033
+      },
+      "action_evidence": [
+        {
+          "action_id": "ACT-19182D99",
+          "label": "Unknown",
+          "confidence": 0.9
+        }
+      ],
+      "behaviour_confidence": 0.5,
+      "action_confidence": 0.5,
+      "fusion_confidence": 0.56,
+      "fusion_strategy": "weighted_confidence",
+      "evidence_timeline": [
+        {
+          "frame": 44,
+          "timestamp": 1.468,
+          "behaviour_pattern": "NONE",
+          "behaviour_confidence": 0.0,
+          "action_label": "Unknown",
+          "action_confidence": 0.9
+        }
+      ],
+      "explanation_text": "Person (Track -1) engaged in an interaction. Kinematic dynamics exhibited minimum proximity of 0.0px, interaction duration of 0.0s, average relative speed of 0.0px/s. Multi-modal fusion confidence: 56% (strategy: weighted_confidence).",
+      "metadata": {}
+    },
+    {
+      "fusion_id": "FUSED-INT-0002",
+      "interaction_id": "INT-0002",
+      "person_track_id": -1,
+      "vehicle_track_id": -1,
+      "start_frame": 311,
+      "end_frame": 311,
+      "duration_seconds": 0.033,
+      "behaviour_patterns": [],
+      "action_timeline": [
+        {
+          "frame": 311,
+          "action_label": "Unknown",
+          "action_confidence": 0.9,
+          "model_name": "ST-GCN"
+        }
+      ],
+      "motion_evidence": {
+        "node_count": 0,
+        "edge_count": 0,
+        "average_speed_px": 0.0,
+        "direction_deg": 0.0
+      },
+      "spatial_evidence": {
+        "has_vehicle": false,
+        "min_distance_px": 0.0
+      },
+      "temporal_evidence": {
+        "start_frame": 311,
+        "end_frame": 311,
+        "duration_seconds": 0.033
+      },
+      "action_evidence": [
+        {
+          "action_id": "ACT-278088FE",
+          "label": "Unknown",
+          "confidence": 0.9
+        }
+      ],
+      "behaviour_confidence": 0.5,
+      "action_confidence": 0.5,
+      "fusion_confidence": 0.56,
+      "fusion_strategy": "weighted_confidence",
+      "evidence_timeline": [
+        {
+          "frame": 311,
+          "timestamp": 10.377,
+          "behaviour_pattern": "NONE",
+          "behaviour_confidence": 0.0,
+          "action_label": "Unknown",
+          "action_confidence": 0.9
+        }
+      ],
+      "explanation_text": "Person (Track -1) engaged in an interaction. Kinematic dynamics exhibited minimum proximity of 0.0px, interaction duration of 0.0s, average relative speed of 0.0px/s. Multi-modal fusion confidence: 56% (strategy: weighted_confidence).",
+      "metadata": {}
+    }
+  ],
+  "summary": {
+    "total_fused_interactions": 2,
+    "average_fusion_confidence": 0.56,
+    "fusion_strategies_used": [
+      "weighted_confidence"
+    ]
+  }
+}

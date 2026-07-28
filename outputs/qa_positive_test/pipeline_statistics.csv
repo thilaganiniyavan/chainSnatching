@@ -1,0 +1,2 @@
+video_name,total_frames,processed_frames,discarded_frames,reduction_ratio_pct,elapsed_seconds,fps,avg_ms_per_frame,detections,tracks,interactions,behaviour_graphs,rois,pose_estimations,skeleton_sequences,action_predictions,fused_interactions,signature_matches,forensic_events
+1.mp4,615,463,152,24.72,106.09,4.36,229.14,1,2,0,0,0,2,2,2,2,640,640

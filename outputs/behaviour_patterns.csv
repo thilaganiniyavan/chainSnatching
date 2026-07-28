@@ -1,0 +1,1 @@
+graph_id,interaction_id,pattern_id,pattern_type,start_frame,end_frame,duration_frames,duration_seconds,confidence,supporting_primitives,min_distance_px,avg_distance_px,peak_relative_velocity,peak_relative_acceleration

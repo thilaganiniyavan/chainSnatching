@@ -19,5 +19,13 @@ class FrameContext:
     tracks: list[Any] = field(default_factory=list)
     depth_map: Any | None = None
     poses: list[Any] = field(default_factory=list)
+    interactions: list[Any] = field(default_factory=list)
+    graphs: list[Any] = field(default_factory=list)
+    rois: list[Any] = field(default_factory=list)
+    sequences: list[Any] = field(default_factory=list)
+    actions: list[Any] = field(default_factory=list)
+    fused_interactions: list[Any] = field(default_factory=list)
+    snatch_signatures: list[Any] = field(default_factory=list)
+    forensic_events: list[Any] = field(default_factory=list)
     behavior: Any | None = None
     metadata: dict[str, Any] = field(default_factory=dict)

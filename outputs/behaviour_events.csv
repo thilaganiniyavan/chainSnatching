@@ -1,0 +1,1 @@
+event_id,event_type,confidence,start_frame,end_frame,duration_frames,duration_seconds,person_track_id,vehicle_track_id,interaction_id,supporting_sequence,min_distance_px,peak_relative_velocity,peak_relative_acceleration,is_tentative,explanation

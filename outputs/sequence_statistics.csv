@@ -1,0 +1,3 @@
+sequence_id,interaction_id,person_track_id,start_frame,end_frame,frame_count,duration_seconds,topology,num_joints,normalization_method,quality_score,completeness_score,is_accepted,rejection_reason
+SEQ-INT-0001-TRK--1,INT-0001,-1,44,44,1,0.033,COCO_17,17,hip_centered,0.75,1.0,True,Accepted
+SEQ-INT-0002-TRK--1,INT-0002,-1,311,311,1,0.033,COCO_17,17,hip_centered,0.75,1.0,True,Accepted

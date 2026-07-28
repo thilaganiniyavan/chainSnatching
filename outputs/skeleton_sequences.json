@@ -1,0 +1,56 @@
+{
+  "sequences": [
+    {
+      "sequence_id": "SEQ-INT-0001-TRK--1",
+      "interaction_id": "INT-0001",
+      "person_track_id": -1,
+      "start_frame": 44,
+      "end_frame": 44,
+      "frame_count": 1,
+      "duration_seconds": 0.033,
+      "topology": "COCO_17",
+      "num_joints": 17,
+      "normalization_method": "hip_centered",
+      "quality_score": 0.75,
+      "completeness_score": 1.0,
+      "is_accepted": true,
+      "rejection_reason": "Accepted",
+      "frame_indices": [
+        44
+      ],
+      "timestamps": [
+        1.468
+      ],
+      "metadata": {}
+    },
+    {
+      "sequence_id": "SEQ-INT-0002-TRK--1",
+      "interaction_id": "INT-0002",
+      "person_track_id": -1,
+      "start_frame": 311,
+      "end_frame": 311,
+      "frame_count": 1,
+      "duration_seconds": 0.033,
+      "topology": "COCO_17",
+      "num_joints": 17,
+      "normalization_method": "hip_centered",
+      "quality_score": 0.75,
+      "completeness_score": 1.0,
+      "is_accepted": true,
+      "rejection_reason": "Accepted",
+      "frame_indices": [
+        311
+      ],
+      "timestamps": [
+        10.377
+      ],
+      "metadata": {}
+    }
+  ],
+  "summary": {
+    "total_sequences": 2,
+    "accepted_sequences": 2,
+    "rejected_sequences": 0,
+    "acceptance_rate_pct": 100.0
+  }
+}

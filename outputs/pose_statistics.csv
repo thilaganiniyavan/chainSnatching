@@ -1,0 +1,3 @@
+sample_id,roi_id,interaction_id,frame_index,timestamp,track_id,backend_name,topology,num_keypoints,overall_confidence,quality_score,processing_time_ms
+SMP-INT-0001-44,ROI-INT-0001,INT-0001,44,1.468,-1,MediaPipe,COCO_17,17,0.75,0.75,0.54
+SMP-INT-0002-311,ROI-INT-0002,INT-0002,311,10.377,-1,MediaPipe,COCO_17,17,0.75,0.75,0.28

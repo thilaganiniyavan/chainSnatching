@@ -1,0 +1,115 @@
+{
+  "action_results": [
+    {
+      "action_id": "ACT-19182D99",
+      "sequence_id": "SEQ-INT-0001-TRK--1",
+      "interaction_id": "INT-0001",
+      "track_id": -1,
+      "predicted_action": "Unknown",
+      "action_confidence": 0.9,
+      "class_probabilities": {
+        "Walking": 0.05,
+        "Standing": 0.05,
+        "Running": 0.05,
+        "Approaching": 0.05,
+        "Reaching": 0.05,
+        "Grabbing": 0.05,
+        "Pulling": 0.05,
+        "Turning": 0.05,
+        "Falling": 0.05,
+        "Unknown": 0.9
+      },
+      "top_k_predictions": [
+        [
+          "Unknown",
+          0.9
+        ],
+        [
+          "Walking",
+          0.05
+        ],
+        [
+          "Standing",
+          0.05
+        ],
+        [
+          "Running",
+          0.05
+        ],
+        [
+          "Approaching",
+          0.05
+        ]
+      ],
+      "inference_time_ms": 0.01,
+      "model_name": "ST-GCN",
+      "model_version": "1.0.0",
+      "device_used": "CPU",
+      "skeleton_quality": 0.75,
+      "metadata": {
+        "has_torch_runtime": true
+      }
+    },
+    {
+      "action_id": "ACT-278088FE",
+      "sequence_id": "SEQ-INT-0002-TRK--1",
+      "interaction_id": "INT-0002",
+      "track_id": -1,
+      "predicted_action": "Unknown",
+      "action_confidence": 0.9,
+      "class_probabilities": {
+        "Walking": 0.05,
+        "Standing": 0.05,
+        "Running": 0.05,
+        "Approaching": 0.05,
+        "Reaching": 0.05,
+        "Grabbing": 0.05,
+        "Pulling": 0.05,
+        "Turning": 0.05,
+        "Falling": 0.05,
+        "Unknown": 0.9
+      },
+      "top_k_predictions": [
+        [
+          "Unknown",
+          0.9
+        ],
+        [
+          "Walking",
+          0.05
+        ],
+        [
+          "Standing",
+          0.05
+        ],
+        [
+          "Running",
+          0.05
+        ],
+        [
+          "Approaching",
+          0.05
+        ]
+      ],
+      "inference_time_ms": 0.01,
+      "model_name": "ST-GCN",
+      "model_version": "1.0.0",
+      "device_used": "CPU",
+      "skeleton_quality": 0.75,
+      "metadata": {
+        "has_torch_runtime": true
+      }
+    }
+  ],
+  "summary": {
+    "total_action_classifications": 2,
+    "average_confidence": 0.9,
+    "average_inference_time_ms": 0.01,
+    "models_used": [
+      "ST-GCN"
+    ],
+    "action_counts": {
+      "Unknown": 2
+    }
+  }
+}

@@ -1,0 +1,17 @@
+stage_index,stage_name,avg_latency_ms,throughput_fps,frames_entering,frames_leaving,reduction_pct
+1,Motion Triage,4436.31,0.2,615,463,24.7
+2,Semantic Filtering,0.0,0.0,615,463,0.0
+3,YOLO Detection,22072.74,0.0,615,463,0.0
+4,Multi-Object Tracking,6104.88,0.2,615,463,0.0
+5,Motion Feature Extraction,6104.88,0.2,615,463,0.0
+6,Relationship Engine,6104.88,0.2,615,463,0.0
+7,Interaction Manager,6104.88,0.2,615,463,0.0
+8,Behaviour Intelligence,6104.88,0.2,615,463,0.0
+9,Behaviour Graph Reasoning,6104.88,0.2,615,463,0.0
+10,ROI Selection,6104.88,0.2,615,463,0.0
+11,Pose Estimation,6104.88,0.2,615,463,0.0
+12,Skeleton Sequence Builder,6104.88,0.2,615,463,0.0
+13,Human Action Recognition,6104.88,0.2,615,463,0.0
+14,Behaviour Fusion,6104.88,0.2,615,463,0.0
+15,Snatch Signature Engine,6104.88,0.2,615,463,0.0
+16,Forensic Indexing & Retrieval,6104.88,0.2,615,463,0.0

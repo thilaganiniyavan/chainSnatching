@@ -1,0 +1,3 @@
+action_id,sequence_id,interaction_id,track_id,predicted_action,action_confidence,inference_time_ms,model_name,model_version,device_used,skeleton_quality
+ACT-19182D99,SEQ-INT-0001-TRK--1,INT-0001,-1,Unknown,0.9,0.01,ST-GCN,1.0.0,CPU,0.75
+ACT-278088FE,SEQ-INT-0002-TRK--1,INT-0002,-1,Unknown,0.9,0.01,ST-GCN,1.0.0,CPU,0.75

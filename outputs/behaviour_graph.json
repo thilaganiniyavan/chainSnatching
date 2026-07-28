@@ -1,0 +1,45 @@
+{
+  "graphs": [
+    {
+      "graph_id": "GRAPH-INT-0001",
+      "interaction_id": "INT-0001",
+      "person_track_id": -1,
+      "vehicle_track_id": -1,
+      "start_frame": 44,
+      "end_frame": null,
+      "is_active": true,
+      "nodes": [],
+      "edges": [],
+      "pattern_sequence": [],
+      "extensible_metadata": {
+        "created_at_frame": 44,
+        "fps": 29.97002997002997,
+        "skeleton_sequence": [],
+        "fusion_features": {}
+      }
+    },
+    {
+      "graph_id": "GRAPH-INT-0002",
+      "interaction_id": "INT-0002",
+      "person_track_id": -1,
+      "vehicle_track_id": -1,
+      "start_frame": 311,
+      "end_frame": null,
+      "is_active": true,
+      "nodes": [],
+      "edges": [],
+      "pattern_sequence": [],
+      "extensible_metadata": {
+        "created_at_frame": 311,
+        "fps": 29.97002997002997,
+        "skeleton_sequence": [],
+        "fusion_features": {}
+      }
+    }
+  ],
+  "summary": {
+    "total_graphs": 2,
+    "total_pattern_nodes": 0,
+    "pattern_type_counts": {}
+  }
+}
