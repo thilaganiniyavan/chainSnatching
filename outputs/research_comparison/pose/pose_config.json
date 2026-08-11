@@ -1,0 +1,15 @@
+{
+    "stage": "Pose",
+    "timestamp": "2026-08-11T08:04:46.757703",
+    "executable_methods": [
+        "MediaPipe"
+    ],
+    "scaffold_methods": [
+        "MMPose",
+        "RTMPose",
+        "ViTPose",
+        "OpenPose"
+    ],
+    "status": "NOT EVALUATED",
+    "reason": "Benchmark dataset missing at Snatch 1.0/Chain Snatching Videos/Snatch Theft. Cannot guarantee fair scientific comparison without identical source data."
+}

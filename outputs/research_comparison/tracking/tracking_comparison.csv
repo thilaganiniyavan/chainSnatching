@@ -1,0 +1,3 @@
+Method,Precision,Recall,F1,Latency_ms,FPS,Status,Reason
+ByteTrack,N/A,N/A,N/A,N/A,N/A,NOT EVALUATED,Benchmark dataset missing at Snatch 1.0/Chain Snatching Videos/Snatch Theft. Cannot guarantee fair scientific comparison without identical source data.
+BoT-SORT,N/A,N/A,N/A,N/A,N/A,NOT EVALUATED,Benchmark dataset missing at Snatch 1.0/Chain Snatching Videos/Snatch Theft. Cannot guarantee fair scientific comparison without identical source data.

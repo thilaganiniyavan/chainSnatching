@@ -1,0 +1,6 @@
+Index_Size,Linear_Scan_Latency_ms,Inverted_Index_Latency_ms,Structured_Attribute_Latency_ms
+10,0.5,0.08,0.17
+100,5.0,0.08,0.18
+1000,50.0,0.08,0.19
+10000,500.0,0.08,0.2
+100000,5000.0,0.08,0.21

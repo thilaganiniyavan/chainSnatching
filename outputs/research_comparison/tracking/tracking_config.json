@@ -1,0 +1,10 @@
+{
+    "stage": "Tracking",
+    "timestamp": "2026-08-11T08:02:17.615162",
+    "models_tested": [
+        "ByteTrack",
+        "BoT-SORT"
+    ],
+    "status": "NOT EVALUATED",
+    "reason": "Benchmark dataset missing at Snatch 1.0/Chain Snatching Videos/Snatch Theft. Cannot guarantee fair scientific comparison without identical source data."
+}

@@ -1,0 +1,12 @@
+{
+    "stage": "Signature",
+    "timestamp": "2026-08-11T08:05:54.418444",
+    "models_tested": [
+        "Single threshold",
+        "Weighted evidence",
+        "Rule graph",
+        "Proposed"
+    ],
+    "status": "NOT EVALUATED",
+    "reason": "Benchmark dataset missing at Snatch 1.0/Chain Snatching Videos/Snatch Theft. Cannot guarantee fair scientific comparison."
+}

@@ -1,0 +1,484 @@
+[
+    {
+        "experiment_id": "Detection_YOLOv8",
+        "stage": "Detection",
+        "method": "YOLOv8",
+        "dataset": "Snatch 1.0",
+        "split": "Video-Level (70/15/15)",
+        "timestamp": "2026-08-11T08:10:00.568633",
+        "status": "NOT_EVALUATED",
+        "reason": "Missing actual dataset (Fabrication strictly prohibited)"
+    },
+    {
+        "experiment_id": "Detection_YOLO11",
+        "stage": "Detection",
+        "method": "YOLO11",
+        "dataset": "Snatch 1.0",
+        "split": "Video-Level (70/15/15)",
+        "timestamp": "2026-08-11T08:10:00.569486",
+        "status": "NOT_EVALUATED",
+        "reason": "Missing actual dataset (Fabrication strictly prohibited)"
+    },
+    {
+        "experiment_id": "Tracking_ByteTrack",
+        "stage": "Tracking",
+        "method": "ByteTrack",
+        "dataset": "Snatch 1.0",
+        "split": "Video-Level (70/15/15)",
+        "timestamp": "2026-08-11T08:10:00.570358",
+        "status": "NOT_EVALUATED",
+        "reason": "Missing actual dataset (Fabrication strictly prohibited)"
+    },
+    {
+        "experiment_id": "Tracking_BoT-SORT",
+        "stage": "Tracking",
+        "method": "BoT-SORT",
+        "dataset": "Snatch 1.0",
+        "split": "Video-Level (70/15/15)",
+        "timestamp": "2026-08-11T08:10:00.571179",
+        "status": "NOT_EVALUATED",
+        "reason": "Missing actual dataset (Fabrication strictly prohibited)"
+    },
+    {
+        "experiment_id": "Tracking_OC-SORT",
+        "stage": "Tracking",
+        "method": "OC-SORT",
+        "dataset": "Snatch 1.0",
+        "split": "Video-Level (70/15/15)",
+        "timestamp": "2026-08-11T08:10:00.572239",
+        "status": "NOT_EVALUATED",
+        "reason": "Not implemented/executable"
+    },
+    {
+        "experiment_id": "Relationship_Centroid_Euclidean_distance",
+        "stage": "Relationship",
+        "method": "Centroid Euclidean distance",
+        "dataset": "Snatch 1.0",
+        "split": "Video-Level (70/15/15)",
+        "timestamp": "2026-08-11T08:10:00.573177",
+        "status": "NOT_EVALUATED",
+        "reason": "Missing actual dataset (Fabrication strictly prohibited)"
+    },
+    {
+        "experiment_id": "Relationship_Bounding-box_edge_distance",
+        "stage": "Relationship",
+        "method": "Bounding-box edge distance",
+        "dataset": "Snatch 1.0",
+        "split": "Video-Level (70/15/15)",
+        "timestamp": "2026-08-11T08:10:00.575066",
+        "status": "NOT_EVALUATED",
+        "reason": "Missing actual dataset (Fabrication strictly prohibited)"
+    },
+    {
+        "experiment_id": "Relationship_Normalized_distance",
+        "stage": "Relationship",
+        "method": "Normalized distance",
+        "dataset": "Snatch 1.0",
+        "split": "Video-Level (70/15/15)",
+        "timestamp": "2026-08-11T08:10:00.576178",
+        "status": "NOT_EVALUATED",
+        "reason": "Missing actual dataset (Fabrication strictly prohibited)"
+    },
+    {
+        "experiment_id": "Relationship_IoU_interaction",
+        "stage": "Relationship",
+        "method": "IoU interaction",
+        "dataset": "Snatch 1.0",
+        "split": "Video-Level (70/15/15)",
+        "timestamp": "2026-08-11T08:10:00.577181",
+        "status": "NOT_EVALUATED",
+        "reason": "Missing actual dataset (Fabrication strictly prohibited)"
+    },
+    {
+        "experiment_id": "Relationship_Distance_+_relative_velocity",
+        "stage": "Relationship",
+        "method": "Distance + relative velocity",
+        "dataset": "Snatch 1.0",
+        "split": "Video-Level (70/15/15)",
+        "timestamp": "2026-08-11T08:10:00.578115",
+        "status": "NOT_EVALUATED",
+        "reason": "Missing actual dataset (Fabrication strictly prohibited)"
+    },
+    {
+        "experiment_id": "Behaviour_Primitive_rule_reasoning",
+        "stage": "Behaviour",
+        "method": "Primitive rule reasoning",
+        "dataset": "Snatch 1.0",
+        "split": "Video-Level (70/15/15)",
+        "timestamp": "2026-08-11T08:10:00.579033",
+        "status": "NOT_EVALUATED",
+        "reason": "Missing actual dataset (Fabrication strictly prohibited)"
+    },
+    {
+        "experiment_id": "Behaviour_Behaviour_timeline",
+        "stage": "Behaviour",
+        "method": "Behaviour timeline",
+        "dataset": "Snatch 1.0",
+        "split": "Video-Level (70/15/15)",
+        "timestamp": "2026-08-11T08:10:00.580056",
+        "status": "NOT_EVALUATED",
+        "reason": "Missing actual dataset (Fabrication strictly prohibited)"
+    },
+    {
+        "experiment_id": "Behaviour_Behaviour_graph",
+        "stage": "Behaviour",
+        "method": "Behaviour graph",
+        "dataset": "Snatch 1.0",
+        "split": "Video-Level (70/15/15)",
+        "timestamp": "2026-08-11T08:10:00.580882",
+        "status": "NOT_EVALUATED",
+        "reason": "Missing actual dataset (Fabrication strictly prohibited)"
+    },
+    {
+        "experiment_id": "ROI_Selection_Full-frame",
+        "stage": "ROI Selection",
+        "method": "Full-frame",
+        "dataset": "Snatch 1.0",
+        "split": "Video-Level (70/15/15)",
+        "timestamp": "2026-08-11T08:10:00.581707",
+        "status": "NOT_EVALUATED",
+        "reason": "Missing actual dataset (Fabrication strictly prohibited)"
+    },
+    {
+        "experiment_id": "ROI_Selection_Person_bounding-box",
+        "stage": "ROI Selection",
+        "method": "Person bounding-box",
+        "dataset": "Snatch 1.0",
+        "split": "Video-Level (70/15/15)",
+        "timestamp": "2026-08-11T08:10:00.582561",
+        "status": "NOT_EVALUATED",
+        "reason": "Missing actual dataset (Fabrication strictly prohibited)"
+    },
+    {
+        "experiment_id": "ROI_Selection_Interaction_ROI",
+        "stage": "ROI Selection",
+        "method": "Interaction ROI",
+        "dataset": "Snatch 1.0",
+        "split": "Video-Level (70/15/15)",
+        "timestamp": "2026-08-11T08:10:00.583456",
+        "status": "NOT_EVALUATED",
+        "reason": "Missing actual dataset (Fabrication strictly prohibited)"
+    },
+    {
+        "experiment_id": "ROI_Selection_Expanded_interaction_ROI",
+        "stage": "ROI Selection",
+        "method": "Expanded interaction ROI",
+        "dataset": "Snatch 1.0",
+        "split": "Video-Level (70/15/15)",
+        "timestamp": "2026-08-11T08:10:00.584393",
+        "status": "NOT_EVALUATED",
+        "reason": "Missing actual dataset (Fabrication strictly prohibited)"
+    },
+    {
+        "experiment_id": "ROI_Selection_Behaviour-informed_ROI",
+        "stage": "ROI Selection",
+        "method": "Behaviour-informed ROI",
+        "dataset": "Snatch 1.0",
+        "split": "Video-Level (70/15/15)",
+        "timestamp": "2026-08-11T08:10:00.585258",
+        "status": "NOT_EVALUATED",
+        "reason": "Missing actual dataset (Fabrication strictly prohibited)"
+    },
+    {
+        "experiment_id": "Pose_Estimation_MediaPipe",
+        "stage": "Pose Estimation",
+        "method": "MediaPipe",
+        "dataset": "Snatch 1.0",
+        "split": "Video-Level (70/15/15)",
+        "timestamp": "2026-08-11T08:10:00.586111",
+        "status": "NOT_EVALUATED",
+        "reason": "Missing actual dataset (Fabrication strictly prohibited)"
+    },
+    {
+        "experiment_id": "Pose_Estimation_RTMPose",
+        "stage": "Pose Estimation",
+        "method": "RTMPose",
+        "dataset": "Snatch 1.0",
+        "split": "Video-Level (70/15/15)",
+        "timestamp": "2026-08-11T08:10:00.587190",
+        "status": "NOT_EVALUATED",
+        "reason": "Scaffold adapter (No actual inference)"
+    },
+    {
+        "experiment_id": "Pose_Estimation_ViTPose",
+        "stage": "Pose Estimation",
+        "method": "ViTPose",
+        "dataset": "Snatch 1.0",
+        "split": "Video-Level (70/15/15)",
+        "timestamp": "2026-08-11T08:10:00.588916",
+        "status": "NOT_EVALUATED",
+        "reason": "Scaffold adapter (No actual inference)"
+    },
+    {
+        "experiment_id": "Pose_Estimation_MMPose",
+        "stage": "Pose Estimation",
+        "method": "MMPose",
+        "dataset": "Snatch 1.0",
+        "split": "Video-Level (70/15/15)",
+        "timestamp": "2026-08-11T08:10:00.590362",
+        "status": "NOT_EVALUATED",
+        "reason": "Scaffold adapter (No actual inference)"
+    },
+    {
+        "experiment_id": "Pose_Estimation_OpenPose",
+        "stage": "Pose Estimation",
+        "method": "OpenPose",
+        "dataset": "Snatch 1.0",
+        "split": "Video-Level (70/15/15)",
+        "timestamp": "2026-08-11T08:10:00.592001",
+        "status": "NOT_EVALUATED",
+        "reason": "Scaffold adapter (No actual inference)"
+    },
+    {
+        "experiment_id": "Skeleton_Normalization_hip_centered",
+        "stage": "Skeleton Normalization",
+        "method": "hip_centered",
+        "dataset": "Snatch 1.0",
+        "split": "Video-Level (70/15/15)",
+        "timestamp": "2026-08-11T08:10:00.594221",
+        "status": "NOT_EVALUATED",
+        "reason": "Missing actual dataset (Fabrication strictly prohibited)"
+    },
+    {
+        "experiment_id": "Skeleton_Normalization_bbox",
+        "stage": "Skeleton Normalization",
+        "method": "bbox",
+        "dataset": "Snatch 1.0",
+        "split": "Video-Level (70/15/15)",
+        "timestamp": "2026-08-11T08:10:00.595745",
+        "status": "NOT_EVALUATED",
+        "reason": "Missing actual dataset (Fabrication strictly prohibited)"
+    },
+    {
+        "experiment_id": "Skeleton_Normalization_root_joint",
+        "stage": "Skeleton Normalization",
+        "method": "root_joint",
+        "dataset": "Snatch 1.0",
+        "split": "Video-Level (70/15/15)",
+        "timestamp": "2026-08-11T08:10:00.596890",
+        "status": "NOT_EVALUATED",
+        "reason": "Missing actual dataset (Fabrication strictly prohibited)"
+    },
+    {
+        "experiment_id": "Skeleton_Normalization_image",
+        "stage": "Skeleton Normalization",
+        "method": "image",
+        "dataset": "Snatch 1.0",
+        "split": "Video-Level (70/15/15)",
+        "timestamp": "2026-08-11T08:10:00.597852",
+        "status": "NOT_EVALUATED",
+        "reason": "Missing actual dataset (Fabrication strictly prohibited)"
+    },
+    {
+        "experiment_id": "Skeleton_Normalization_rotation_aligned",
+        "stage": "Skeleton Normalization",
+        "method": "rotation_aligned",
+        "dataset": "Snatch 1.0",
+        "split": "Video-Level (70/15/15)",
+        "timestamp": "2026-08-11T08:10:00.598843",
+        "status": "NOT_EVALUATED",
+        "reason": "Missing actual dataset (Fabrication strictly prohibited)"
+    },
+    {
+        "experiment_id": "Action_Recognition_ST-GCN",
+        "stage": "Action Recognition",
+        "method": "ST-GCN",
+        "dataset": "Snatch 1.0",
+        "split": "Video-Level (70/15/15)",
+        "timestamp": "2026-08-11T08:10:00.599913",
+        "status": "NOT_EVALUATED",
+        "reason": "Missing actual dataset (Fabrication strictly prohibited)"
+    },
+    {
+        "experiment_id": "Action_Recognition_CTR-GCN",
+        "stage": "Action Recognition",
+        "method": "CTR-GCN",
+        "dataset": "Snatch 1.0",
+        "split": "Video-Level (70/15/15)",
+        "timestamp": "2026-08-11T08:10:00.600969",
+        "status": "NOT_EVALUATED",
+        "reason": "Scaffold adapter (No actual inference)"
+    },
+    {
+        "experiment_id": "Action_Recognition_MSG3D",
+        "stage": "Action Recognition",
+        "method": "MSG3D",
+        "dataset": "Snatch 1.0",
+        "split": "Video-Level (70/15/15)",
+        "timestamp": "2026-08-11T08:10:00.602012",
+        "status": "NOT_EVALUATED",
+        "reason": "Scaffold adapter (No actual inference)"
+    },
+    {
+        "experiment_id": "Action_Recognition_PoseC3D",
+        "stage": "Action Recognition",
+        "method": "PoseC3D",
+        "dataset": "Snatch 1.0",
+        "split": "Video-Level (70/15/15)",
+        "timestamp": "2026-08-11T08:10:00.603092",
+        "status": "NOT_EVALUATED",
+        "reason": "Scaffold adapter (No actual inference)"
+    },
+    {
+        "experiment_id": "Fusion_weighted_confidence",
+        "stage": "Fusion",
+        "method": "weighted_confidence",
+        "dataset": "Snatch 1.0",
+        "split": "Video-Level (70/15/15)",
+        "timestamp": "2026-08-11T08:10:00.605186",
+        "status": "NOT_EVALUATED",
+        "reason": "Missing actual dataset (Fabrication strictly prohibited)"
+    },
+    {
+        "experiment_id": "Fusion_bayesian",
+        "stage": "Fusion",
+        "method": "bayesian",
+        "dataset": "Snatch 1.0",
+        "split": "Video-Level (70/15/15)",
+        "timestamp": "2026-08-11T08:10:00.607471",
+        "status": "NOT_EVALUATED",
+        "reason": "Missing actual dataset (Fabrication strictly prohibited)"
+    },
+    {
+        "experiment_id": "Fusion_rule_based",
+        "stage": "Fusion",
+        "method": "rule_based",
+        "dataset": "Snatch 1.0",
+        "split": "Video-Level (70/15/15)",
+        "timestamp": "2026-08-11T08:10:00.610376",
+        "status": "NOT_EVALUATED",
+        "reason": "Missing actual dataset (Fabrication strictly prohibited)"
+    },
+    {
+        "experiment_id": "Fusion_voting_based",
+        "stage": "Fusion",
+        "method": "voting_based",
+        "dataset": "Snatch 1.0",
+        "split": "Video-Level (70/15/15)",
+        "timestamp": "2026-08-11T08:10:00.613129",
+        "status": "NOT_EVALUATED",
+        "reason": "Missing actual dataset (Fabrication strictly prohibited)"
+    },
+    {
+        "experiment_id": "Fusion_weighted_averaging",
+        "stage": "Fusion",
+        "method": "weighted_averaging",
+        "dataset": "Snatch 1.0",
+        "split": "Video-Level (70/15/15)",
+        "timestamp": "2026-08-11T08:10:00.615003",
+        "status": "NOT_EVALUATED",
+        "reason": "Missing actual dataset (Fabrication strictly prohibited)"
+    },
+    {
+        "experiment_id": "Signature_Reasoning_Single_threshold",
+        "stage": "Signature Reasoning",
+        "method": "Single threshold",
+        "dataset": "Snatch 1.0",
+        "split": "Video-Level (70/15/15)",
+        "timestamp": "2026-08-11T08:10:00.616809",
+        "status": "NOT_EVALUATED",
+        "reason": "Missing actual dataset (Fabrication strictly prohibited)"
+    },
+    {
+        "experiment_id": "Signature_Reasoning_Weighted_evidence",
+        "stage": "Signature Reasoning",
+        "method": "Weighted evidence",
+        "dataset": "Snatch 1.0",
+        "split": "Video-Level (70/15/15)",
+        "timestamp": "2026-08-11T08:10:00.618937",
+        "status": "NOT_EVALUATED",
+        "reason": "Missing actual dataset (Fabrication strictly prohibited)"
+    },
+    {
+        "experiment_id": "Signature_Reasoning_Temporal_sequence_signature",
+        "stage": "Signature Reasoning",
+        "method": "Temporal sequence signature",
+        "dataset": "Snatch 1.0",
+        "split": "Video-Level (70/15/15)",
+        "timestamp": "2026-08-11T08:10:00.621826",
+        "status": "NOT_EVALUATED",
+        "reason": "Missing actual dataset (Fabrication strictly prohibited)"
+    },
+    {
+        "experiment_id": "Signature_Reasoning_Rule_graph",
+        "stage": "Signature Reasoning",
+        "method": "Rule graph",
+        "dataset": "Snatch 1.0",
+        "split": "Video-Level (70/15/15)",
+        "timestamp": "2026-08-11T08:10:00.624374",
+        "status": "NOT_EVALUATED",
+        "reason": "Missing actual dataset (Fabrication strictly prohibited)"
+    },
+    {
+        "experiment_id": "Signature_Reasoning_Current_signature_engine",
+        "stage": "Signature Reasoning",
+        "method": "Current signature engine",
+        "dataset": "Snatch 1.0",
+        "split": "Video-Level (70/15/15)",
+        "timestamp": "2026-08-11T08:10:00.626291",
+        "status": "NOT_EVALUATED",
+        "reason": "Missing actual dataset (Fabrication strictly prohibited)"
+    },
+    {
+        "experiment_id": "Forensic_Indexing_Linear_scan",
+        "stage": "Forensic Indexing",
+        "method": "Linear scan",
+        "dataset": "Snatch 1.0",
+        "split": "Video-Level (70/15/15)",
+        "timestamp": "2026-08-11T08:10:00.628095",
+        "status": "COMPLETED",
+        "reason": "Synthetic Scalability Evaluation",
+        "latency_ms": 500.0
+    },
+    {
+        "experiment_id": "Forensic_Indexing_Inverted_index",
+        "stage": "Forensic Indexing",
+        "method": "Inverted index",
+        "dataset": "Snatch 1.0",
+        "split": "Video-Level (70/15/15)",
+        "timestamp": "2026-08-11T08:10:00.631175",
+        "status": "COMPLETED",
+        "reason": "Synthetic Scalability Evaluation",
+        "latency_ms": 0.08
+    },
+    {
+        "experiment_id": "Architecture_Config_A",
+        "stage": "Architecture",
+        "method": "Config A",
+        "dataset": "Snatch 1.0",
+        "split": "Video-Level (70/15/15)",
+        "timestamp": "2026-08-11T08:10:00.634905",
+        "status": "NOT_EVALUATED",
+        "reason": "Missing actual dataset (Fabrication strictly prohibited)"
+    },
+    {
+        "experiment_id": "Architecture_Config_B",
+        "stage": "Architecture",
+        "method": "Config B",
+        "dataset": "Snatch 1.0",
+        "split": "Video-Level (70/15/15)",
+        "timestamp": "2026-08-11T08:10:00.637587",
+        "status": "NOT_EVALUATED",
+        "reason": "Missing actual dataset (Fabrication strictly prohibited)"
+    },
+    {
+        "experiment_id": "Architecture_Config_C",
+        "stage": "Architecture",
+        "method": "Config C",
+        "dataset": "Snatch 1.0",
+        "split": "Video-Level (70/15/15)",
+        "timestamp": "2026-08-11T08:10:00.640975",
+        "status": "NOT_EVALUATED",
+        "reason": "Missing actual dataset (Fabrication strictly prohibited)"
+    },
+    {
+        "experiment_id": "Architecture_Config_D",
+        "stage": "Architecture",
+        "method": "Config D",
+        "dataset": "Snatch 1.0",
+        "split": "Video-Level (70/15/15)",
+        "timestamp": "2026-08-11T08:10:00.644523",
+        "status": "NOT_EVALUATED",
+        "reason": "Missing actual dataset (Fabrication strictly prohibited)"
+    }
+]

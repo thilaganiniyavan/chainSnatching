@@ -1,0 +1,180 @@
+{
+    "Detection": {
+        "YOLOv8": {
+            "executable": true
+        },
+        "YOLO11": {
+            "executable": true
+        }
+    },
+    "Tracking": {
+        "ByteTrack": {
+            "executable": true
+        },
+        "BoT-SORT": {
+            "executable": true
+        },
+        "OC-SORT": {
+            "executable": false,
+            "reason": "Not implemented/executable"
+        }
+    },
+    "Relationship": {
+        "Centroid Euclidean distance": {
+            "executable": true
+        },
+        "Bounding-box edge distance": {
+            "executable": true
+        },
+        "Normalized distance": {
+            "executable": true
+        },
+        "IoU interaction": {
+            "executable": true
+        },
+        "Distance + relative velocity": {
+            "executable": true
+        }
+    },
+    "Behaviour": {
+        "Primitive rule reasoning": {
+            "executable": true
+        },
+        "Behaviour timeline": {
+            "executable": true
+        },
+        "Behaviour graph": {
+            "executable": true
+        }
+    },
+    "ROI Selection": {
+        "Full-frame": {
+            "executable": true
+        },
+        "Person bounding-box": {
+            "executable": true
+        },
+        "Interaction ROI": {
+            "executable": true
+        },
+        "Expanded interaction ROI": {
+            "executable": true
+        },
+        "Behaviour-informed ROI": {
+            "executable": true
+        }
+    },
+    "Pose Estimation": {
+        "MediaPipe": {
+            "executable": true
+        },
+        "RTMPose": {
+            "executable": false,
+            "reason": "Scaffold adapter (No actual inference)"
+        },
+        "ViTPose": {
+            "executable": false,
+            "reason": "Scaffold adapter (No actual inference)"
+        },
+        "MMPose": {
+            "executable": false,
+            "reason": "Scaffold adapter (No actual inference)"
+        },
+        "OpenPose": {
+            "executable": false,
+            "reason": "Scaffold adapter (No actual inference)"
+        }
+    },
+    "Skeleton Normalization": {
+        "hip_centered": {
+            "executable": true
+        },
+        "bbox": {
+            "executable": true
+        },
+        "root_joint": {
+            "executable": true
+        },
+        "image": {
+            "executable": true
+        },
+        "rotation_aligned": {
+            "executable": true
+        }
+    },
+    "Action Recognition": {
+        "ST-GCN": {
+            "executable": true
+        },
+        "CTR-GCN": {
+            "executable": false,
+            "reason": "Scaffold adapter (No actual inference)"
+        },
+        "MSG3D": {
+            "executable": false,
+            "reason": "Scaffold adapter (No actual inference)"
+        },
+        "PoseC3D": {
+            "executable": false,
+            "reason": "Scaffold adapter (No actual inference)"
+        }
+    },
+    "Fusion": {
+        "weighted_confidence": {
+            "executable": true
+        },
+        "bayesian": {
+            "executable": true
+        },
+        "rule_based": {
+            "executable": true
+        },
+        "voting_based": {
+            "executable": true
+        },
+        "weighted_averaging": {
+            "executable": true
+        }
+    },
+    "Signature Reasoning": {
+        "Single threshold": {
+            "executable": true
+        },
+        "Weighted evidence": {
+            "executable": true
+        },
+        "Temporal sequence signature": {
+            "executable": true
+        },
+        "Rule graph": {
+            "executable": true
+        },
+        "Current signature engine": {
+            "executable": true
+        }
+    },
+    "Forensic Indexing": {
+        "Linear scan": {
+            "executable": true,
+            "synthetic_only": true
+        },
+        "Inverted index": {
+            "executable": true,
+            "synthetic_only": true
+        }
+    },
+    "Architecture": {
+        "Config A": {
+            "executable": true
+        },
+        "Config B": {
+            "executable": true
+        },
+        "Config C": {
+            "executable": true
+        },
+        "Config D": {
+            "executable": true
+        }
+    }
+}

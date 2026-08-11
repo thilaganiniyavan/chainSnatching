@@ -126,7 +126,8 @@ chainSnatching/
 ├── apps/
 │   ├── pipeline_runner.py           # Master Interactive Pipeline Runner application
 │   ├── run_end_to_end_evaluation.py # End-to-End Pipeline Evaluation Runner
-│   └── run_research_experiments.py  # Automated Research Comparison & Ablation Suite
+│   ├── run_research_experiments.py  # Automated Research Comparison & Ablation Suite
+│   └── run_all_research_comparisons.py # Master Mechanism-Comparison Research Orchestrator
 ├── src/
 │   ├── core/                        # Shared domain interfaces & data models
 │   ├── detection/                   # YOLO Detector & Semantic Filtering Engine
@@ -181,7 +182,12 @@ python apps/run_end_to_end_evaluation.py \
 python apps/run_research_experiments.py --output-dir "outputs/research_experiments" --seed 42
 ```
 
-### 5. Run Unit Test Suite
+### 5. Run Master Mechanism-Comparison Research Orchestrator
+```bash
+python apps/run_all_research_comparisons.py
+```
+
+### 6. Run Unit Test Suite
 ```bash
 python -m pytest -v
 ```

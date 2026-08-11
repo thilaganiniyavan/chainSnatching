@@ -1,0 +1,14 @@
+{
+    "stage": "Normalization",
+    "timestamp": "2026-08-11T08:04:46.758367",
+    "executable_methods": [
+        "Hip-centered",
+        "Bounding-box",
+        "Root-joint",
+        "Image-coordinate",
+        "Rotation-aligned"
+    ],
+    "scaffold_methods": [],
+    "status": "NOT EVALUATED",
+    "reason": "Benchmark dataset missing at Snatch 1.0/Chain Snatching Videos/Snatch Theft. Cannot guarantee fair scientific comparison without identical source data."
+}

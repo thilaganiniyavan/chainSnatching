@@ -1,0 +1,11 @@
+{
+    "stage": "Behaviour",
+    "timestamp": "2026-08-11T08:04:23.205229",
+    "methods_tested": [
+        "Rule-based Behaviours",
+        "Behaviour Timeline",
+        "Behaviour Graph"
+    ],
+    "status": "NOT EVALUATED",
+    "reason": "Benchmark dataset missing at Snatch 1.0/Chain Snatching Videos/Snatch Theft. Cannot guarantee fair scientific comparison without identical source data."
+}
