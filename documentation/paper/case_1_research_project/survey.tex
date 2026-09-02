@@ -1,0 +1,1463 @@
+\documentclass[conference]{IEEEtran}
+
+% --------------------------------------------------
+% Packages
+% --------------------------------------------------
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{xurl}
+\usepackage{url}
+\usepackage{algorithmic}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{tabularx}
+\usepackage{siunitx}
+\usepackage{hyperref}
+\usepackage{float}
+
+\urlstyle{same}
+
+\newcommand{\cs}[1]{\texttt{\char`\\#1}}
+\newcommand{\equal}[1]{{\hypersetup{linkcolor=black}\thanks{#1}}}
+
+\title{AI-Driven Forensic Indexing:\\
+A Behavioral Model for Chain Snatching Identification}
+\author{
+\IEEEauthorblockN{Anonymous}
+}
+
+\begin{document}
+% \linenumbers % Activate line numbering
+
+\maketitle
+
+\begin{abstract}
+Automated analysis of CCTV footage for chain-snatching incidents is
+challenging due to the large volume of surveillance data, varying
+visual conditions, and complex interactions between pedestrians and suspects. Existing approaches often address individual
+tasks such as object detection, motion analysis, depth estimation, or
+action recognition independently, limiting their effectiveness for
+forensic investigation. While recent surveillance systems integrate multiple vision tasks, few jointly address forensic evidence preservation, computational efficiency, and domain-specific snatch signatures. This paper presents an AI-driven forensic
+search framework that integrates these capabilities into a progressive
+three-tier architecture. The framework combines low-level motion and
+visual preprocessing, semantic object detection and spatial reasoning,
+and higher-level behavioural analysis to identify chain-snatching-related
+interactions and generate searchable forensic events. Particular
+emphasis is placed on modelling suspect--victim interactions,
+including pillion-rider behaviour, while preserving relevant evidence
+throughout the processing pipeline. The framework was evaluated on
+43 CCTV video sequences containing 35 annotated chain-snatching events
+and 8 negative sequences. The complete system achieved
+\textbf{100.00\% precision, 94.29\% recall, 97.06\% F1-score, and
+95.35\% accuracy}. Progressive processing reduced the retained search
+space to \textbf{2.38\%} of the original video frames, while
+\textbf{33 of 35 ground-truth events} were preserved through the
+complete pipeline. The forensic indexing component additionally
+achieved \textbf{100\% search accuracy and completeness} with
+sub-millisecond average query latency. The results demonstrate that
+progressive visual and behavioural analysis can substantially reduce
+CCTV investigation workload while retaining relevant forensic evidence
+and enabling efficient retrieval of crime-related events.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Chain Snatching Detection, Computer Vision, Forensic Surveillance,
+YOLOv11, Zero-DCE, ST-GCN, Monocular Depth Estimation
+\end{IEEEkeywords}
+
+\section{Introduction}
+
+The increasing deployment of CCTV systems has produced large volumes of
+surveillance footage that are difficult to inspect manually. In
+chain-snatching investigations, relevant events may occur within only a
+few frames and involve complex interactions between victims, suspects,
+and motorcycles. Frame-level object detection alone is therefore
+insufficient for reliable forensic analysis.
+
+Existing approaches often focus on individual surveillance tasks, such as
+motion detection, object detection, depth estimation, tracking, or action
+recognition~\cite{roy2018snatch}, while some recent systems integrate
+multiple vision capabilities. Such approaches may pass large numbers of
+irrelevant observations to downstream stages and provide limited
+support for structured forensic retrieval. Furthermore, generic action
+recognition does not explicitly model the spatial and temporal
+relationships characteristic of chain-snatching incidents.
+
+This paper presents an AI-driven forensic search framework that
+progressively transforms CCTV footage into structured forensic events.
+The framework integrates motion filtering, semantic object detection,
+tracking, spatial relationship analysis, behavioural reasoning,
+pose-based action recognition, evidence fusion, crime-specific
+signature analysis, and forensic indexing. The progressive architecture
+is designed to reduce the search space while preserving relevant
+forensic evidence.
+
+The framework is evaluated on a CCTV dataset containing annotated
+chain-snatching and negative sequences. Experimental results demonstrate
+the effectiveness of the proposed progressive architecture in reducing
+the forensic search space while preserving relevant crime evidence and
+supporting efficient CCTV-based chain-snatching investigation.
+
+\section{Taxonomy of the Literature Survey}
+
+To provide a structured overview of the reviewed literature, the surveyed techniques are categorized into three major research components: preprocessing, localization, and behavioral modeling. Each component is further divided into its respective subdomains based on the primary objective of the methods. Figure~\ref{fig:taxonomy} illustrates the taxonomy adopted in this survey.
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.48\textwidth]{chain_snatching_taxonomy.png}
+    \caption{Taxonomy of the literature surveyed for AI-driven chain-snatching detection.}
+    \label{fig:taxonomy}
+\end{figure}
+
+\begin{table*}[!t]
+\centering
+\scriptsize
+\renewcommand{\arraystretch}{1.2}
+\caption{Comparison of representative low-light image enhancement techniques for forensic surveillance.}
+\label{tab:lowlight_comparison}
+
+\begin{tabular}{|l|p{3.0cm}|p{3.5cm}|p{3.8cm}|p{2.5cm}|}
+\hline
+\textbf{Model} &
+\textbf{Core Technique} &
+\textbf{Strength} &
+\textbf{Primary Limitation} &
+\textbf{Suitability} \\ \hline
+
+LIME~\cite{lime} &
+Illumination Map Estimation &
+Simple illumination correction &
+High computational cost; prone to over-exposure under strong lighting &
+Limited \\ \hline
+
+Retinex-Net~\cite{retinexnet} &
+Deep Retinex Decomposition &
+Improves contrast and detail restoration &
+Amplifies sensor noise under challenging lighting conditions &
+Moderate \\ \hline
+
+EnlightenGAN~\cite{enlightengan} &
+GAN-based Image Enhancement &
+Produces visually appealing enhanced images &
+May generate hallucinated textures, compromising evidentiary reliability &
+Low \\ \hline
+
+\textbf{Zero-DCE}~\cite{zerodce} &
+Zero-Reference Curve Estimation &
+Non-generative, lightweight, and preserves structural details &
+Performance may degrade under extremely severe illumination conditions &
+High \\ \hline
+
+CycleGAN~\cite{cyclegan} &
+GAN-based Image Translation &
+Effective style transfer without paired training &
+May alter image content through hallucinated structures &
+Low \\ \hline
+
+\end{tabular}
+\end{table*}
+
+\section{Subdomain Analysis \& Model Evolution}
+\label{sec:subdomain}
+
+\subsection{Low-Light Image Enhancement}
+Low-Light Image Enhancement. Continuous urban surveillance systems are expected to operate reliably under diverse illumination conditions, including nighttime environments where visibility is significantly degraded. In chain-snatching detection, poor lighting, sensor noise, motion blur, and reduced contrast often obscure critical visual cues such as hand movements, facial features, and interactions between the suspect, victim, and motorcycle. Furthermore, benchmark surveillance datasets such as UCF-Crime are predominantly composed of daytime footage, limiting the robustness of many existing computer vision models when deployed under low-light conditions. As a result, object detectors and subsequent behavioral recognition models experience substantial performance degradation due to the loss of discriminative image features. Consequently, low-light image enhancement has become a fundamental preprocessing stage in modern forensic surveillance pipelines, aiming to improve image visibility while preserving the structural and evidentiary integrity required for reliable downstream analysis.
+
+
+\subsubsection{Comparative Analysis}
+\paragraph{Illumination Map Estimation} Classical techniques like LIME utilize illumination map constraints to boost luminance line-by-line. However, they suffer from high per-frame processing overhead and create severe over-exposure violations when street lamps or vehicle headlights enter the active frame view.
+
+\paragraph{Generative Models} Unpaired image-to-image translation models (e.g., EnlightenGAN) significantly improve perceptual quality. However, their underlying generative adversarial structure introduces pixel hallucination. In a forensic context, texturing or detail generation that alters the true state of a video frame risks immediate rejection regarding legal admissibility in court.
+
+\paragraph{Non-Reference Curve Estimation} Zero-Reference Deep Curve Estimation (Zero-DCE) reformulates low-light image enhancement as an image-specific curve estimation problem rather than direct image-to-image translation. A lightweight Deep Curve Estimation Network (DCE-Net) predicts pixel-wise light-enhancement curves that are iteratively applied to adjust image brightness while preserving local contrast. Unlike conventional illumination estimation methods, Zero-DCE performs enhancement independently on the RGB channels, thereby improving illumination while maintaining the original color distribution and minimizing color distortion~\cite{zerodce}.
+
+The light-enhancement curve employed by Zero-DCE is expressed as
+
+\begin{equation}
+L_{n}(x)=L_{n-1}(x)+\alpha_{n}L_{n-1}(x)\left(1-L_{n-1}(x)\right),
+\label{eq:zerodce}
+\end{equation}
+
+where $L_n(x)$ denotes the enhanced pixel intensity after the $n^{\text{th}}$ iteration, $L_{n-1}(x)$ represents the output from the previous iteration, and $\alpha_n$ controls the degree of illumination enhancement. By iteratively applying the enhancement curve, Zero-DCE is capable of progressively improving severely underexposed regions while preserving local image structures~\cite{zerodce}.
+
+A major advantage of Zero-DCE is its zero-reference learning framework, which eliminates the need for paired or unpaired training images. Instead, the network is optimized using non-reference loss functions that enforce spatial consistency, exposure control, color constancy, and illumination smoothness. Since the method enhances images through mathematical curve estimation rather than generative image synthesis, it preserves structural details and avoids hallucinated content that could compromise evidentiary integrity. Furthermore, its lightweight architecture enables real-time deployment, making it particularly suitable for forensic surveillance systems and edge-based video analytics~\cite{zerodce}.
+
+\subsection{Background Subtraction \& Temporal Filtering}
+\subsubsection{Overview}
+Background subtraction is the critical pre-processing step of a video surveillance system, which aims to identify foreground objects included in a given video stream and extract them from the background. Foreground detection allows most surveillance systems to reduce the amount of unnecessary background information and focus on the detection and behavioral analysis of relevant moving foreground objects, such as targets, suspects, victims, and vehicles in the case of chain-snatching detection. Nevertheless, a large number of surveillance-related tasks involve complex outdoor scenes, which are often characterized by changes in illumination, camera shaking, moving backgrounds (e.g., shadows, vegetation), adverse weather, and motion-blurred objects. All of these factors combined with noise and false foreground/background information may significantly impact localization performance and lead to incorrect action recognition. Therefore, there is a definite need for advanced background subtraction methods, which would be capable of handling challenging outdoor environments.
+
+\subsubsection{Comparative Analysis}
+\paragraph{Classical Frame Differencing}
+
+Frame differencing is one of the earliest techniques that utilize a subtraction of two consecutive frames in order to extract the foreground. The algorithm is computationally very efficient, making it perfect for basic surveillance applications. Due to its simplicity, it is extremely sensitive to camera motion, changes in illumination, and object’s speed, and hence produces fragmented foreground masks and a large number of false alarms in real-world conditions \cite{framediff}.
+
+\paragraph{Gaussian Mixture Models}
+
+Gaussian Mixture Models (GMM) can be applied to video content where the intensity distribution of each pixel is modeled by a combination of Gaussians that allows for slow adaptation to changing backgrounds. This method is less sensitive to changes in illumination and repetitive background motion than the frame differencing method. However, GMM can fail under sudden changes in illumination or more complex outdoor conditions, resulting in reduced segmentation accuracy \cite{gmm}.
+
+\paragraph{Sample-Based Background Modeling}
+
+Sample-based methods such as the ViBe algorithm retain a set of previously observed pixel samples instead of a probabilistic distribution. They allow for quick adaptation to a changing background while also being memory and computationally efficient. Nevertheless, stationary foreground objects have a tendency to gradually disappear into the background and, therefore, not be detected \cite{vibe}.
+
+\paragraph{Adaptive Gaussian Mixture Models}
+
+MOG2 extends the traditional Gaussian Mixture Model by adaptively estimating the number of Gaussian components for each pixel, allowing improved modeling of complex and continuously changing backgrounds. Its adaptive learning strategy increases robustness to gradual illumination changes, shadows, and repetitive background motion while maintaining real-time performance. Comparative studies have shown that although KNN may achieve marginally higher segmentation similarity under certain datasets, MOG2 offers significantly faster inference and provides a more balanced trade-off between segmentation quality and computational efficiency, making it particularly suitable for continuous outdoor surveillance applications \cite{zivkovic2004mog2}.
+
+\subsection{Real-Time Object Detection}
+
+\subsubsection{Overview}
+
+Object detection is a critical stage in automated surveillance systems, responsible for localizing and classifying objects of interest within individual video frames. In chain-snatching detection, accurate localization of pedestrians, motorcycles, and other road users provides the spatial information required for subsequent depth estimation and spatio-temporal behavior analysis. However, surveillance videos present numerous challenges, including motion blur, partial occlusion, varying object scales, crowded urban environments, and adverse illumination conditions. Consequently, object detection models deployed for forensic surveillance must achieve a balance between localization accuracy, computational efficiency, and real-time inference capability to support continuous monitoring \cite{malhotra2020objectcomparison}.
+
+\subsubsection{Comparative Analysis}
+
+\paragraph{Two-Stage Object Detectors}
+
+Two-Stage Detectors: Region based Convolutional Neural Networks or R-CNN and faster R-CNN propose possible regions in an image and then classify and localize them. While these methods are usually accurate in terms of localization; they often require heavy computations which prohibits their use in real-time applications such as video surveillance \cite{fasterrcnn} where high-resolution videos need to be processed.
+
+\paragraph{Single-Stage Object Detectors}
+
+In comparison with two-stage detectors, single-stage detectors such as SSD and YOLO family directly predict object classes and locations by using a single pass through a convolutional network, thus achieving faster inference times \cite{ssd,yolo}. While SSD offers computational efficiency, detection performance can
+vary for small or visually challenging objects. On the contrary, the YOLO series progressively improves the accuracy-speed trade-off and and has become widely used for real-time object detection \cite{yolov8,yolov10,yolov11}.
+
+\paragraph{YOLOv11}
+
+YOLOv11 is the newest version of YOLO that improves the architecture by introducing the C3k2 block and the C2PSA attention module, thus providing better feature extraction capabilities with lower computational complexity \cite{yolov11}. The YOLOv11 model demonstrates high accuracy with reduced number of parameters and faster inference speed compared to its predecessors, which makes it applicable for real-time surveillance tasks. The YOLOv11 backbone, multi-scale feature extraction, and attention
+mechanisms make the model suitable for detecting pedestrians and
+two-wheeled vehicles in challenging surveillance footage.
+
+\subsection{Monocular Depth Estimation}
+\subsubsection{Overview}
+A major challenge in traditional CCTV-based crime analytics is the 2D occlusion, in which the background human is falsely considered as a foreground participant. For instance, when the pedestrian walks around a moving motorcycle, the person and the motorcycle may be mistakenly treated as close objects since their 2D bounding boxes overlap. This causes erroneous interaction reasoning and leads to false positives in chain snatching detection.
+
+\subsubsection{Comparative Analysis}
+
+\begin{table*}[!t]
+\centering
+\scriptsize
+\renewcommand{\arraystretch}{1.2}
+\caption{Comparison of representative monocular depth estimation techniques for forensic surveillance.}
+\label{tab:depth_comparison}
+
+\begin{tabular}{|l|p{3.0cm}|p{3.6cm}|p{3.9cm}|p{2.4cm}|}
+\hline
+\textbf{Model} &
+\textbf{Core Technique} &
+\textbf{Strength} &
+\textbf{Primary Limitation} &
+\textbf{Suitability} \\ \hline
+
+Stereo Vision &
+Dual-Camera Disparity Estimation &
+Accurate metric depth estimation &
+Requires calibrated stereo cameras and additional hardware &
+Limited \\ \hline
+
+LiDAR / ToF &
+Active Depth Sensing &
+Highly accurate 3D distance measurement &
+High deployment cost; affected by adverse weather conditions &
+Low \\ \hline
+
+MiDaS~\cite{monovit} &
+Multi-Dataset Monocular Depth Estimation &
+Strong cross-dataset generalization &
+Higher computational cost; reduced boundary precision in complex scenes &
+Moderate \\ \hline
+
+\textbf{Depth-Anything V2}~\cite{yang2024depth} &
+Vision Transformer Foundation Model &
+Excellent generalization, sharp object boundaries, and robust relative depth estimation &
+Higher GPU memory requirements for larger model variants &
+High \\ \hline
+
+\end{tabular}
+
+\end{table*}
+
+\paragraph{Stereo Vision and Active Depth Sensors}
+
+Traditional depth estimation algorithms typically rely on stereo camera configurations or utilize active sensing approaches such as LiDAR or Time-of-Flight (ToF) technologies that enable direct metric depth recovery through either disparity estimation or laser ranging.
+While these methods allow for acquiring accurate depth observations, they often necessitate the use of expensive sensors that are often not widely available, requiring additional calibration and installation efforts. Besides, in adverse weather conditions such as rain or snow or varying outdoor lighting conditions, their performance tends to degrade significantly, hindering their use in large-scale urban monitoring applications.
+
+\paragraph{Classical Monocular Depth Estimation}
+
+Recent approaches in deep learning allow to estimate the depth of a scene from a single RGB image, which removes the necessity of using special hardware for depth sensing. Early monocular models, such as MiDaS, showed great performance on multiple data sets with relative depth supervision, allowing to train on various data sets. However, MiDaS and similar models are too computationally heavy and have reduced performance on complex scenes with a large number of objects on a single frame, making them unsuitable for real-time video surveillance.
+
+\paragraph{Foundation-Based Depth Estimation}
+
+Recent foundation models, specifically the Depth-Anything V2 method \cite{yang2024depth}, allow to obtain monocular depth estimation from large-scale synthetic and real-world data used during pretraining. The obtained Vision Transformer model predicts relative depth maps in a more accurate manner compared to traditional monocular approaches while also being more robust to different environments. Thus, Depth-Anything V2 can be effectively utilized to estimate the depth of various objects in the surveillance domain. The model predicts sharper object boundaries, has better generalization ability, and achieves overall better geometry consistency than previous monocular methods, implying its ability to estimate spatial relations between objects in complex urban scenes.
+
+\subsection{Pose Estimation and Tier Integration}
+
+\subsubsection{Overview}
+
+Following object detection and monocular depth estimation, human pose estimation provides an intermediate representation, which encodes detected persons using a set of skeletal keypoints. In contrast to visual features, skeletal pose is more resilient to appearance variations caused by background clutter and illumination while retaining critical information about body posture and motion. As such, pose estimation serves as an important bridge in the context of surveillance applications, where spatio-temporal patterns of people’s behavior need to be analyzed at multiple levels of abstraction.
+
+\subsubsection{MediaPipe Pose as the Bridge Module}
+
+MediaPipe Pose is selected as our intermediate module to connect the lower-tier task, namely object detection and monocular depth estimation, with the higher-tier one, behavior recognition \cite{mediapipe}. It utilizes a heatmap regression-based approach to regress human body key points, which allows a certain degree of occlusion handling by exploring spatial relationships between body parts. This property is particularly useful in our case, as during the process of chain-snatching, people tend to move quickly, resulting in frequent occlusions of body parts.
+
+To enable real-time inference, MediaPipe Pose also implements a temporal tracking module that allows quick cropping of the person of interest from consecutive frames, instead of performing full-scale pose estimation. This reduces the computational burden while still keeping the tracking of the skeleton in the short-term temporal context consistent with the motion patterns of the person of interest, which is crucial for correctly identifying rapidly unfolding interactions, such as those occurring during the chain-snatching.
+
+Finally, we note that in addition to providing 2D projected positions of the person’s joints, MediaPipe Pose estimates their depth under a weak perspective camera model. These estimates can be combined with the global depth estimates provided by Depth-Anything V2 \cite{yang2024depth} to create a more informative 3D skeleton, which in turn can be used to improve discriminability of pedestrian-motorcycle interaction patterns for the ST-GCN network \cite{yan2018stgcn}.
+
+\subsection{Spatio-Temporal Behavioral Recognition}
+
+\begin{table*}[!t]
+\centering
+\scriptsize
+\renewcommand{\arraystretch}{1.2}
+\caption{Quantitative comparison of representative behavior recognition models for forensic surveillance.}
+\label{tab:behavior_quantitative}
+
+\begin{tabular}{|l|c|c|c|}
+\hline
+\textbf{Metric} &
+\textbf{ViViT~\cite{liu2022video}} &
+\textbf{2s-AGCN~\cite{shi2019twostreamagcn}} &
+\textbf{ST-GCN~\cite{yan2018stgcn}} \\ \hline
+
+Top-1 Accuracy (NTU-120) (\%) $\uparrow$ &
+89.1 &
+\textbf{91.2} &
+89.9 \\ \hline
+
+GFLOPs $\downarrow$ &
+50.0 &
+18.4 &
+\textbf{16.2} \\ \hline
+
+Parameters (Millions) $\downarrow$ &
+100+ &
+6.9 &
+\textbf{3.1} \\ \hline
+
+Skeleton-Based Representation &
+No &
+Yes &
+Yes \\ \hline
+
+Real-Time Deployment &
+Moderate &
+High &
+\textbf{High} \\ \hline
+
+Interpretability &
+Low &
+High &
+\textbf{High} \\ \hline
+
+\end{tabular}
+\end{table*}
+
+\subsubsection{Overview}
+
+The final step consists of distinguishing between a legitimate and a visually similar pedestrian–vehicle interaction. The former occurs when a person is being snatched, whereas the latter represents an irrelevant activity. Although object detection and depth estimation algorithms can localize persons and identify those who are close, these algorithms cannot recognize whether the interaction is a crime or not. To detect illegal acts, it is rational to consider behavioral recognition methods, which extract the spatial configuration of specific parts of the human body and analyze their motion patterns across successive frames. In case of the discussed task, the motion of people’s bodies should be tracked, and fine-grained spatio-temporal transformations should be detected to reveal whether an illegal interaction with a motorcycle occurred over a short period of time.
+
+\subsubsection{Comparative Analysis}
+
+\paragraph{CNN-LSTM}
+
+The early methods employed Convolutional Neural Networks (CNN) and Long Short-Term Memory (LSTM) networks through which the CNNs extracted spatial appearance features from single frames whereas the LSTMs captured the temporal dynamics of features. The methods were suitable for capturing simple activities but had limitations in terms of complex motions and were sensitive to background appearance, illumination, and viewpoint changes \cite{cnnlstm}.
+
+\paragraph{Two-Stream Networks}
+
+Two-stream architectures address the problem of temporal modeling by using two separate convolutional networks to process RGB images and optical flow. By explicitly encoding motion, the optical-flow stream allows for better recognition of dynamic activities. Nonetheless, the need to calculate dense optical flow for each video frame imposes prohibitive computational costs on existing approaches, preventing their use in practice for continuous video surveillance \cite{twostreamlstm}.
+
+\paragraph{Vision Transformer-Based Models}
+
+Recent Vision Transformer (ViViT) architectures utilize self-attention mechanisms to directly model long-range temporal dependencies from video frames. While these approaches demonstrate remarkable performance in terms of recognition accuracy, they involve prohibitively large computational footprints, memory requirements, and inference time, limiting their deployment in the resource-constrained edge forensic surveillance domain ViViT~\cite{liu2022video}.
+
+\paragraph{Graph-Based Skeleton Recognition}
+
+Graph-based methods model the human body as a graph where nodes stand for body joints, and edges represent anatomical connections. Spatio-Temporal Graph Convolutional Networks (ST-GCN) directly learn the spatial configurations of the body and motion patterns of the skeleton from spatio-temporal motion data, being more robust to lighting and background variations, clothing, and viewpoints. Adaptive methods, such as 2s-AGCN, further improve recognition performance by learning the graph adaptively but result in higher computational complexity compared to the baseline \cite{shi2019twostreamagcn}. Of the approaches, ST-GCN appears to provide a good balance between computational cost, accuracy, and deployability in a real-time system for detecting chain-snatching.
+
+Unlike traditional visual RGB appearance models, graph-based methods process the spatiotemporal structure of people’s motions, being less sensitive to lighting, background clutter, viewpoint differences, and clothing. Combined with MediaPipe Pose and depth estimation from Depth-Anything V2, ST-GCN enables depth-aware spatiotemporal reasoning to accurately differentiate chain snatching from visually similar pedestrian–two-wheeler interactions. The model is also lightweight to perform continuous video analysis in a resource-constrained environment. As such, ST-GCN represents an ideal choice for behavioral recognition in the proposed three-layer framework~\cite{yan2018stgcn}.
+
+\section{Research Gaps}
+\label{sec:gaps}
+
+The comparative analysis results given in~Section~3 demonstrate that several issues still hinder surveillance system applications in the automated chain-snatching scenario. Although great progress has been made in single tasks of low-light image/video enhancement, object detection, depth estimation, and behavioural recognition, current solutions still have critical drawbacks for practical applications in complex CCTV environments. The main research challenges identified from the literature survey are given below.
+\subsection{Pillion-Rider Behavioral Gap}
+
+The survey of behavioural recognition models reveals that the majority of existing action recognition approaches are tailored to recognize generic human behaviours such as walking, running, fighting, and falling. Although graph-based approaches, such as ST-GCN, have been demonstrated to effectively model the motion patterns of people \cite{yan2018stgcn}, the interactions between two persons in terms of motorcycle geometry and the involved rapid ``grab-and-accelerate'' motion pattern in the context of chain-snatching scenarios are rarely modeled and analyzed \cite{roy2018snatch}. Hence, current action datasets and recognition models are insufficient to capture the fine-grained spatio-temporal patterns for the recognition of pillion-rider stealing behaviours.
+
+\subsection{Nighttime Reliability Gap}
+
+The survey of low-light image enhancement methods shows that most of the data sets used for surveillance are biased toward daytime images. Nightime images suffer from poor illumination, motion blur, and low sensor sensitivity. Many traditional enhancement algorithms are unsuitable for such images, while generative approaches produce unrealistic results that may contain artefacts not present in the original data \cite{lime,enlightengan,zerodce,retinexnet}. Thus, there is a need for efficient non-generative algorithms that can help extract useful information from images for surveillance purposes.
+
+\subsection{Edge Resource Bottleneck}
+
+The comparative analysis demonstrates a trade-off between recognition
+capability and computational cost as increasingly complex processing
+models are considered. Computationally intensive video-recognition
+architectures can impose substantial GPU memory and inference-time
+requirements, limiting their deployment on resource-constrained edge
+platforms~\cite{liu2022video,feichtenhofer2019slowfast}. These
+computational requirements motivate the development of a progressive
+and resource-efficient architecture that can support forensic video
+analysis without relying entirely on cloud-based processing.
+
+\subsection{2D Perspective Ambiguity}
+
+The review of monocular depth estimation highlights the limitations of
+reasoning about spatial relationships using only two-dimensional image
+coordinates. Objects at different physical depths may appear close or
+overlap in the image plane, potentially producing false proximity and
+interaction events. This ambiguity arises from the inherent loss of
+three-dimensional information during perspective projection
+\cite{monovit,liuhe2024depthanything,yang2024depth}. Therefore, there
+is a need to incorporate lightweight monocular depth estimation into
+surveillance pipelines to provide additional spatial information for
+interaction validation.
+
+\section{Survey Synthesis}
+\subsection{Evolution of AI-Based Surveillance Systems}
+
+The surveyed works reflect a progression from traditional computer vision
+methods toward deep learning and foundation models for increasingly
+complex surveillance environments. In low-light enhancement, research
+has progressed from illumination-map estimation and Retinex-based
+methods toward zero-reference approaches such as Zero-DCE, which reduce
+the need for paired training data. Background subtraction has similarly
+progressed from simple frame differencing toward adaptive statistical
+models capable of handling changing outdoor backgrounds.
+
+For object detection, research has evolved from computationally
+intensive two-stage detectors toward single-stage models such as the
+YOLO family, which provide improved accuracy--speed trade-offs. In depth
+estimation, approaches have progressed from stereo and active depth
+sensing toward monocular deep-learning and foundation models that
+estimate relative depth from a single RGB image. Finally, behavioral
+recognition has evolved from CNN-LSTM architectures that primarily model
+visual appearance and temporal features toward graph-based approaches
+that operate on skeletal representations and capture spatio-temporal
+motion patterns.
+
+\subsection{Cross-Domain Integration}
+
+An important conclusion that can be derived from the reviewed articles is that a single computer vision model is insufficient to solve the problems posed by the current state of forensic surveillance. Specifically, low-light enhancement algorithms do not address the problem of finding particular objects within images, object detection is not adequate in determining whether the objects are interacting with each other, depth estimation is insufficient in terms of understanding behavior, and action recognition requires pose estimation to function correctly. Therefore, the trend in the papers is to use a multi-stage approach, in which several computer vision components process video footage to achieve the best possible accuracy in the specific urban environment.
+
+\subsection{Emerging Research Trends}
+
+Several trends can be observed among the included articles in the survey. First, the application of lightweight models seems to gain more traction than heavy models for the purpose of real-time inference in edge surveillance devices. Second, the utilization of foundation models appear to be a popular choice due to their demonstrated success in generalizing across various conditions and data domains. Third, there is a growing interest in developing non-generative approaches for video forensics, as a means of ensuring evidential integrity. Lastly, a number of recent works attempt to devise multi-task networks that simultaneously perform enhancement, detection, depth estimation, and behavioral recognition, which leads to improved reliability over single-task networks.
+
+\subsection{Key Takeaways}
+
+The literature survey leads to the following key observations:
+
+\begin{itemize}
+    \item
+Non-generative enhancement techniques allow for a higher fidelity of forensic evidence retention than those relying on GANs do.
+\item
+Background subtraction is an adaptive method that can be applied to video streams in order to reduce the amount of processing needed by subsequent stages.
+\item
+The most advanced single-stage object detectors are capable of delivering the best trade-off between precision and processing speed.
+\item
+Monocular depth estimation is a viable solution for perspective distortion mitigation which does not rely on expensive hardware.
+\item
+Skeleton-based graph convolutional networks possess better robustness characteristics than their appearance-based counterparts, making them preferable in case of fast interactions.
+\end{itemize}
+
+\section{Proposed Methodology}
+\label{sec:methodology}
+
+\subsection{System Overview}
+
+The proposed approach is three-stage hierarchical in nature where deep learning models of increasing complexity are applied sequentially only when needed. Firstly, motion filtering is applied to discard stationary frames, followed by spatial localization and finally performing spatio-temporal behavioural analysis. This approach reduces the overall computational cost while retaining the forensic accuracy.
+
+\subsection{Motion Triage and Illumination Normalization}
+\subsubsection{Background Subtraction using MOG2}
+
+Motion triage in the described algorithm is done using the MOG2 (Mixture of Gaussians) background subtractor \cite{zivkovic2004mog2}. It works by being able to model each individual pixel as an adaptive mixture of Gaussians that allows the background model to account for varying scenes while still being able to distinguish foreground objects from the background. An adaptive learning rate is used to allow slow variations in illumination due to weather conditions like changes in sunlight or cloud coverage. The background model is further adapted to account for shadows using the shadow detection algorithm provided by OpenCV. This allows shadowed regions to be masked out before further processing takes place.
+
+In the proposed framework, the MOG2 background subtractor is configured with a history length of 500 frames, a variance threshold of 16.0, and shadow detection enabled. For each incoming frame, a foreground mask is generated and the number of non-zero foreground pixels is computed. Motion is considered significant only when the foreground mask contains more than 5,000 foreground pixels. Frames below this threshold are discarded without invoking the subsequent processing stages, thereby reducing unnecessary computation. Frames that satisfy the motion criterion are forwarded to the object detection stage for further analysis.
+
+\subsubsection{Low-Light Enhancement using Zero-DCE}
+
+Frames containing foreground activity are conditionally passed to the Zero-DCE enhancement network \cite{zerodce} whenever poor illumination is detected. The illumination level is estimated using the mean brightness of the motion-triaged region in the HSV colour space,
+
+\begin{equation}
+\bar{L}(f)=\operatorname{mean}\left(V_{\mathrm{HSV}}(f)\right),
+\end{equation}
+
+where $V_{\mathrm{HSV}}(f)$ denotes the value (brightness) channel of frame $f$. Enhancement is applied only when
+
+\begin{equation}
+\bar{L}(f)<\tau_{lux},
+\end{equation}
+
+where $\tau_{lux}$ is a tunable illumination threshold that can be empirically selected according to the lighting conditions of the deployment environment. By enhancing only low-light frames, the framework avoids unnecessary computation while preserving well-illuminated scenes in their original form.
+
+The Zero-DCE network performs low-light enhancement by estimating pixel-wise enhancement curves instead of directly generating a new image. The enhancement process is defined as
+
+\begin{equation}
+L_n(x)=L_{n-1}(x)+\alpha_nL_{n-1}(x)\left(1-L_{n-1}(x)\right),
+\end{equation}
+
+where $L_n(x)$ represents the enhanced pixel intensity after the $n^{\text{th}}$ iteration and $\alpha_n$ controls the enhancement strength. Dark regions are progressively brightened while already well-illuminated regions are protected from over-exposure.
+
+The enhancement network, DCE-Net, is a lightweight fully convolutional architecture consisting of seven $3\times3$ convolutional layers with symmetric skip connections~\cite{zerodce}. Unlike encoder-decoder networks, DCE-Net performs all operations at the input image resolution without spatial pooling or upsampling, enabling real-time inference exceeding 500 FPS. The final convolutional layer predicts eight sets of RGB enhancement curve parameters, constrained using a \textit{tanh} activation function, which are iteratively applied over eight enhancement stages.
+
+Since Zero-DCE enhances existing pixel intensities through learned
+curves rather than synthesizing new image content~\cite{zerodce}, it is
+well suited to improving visibility while retaining the underlying
+scene representation required by subsequent forensic analysis. This characteristic makes the method particularly suitable for surveillance applications, where maintaining the visual integrity of forensic evidence is essential while simultaneously improving the visibility of objects captured under challenging illumination conditions.
+
+\subsection{Object Detection, Depth and Tracking}
+
+\subsubsection{Object Detection using YOLO11n}
+
+Frames satisfying the motion-triage criterion are processed using
+YOLO11n \cite{yolov11} to localize objects relevant to subsequent interaction analysis.
+The detector produces bounding boxes together with the corresponding
+class labels and confidence scores. GPU acceleration is used when
+available, with CPU execution provided as a fallback.
+
+For each detected object, the bounding-box geometry is represented using
+its corner coordinates $(x_1,y_1,x_2,y_2)$, from which the box width,
+height, area, and centroid are derived. The centroid is computed as
+
+\begin{equation}
+c_x = \frac{x_1+x_2}{2}, \qquad
+c_y = \frac{y_1+y_2}{2}.
+\end{equation}
+
+The bounding-box dimensions and area are given by
+
+\begin{equation}
+w=x_2-x_1,\qquad
+h=y_2-y_1,\qquad
+A=w h.
+\end{equation}
+
+These spatial attributes provide the geometric representation required
+by the subsequent semantic filtering, depth estimation, tracking, and
+interaction-analysis stages.
+
+\subsubsection{Semantic Filtering}
+
+A semantic filtering layer is applied to the detections from the object detector in an effort to limit downstream processing to objects relevant to chain-snatching analysis. The filter only keeps the object categories that are relevant for crime: person, motorcycle, bicycle, car, bus and truck. This constraint cuts down irrelevant background objects and environmental clutter irrelevant to the subsequent interaction analysis.
+
+Apart from the semantic class constraint, the detections are required to satisfy a confidence threshold above 0.35 and a minimum bounding-box area criterion. Detections that do not satisfy these constraints are discarded before they are fed to the next depth estimation and tracking stages. The filtered detections that result become the set of candidate entities for downstream spatial, temporal and behavioral analysis.
+
+\subsubsection{Monocular Depth Estimation using Depth-Anything V2}
+
+After object detection, the proposed framework uses Depth-Anything V2 \cite{yang2024depth} to estimate a dense relative depth map for each illumination-normalized surveillance frame. The model uses a DINOv2 Vision Transformer (ViT) backbone for semantic feature extraction and a Dense Prediction Transformer (DPT) decoder to produce high-resolution depth maps from a single RGB image.
+
+The estimated depth map adds 3D scene information that complements the 2D object detections produced by YOLOv11. This additional depth information is used to differentiate real physical interactions from apparent intersections resulting from perspective projection. For example, pedestrians that are close in the image plane but separated in depth are identified as non-interacting, thus reducing the number of false interaction candidates before behavior analysis.
+
+
+
+The depth estimation module operates in parallel with the object detection stage, ensuring that both spatial localization and relative depth information are available for the subsequent interaction validation module. Candidate suspect--victim pairs satisfying both spatial proximity and depth consistency are then forwarded to the MediaPipe Pose module \cite{mediapipe} and the spatio-temporal behavioural recognition stage \cite{yan2018stgcn}.
+
+\subsubsection{Multi-Object Tracking}
+
+Temporal correspondence between detections across consecutive
+frames is established by a multi-object tracking layer. The tracker
+associates bounding boxes over time and assigns persistent track identities
+to individual entities, which allows their trajectories to be maintained across
+successive observations and short-term occlusions.
+
+The tracking mechanism combines Kalman-filter-based state prediction with
+intersection-over-union (IoU) based data association, following the matching
+principles used in modern tracking approaches such as ByteTrack~\cite{bytetrack} and
+BoT-SORT. Each active track maintains a persistent identity together with
+its historical centroid and bounding-box observations. These trajectories
+provide the temporal information required by the subsequent motion-feature
+and relationship-analysis stages.
+
+\subsubsection{Motion Feature Extraction}
+
+The temporal trajectories generated by the tracking stage are further
+processed to derive motion descriptors for each tracked entity. The
+centroid positions of a track across consecutive frames are used to
+estimate its instantaneous velocity, average speed over a sliding temporal
+window, acceleration, total displacement, and movement direction.
+
+The resulting kinematic descriptors are associated with the corresponding
+tracks and provide quantitative information about the movement of each
+entity. These features are subsequently used by the relationship and
+interaction-analysis stages to characterize relative motion between
+tracked entities.
+
+\subsection{Interaction and Behaviour Analysis}
+
+\subsubsection{Relationship Analysis}
+
+To characterize interactions between tracked entities, the framework
+performs pairwise spatial and motion analysis between relevant person and
+vehicle tracks. For each candidate pair, the Euclidean distance between
+their image-space centroids is calculated as
+
+\begin{equation}
+d(p_1,p_2)=
+\sqrt{(x_2-x_1)^2+(y_2-y_1)^2}.
+\end{equation}
+
+The framework additionally evaluates the relative closing speed and
+spatial orientation between the entities. A pair is considered for
+relationship analysis when its centroid distance falls within a
+150-pixel threshold. These measurements provide a representation of the
+spatial and relative-motion relationship between tracked entities and
+are subsequently used by the interaction-management stage to identify
+persistent interactions.
+
+\subsubsection{Interaction Management}
+
+The relationship observations generated in the preceding stage are
+maintained over time using a finite-state interaction manager. The
+manager tracks person--vehicle pairs across consecutive frames and
+maintains their interaction lifecycle, allowing temporary separations
+or visual occlusions to be distinguished from the termination of an
+interaction.
+
+An interaction is initialized in the \textit{NEW} state when a person
+and vehicle pair satisfies the spatial proximity criterion. After a
+second consecutive observation, the interaction transitions to the
+\textit{ACTIVE} state. If the pair temporarily disappears or separates,
+the interaction enters the \textit{LINGERING} state, allowing the
+relationship to persist through short-term observation gaps. A pair
+that remains inactive for 30 frames is transitioned to the
+\textit{ENDED} state and subsequently to \textit{ARCHIVED} for
+long-term storage. A lingering interaction is returned to the
+\textit{ACTIVE} state when the corresponding pair reappears.
+
+For each active interaction, the manager maintains temporal, spatial and
+motion histories. These include the current, minimum, maximum, and
+running average distance between the interacting entities, together
+with their frame-wise centroid positions, speeds, and movement
+headings. Relative kinematic quantities are also derived, including
+relative closing velocity, relative acceleration, heading difference,
+and trajectory cosine similarity. The latter measures the degree to
+which the two entities move in a common direction and is given by
+
+\begin{equation}
+S_{\mathrm{traj}} =
+\frac{\mathbf{d}_{p}\cdot\mathbf{d}_{v}}
+{\|\mathbf{d}_{p}\|\|\mathbf{d}_{v}\|},
+\end{equation}
+
+where $\mathbf{d}_{p}$ and $\mathbf{d}_{v}$ denote the displacement
+vectors of the person and vehicle, respectively.
+
+The interaction manager additionally computes a normalized interaction
+confidence score $C\in[0,1]$ based on proximity, interaction duration,
+and relative closing speed:
+
+\begin{equation}
+C =
+\min\left(1.0,\,
+0.5S_{\mathrm{proximity}}
++0.3S_{\mathrm{duration}}
++0.2S_{\mathrm{velocity}}\right).
+\end{equation}
+
+The proximity component increases as the distance between the entities
+decreases, while the duration component saturates at 60 frames.
+The velocity component increases with the closing speed toward the
+target. These interaction histories and confidence estimates are
+retained as structured evidence for the subsequent behavioural graph,
+action-recognition, fusion, and crime-signature stages.
+
+\subsubsection{Behaviour Intelligence Layer}
+
+The interaction histories generated by the preceding stages are converted
+into discrete behavioural primitives using a rule-based behaviour
+intelligence layer. At each frame, active interactions are evaluated
+against a set of independent behavioural rules that examine spatial
+proximity, relative velocity, acceleration, heading, trajectory
+similarity, and changes in motion. Each satisfied rule generates a
+time-stamped behavioural primitive, allowing the evolution of an
+interaction to be represented as a chronological sequence rather than
+as isolated frame-level observations.
+
+The behavioural rules capture motion patterns associated with different
+phases of an interaction, including approaching, moving away, following,
+parallel motion, close interaction, stationary interaction, rapid
+acceleration or deceleration, sudden direction changes, and rapid
+separation. For example, approaching behaviour is identified from a
+negative relative velocity below $-2.0$ pixels per frame, while close
+interaction is associated with an inter-entity distance below 80 pixels.
+Trajectory following is characterized using a cosine similarity above
+0.70, and rapid acceleration is identified when acceleration exceeds
+3.0 pixels per frame$^2$. Rapid separation is detected when the relative
+velocity exceeds 5.0 pixels per frame.
+
+The resulting primitives are organized chronologically into a behaviour
+timeline, providing a structured representation of the interaction
+sequence. This representation is subsequently used by the behaviour
+graph and multimodal fusion stages to derive higher-level behavioural
+evidence~\cite{yan2018stgcn}.
+
+\subsubsection{Behaviour Graph Modeling}
+
+The behavioural primitives generated by the behaviour intelligence layer
+are further organized into a spatio-temporal directed graph to represent
+the evolution of an interaction. The graph is constructed incrementally
+on a frame-by-frame basis using a pattern evaluation process that
+examines the active interaction and identifies the highest-priority
+behavioural pattern among the detected candidates.
+
+Each active behavioural pattern is represented by a graph node containing
+its pattern type, temporal extent, confidence, priority, supporting
+behavioural primitives, and associated motion and spatial evidence. When
+the primary pattern changes from the pattern represented by the active
+node, a new node is created. If the pattern remains unchanged, the
+existing node is updated with the latest end frame, duration, confidence,
+and supporting kinematic statistics. This allows the graph to represent
+both persistent behavioural states and transitions between different
+phases of an interaction.
+
+Directed temporal edges are introduced whenever the active behavioural
+pattern transitions from one pattern to another. Each edge records the
+source and target pattern types, the transition frame, the corresponding
+video timestamp, and the condition describing the observed transition.
+The resulting graph therefore preserves the temporal ordering of
+behavioural patterns, rather than representing the interaction as an
+unordered collection of events.
+
+Pattern detection is governed by spatial, kinematic, alignment, and
+temporal criteria. These include proximity and close-interaction distance
+thresholds, approach and separation velocities, acceleration and
+stationary-speed thresholds, heading alignment and divergence
+thresholds, trajectory similarity, and minimum pattern-duration
+constraints. The pattern evaluation process therefore combines the
+spatial and motion evidence accumulated by the preceding interaction
+stages to construct a structured representation of behavioural
+evolution.
+
+The resulting behaviour graph constitutes \textit{Stream A} of the
+proposed framework. It provides high-level spatio-temporal behavioural
+evidence that is subsequently combined with the pose-based action
+recognition evidence generated by Stream B.
+
+\subsection{ROI Selection and Preparation}
+
+To provide stable spatial inputs for pose estimation, the framework extracts
+regions of interest (ROIs) corresponding to the person involved in an active
+interaction. The ROI is obtained from the tracked person's frame-wise
+bounding boxes, thereby restricting subsequent pose analysis to the relevant
+participant rather than unrelated subjects in the scene.
+
+Missing bounding-box observations caused by temporary occlusions are handled
+using linear interpolation for gaps of up to 15 frames. Unphysical bounding
+box variations are identified using the median bounding-box area and its
+standard deviation. Observations whose area deviates from the median by more
+than three standard deviations are treated as outliers and replaced using
+the previous valid bounding box.
+
+Temporal jitter is subsequently reduced using Exponential Moving Average
+(EMA) smoothing. For a bounding-box vector
+$B_t=[x_1,y_1,x_2,y_2]^T$, the smoothed coordinates are computed as
+
+\begin{equation}
+B_t^{\mathrm{smooth}}
+=
+\alpha B_t^{\mathrm{raw}}
++
+(1-\alpha)B_{t-1}^{\mathrm{smooth}},
+\end{equation}
+
+where $\alpha=0.4$.
+
+To retain relevant contextual information, including extended body parts
+and nearby vehicle-contact regions, the smoothed bounding boxes are
+expanded by 25\% in width and height. The resulting ROI sequences are then
+evaluated using sequence completeness, missing-frame ratio, bounding-box
+stability, and temporal frame coverage. ROIs are accepted only when they
+satisfy the corresponding quality criteria, thereby removing unreliable
+crops before pose estimation.
+
+The accepted ROIs are extracted from the corresponding video frames and
+organized into interaction-specific sequences, typically covering
+30--60 frames. The resulting interpolated, outlier-filtered, smoothed,
+expanded, and quality-validated ROI sequences are forwarded to the
+pose-estimation stage.
+
+\subsection{Pose-Based Action Recognition}
+\subsubsection{Pose Estimation}
+
+The interaction-specific ROI sequences are processed by a human pose
+estimation layer to extract frame-wise skeletal keypoints. The baseline
+implementation uses MediaPipe Pose (BlazePose) \cite{mediapipe}  to estimate 2D anatomical
+landmarks from each person ROI. The resulting keypoints provide the
+spatial representation of human body configuration required for
+subsequent skeleton-based action recognition.
+
+To reduce frame-to-frame fluctuations in the estimated joint positions,
+temporal smoothing is applied to the extracted keypoints. The pose
+estimation layer is implemented as an abstraction that permits different
+pose estimation backends to be integrated without modifying the
+subsequent skeleton-processing pipeline. In the proposed implementation,
+MediaPipe Pose serves as the baseline estimator, while adapters are
+provided for alternative pose estimation frameworks.
+
+The resulting temporally smoothed 2D keypoint sequences are forwarded to
+the skeleton sequence construction stage, where they are normalized and
+formatted for graph-based action recognition.
+
+\subsubsection{Skeleton Sequence Construction}
+
+The temporally smoothed pose keypoints are transformed into normalized
+skeleton sequences for graph-based action recognition. To reduce the
+effect of variations in image position and subject location, the
+baseline representation uses hip-centred normalisation, expressing
+joint coordinates relative to the subject's hip region.
+
+The normalized keypoints are organized into fixed-length temporal
+sequences of $T=30$ frames. The resulting representation follows the
+NCTVM tensor convention, where $N$ denotes the batch dimension, $C$ the
+coordinate channels, $T$ the temporal dimension, $V$ the number of
+skeletal joints, and $M$ the number of persons. For the proposed
+implementation, the resulting tensor has the form
+
+\begin{equation}
+(1,C,T,V,1)=(1,2,30,17,1),
+\end{equation}
+
+where the two coordinate channels represent the 2D joint coordinates,
+17 joints are used to represent the human skeleton, and a single
+subject is represented in each sequence.
+
+The resulting normalized skeleton tensors provide a consistent
+spatio-temporal representation for the subsequent ST-GCN action
+recognition stage.
+
+\subsubsection{ST-GCN Action Recognition}
+
+The normalized skeleton sequences are processed using a Spatial-Temporal
+Graph Convolutional Network (ST-GCN) \cite{yan2018stgcn} to recognize human actions from
+their joint-level motion patterns. The human body is represented as a
+graph in which the skeletal joints form the nodes and anatomical
+connections define the spatial edges. Temporal connections between the
+same joints across consecutive frames extend this representation into a
+spatio-temporal graph \cite{yan2018stgcn}.
+
+The ST-GCN jointly models spatial dependencies between connected body
+joints and their temporal evolution across the input sequence. Given the
+normalized skeleton representation from the preceding stage, the model
+learns discriminative motion patterns associated with actions relevant
+to the proposed forensic scenario, including walking, standing,
+approaching, reaching, grabbing, pulling, and escaping.
+
+The resulting action predictions constitute \textit{Stream B} of the
+behavioural analysis framework. Unlike the rule-based spatio-temporal
+behaviour graph in Stream A, this branch provides learned
+skeleton-based action evidence. The two streams are subsequently
+combined by the behaviour fusion stage to obtain a unified behavioural
+assessment.
+
+\subsection{Multimodal Behaviour Fusion}
+
+\subsubsection{Behaviour Fusion}
+
+The behavioural evidence generated by the two complementary analysis
+streams is combined to obtain a unified interaction assessment. Stream A
+provides explicit spatio-temporal evidence through the behaviour graph,
+while Stream B provides learned human-action evidence through the
+ST-GCN. Their combination reduces reliance on either rule-based
+interaction reasoning or skeleton-based action recognition alone.
+
+The primary fusion mechanism uses a weighted confidence formulation:
+
+\begin{equation}
+C_{\mathrm{fused}} =
+w_A C_{\mathrm{graph}} +
+w_B C_{\mathrm{action}},
+\end{equation}
+
+where $C_{\mathrm{graph}}$ and $C_{\mathrm{action}}$ denote the
+confidence values obtained from the behaviour-graph and action-
+recognition streams, respectively, and $w_A$ and $w_B$ represent their
+corresponding fusion weights.
+
+The resulting fused interaction representation combines the temporal
+interaction structure, spatial and motion evidence, and human action
+predictions into a common behavioural assessment. This fused evidence is
+passed to the subsequent snatch-signature stage for crime-specific
+reasoning.
+
+\subsection{Crime-Specific Snatch Signature Reasoning}
+
+\subsubsection{Snatch Signature Matching}
+
+The fused behavioural evidence is evaluated by a crime-specific signature
+engine to determine whether an interaction is consistent with a
+chain-snatching event. Rather than directly classifying an entire video
+sequence as a crime, the engine evaluates the observed interaction
+against predefined behavioural signatures corresponding to different
+snatching scenarios.
+
+The framework defines separate signatures for motorcycle-based and
+pedestrian-based snatching scenarios. Each signature evaluates the
+available behavioural evidence using weighted criteria derived from the
+interaction dynamics and behavioural patterns. The resulting signature
+score is normalized to the interval $[0,1]$ and represents the degree of
+agreement between the observed interaction and the corresponding
+snatching pattern.
+
+A score of $S \geq 0.70$ is treated as a high-confidence signature
+match. In addition to the numerical score, the signature engine
+generates an evidence-based explanation indicating which signature
+conditions were satisfied or not satisfied. This provides an
+interpretable decision layer between multimodal behavioural evidence and
+the final forensic event record.
+
+\subsubsection{Forensic Event Indexing and Retrieval}
+
+The final stage converts the crime-specific assessments generated by the
+snatch signature engine into structured forensic event records. Each
+event retains the decision and the associated behavioural and interaction
+evidence, enabling detected incidents to be searched and retrieved
+without repeatedly processing the original video data.
+
+A multi-attribute inverted indexing scheme is used to organize forensic
+events according to attributes including event identifier, video
+identifier, decision, associated track identities, behavioural patterns,
+detected actions, and descriptive tags. Separate indices over these
+attributes enable direct retrieval of events matching specific forensic
+queries.
+
+In addition to the searchable index, the framework preserves associated
+evidence artefacts, including structured event records, thumbnails, and
+annotated video clips. The resulting outputs provide investigators with
+both searchable metadata and the corresponding visual evidence required
+for subsequent forensic examination.
+
+\section{Experimental Results and Discussion}
+\subsection{Experimental Setup}
+
+\subsubsection{Dataset}
+
+The proposed framework was evaluated on 43 real-world CCTV video
+sequences collected from the Snatch 1.0 benchmark and supplementary
+surveillance footage. The dataset contains 96,926 frames corresponding
+to 3,877.05~s (64.62~min) of video. Of the 43 sequences, 35 contain
+chain-snatching events and 8 represent normal surveillance footage used
+as negative controls. All 43 videos were successfully decoded, with no
+corrupted or unreadable files identified. The dataset contains
+heterogeneous surveillance conditions, including multiple spatial
+resolutions and frame rates, predominantly static outdoor cameras, and
+daytime, mixed-lighting, and night-time recordings.
+
+\subsubsection{Ground Truth and Evaluation Protocol}
+
+Binary video-level ground-truth labels were available for all 43
+sequences, comprising 35 positive chain-snatching instances and 8
+negative surveillance sequences. For positive sequences, temporal
+interaction boundaries were defined for the relevant snatching events.
+The evaluation additionally incorporated annotated action categories
+including Walking, Standing, Approaching, Reaching, Grabbing, Pulling,
+and Escaping, together with interaction categories representing normal
+and crime-related encounters.
+
+The evaluation was designed to assess both forensic detection
+effectiveness and computational efficiency. Event-level detection
+performance was measured using precision, recall, F1-score, accuracy,
+false-positive rate, and false-negative rate. Pipeline efficiency was
+evaluated using processing latency, throughput, and progressive
+search-space reduction. Stage-wise evidence preservation was measured
+to determine whether early filtering stages discarded ground-truth
+crime events. Architectural contribution was further examined through
+configuration comparisons and component-level ablation experiments.
+
+\subsubsection{Computational Environment}
+
+The experiments were executed on a CPU--GPU computing environment using
+an 8-core processor and NVIDIA CUDA acceleration. During pipeline
+execution, average CPU utilization was 22.4\%, resident memory usage
+was 824.5~MB, GPU VRAM allocation was approximately 850~MB, and average
+GPU utilization was 18.5\%.
+
+\subsection{Motion Detection Performance Evaluation}
+This section provides the results of the experiments performed to evaluate the motion detection stage of the proposed AI system for chain-snatching detection. The goal of the experiments was to benchmark the keyframe selection stage of various classical motion detection algorithms. The evaluation criteria included the algorithm’s computational efficiency, its ability to filter irrelevant information, and its capacity to preserve motion continuity to enable effective behavioural analysis. The experiments were performed on the Snatch 1.0 CCTV dataset, which comprises 43 surveillance videos, yielding 215 benchmark runs in total.
+
+\subsubsection{Motion Detection Benchmarking}
+
+The first experiment evaluates five motion detection techniques: Baseline (No Filtering), Frame Difference, Gaussian Mixture Model (GMM), K-Nearest Neighbour (KNN), and Mixture of Gaussians Version 2 (MOG2). Each detector processed every video independently using identical parameter settings to ensure a fair comparison. During execution, a binary foreground mask was generated for every frame, from which motion regions were identified. Performance was evaluated using three primary metrics: processing speed measured in frames per second (FPS), frame reduction percentage, and motion continuity score.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{Processing Speed Analysis}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.5\textwidth]{fps_comparison.png}
+    \caption{Average Processing Speed (FPS) Comparison of Motion Detection Algorithms}
+    \label{fig:fps}
+\end{figure}
+
+Figure~\ref{fig:fps} compares the average processing speed of the evaluated motion detection algorithms. As expected, the Baseline approach achieves the highest processing speed since no motion filtering is performed. Among the filtering techniques, Frame Difference records the highest computational throughput with an average speed of 444.82 FPS, followed by MOG2 (144.18 FPS), GMM (114.16 FPS), and KNN (90.77 FPS). Although Frame Difference demonstrates superior computational efficiency, processing speed alone is insufficient for surveillance systems that require reliable behavioural understanding.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{Motion Continuity Analysis}
+
+Figure~\ref{fig:threshold} presents the average motion continuity score achieved by each detector. Motion continuity measures the ability of an algorithm to preserve uninterrupted motion sequences, which is essential for downstream behavioural recognition. While Frame Difference provides the highest computational efficiency, its continuity score is significantly lower than MOG2 and KNN, indicating fragmented motion detection across consecutive frames. MOG2 achieves a continuity score of 0.985 while maintaining substantially higher computational efficiency than KNN, making it more suitable for real-time surveillance preprocessing.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{Overall Benchmark Comparison}
+
+\begin{table}[htbp]
+\centering
+\caption{Overall Motion Detection Benchmark Results}
+\label{tab:benchmark}
+
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lccc}
+\hline
+\textbf{Detector} & \textbf{Reduction (\%)} & \textbf{FPS} & \textbf{Continuity} \\
+\hline
+Baseline & 0.00 & 1001.35 & 0.995 \\
+Frame Difference & 50.83 & 444.82 & 0.610 \\
+GMM & 34.73 & 114.16 & 0.851 \\
+KNN & 4.00 & 90.77 & 0.992 \\
+MOG2 & 5.17 & 144.18 & 0.985 \\
+\hline
+\end{tabular}
+}
+\end{table}
+
+Table~\ref{tab:benchmark} summarises the average benchmark statistics obtained from all 215 experimental runs. Frame Difference achieves the highest frame reduction, eliminating approximately 51\% of the processed frames while maintaining the highest computational throughput among the filtering methods. However, this aggressive filtering strategy reduces temporal continuity, increasing the possibility of fragmented behavioural sequences.
+
+GMM achieves greater frame reduction than MOG2 but operates at a lower processing speed and exhibits reduced continuity. KNN preserves motion continuity effectively but provides only limited frame reduction while incurring higher computational cost. In comparison, MOG2 maintains excellent temporal continuity together with real-time processing capability, providing a balanced compromise between computational efficiency and reliable motion preservation. These characteristics make MOG2 the most suitable preprocessing algorithm for the proposed chain-snatching detection framework.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=0.92\textwidth]{motion_area_threshold.png}
+\caption{Motion Area Threshold Sensitivity Analysis}
+\label{fig:threshold}
+\end{figure*}
+
+\subsubsection{Motion Area Threshold Analysis}
+
+To investigate the influ
+ence of threshold selection on detector performance, a motion-area threshold analysis was conducted using threshold values ranging from 0\% to 10\%. For each threshold value, frames were retained only when the detected foreground motion exceeded the specified threshold. The resulting frame reduction percentage and motion continuity score were averaged across the complete dataset.
+
+
+Figure~\ref{fig:threshold} illustrates the relationship between motion-area threshold, frame reduction, and motion continuity. Increasing the threshold results in greater frame reduction by eliminating more low-motion frames, thereby improving computational efficiency. However, higher threshold values also reduce motion continuity because subtle yet meaningful movements are increasingly discarded. Among the evaluated methods, MOG2 demonstrates relatively stable continuity while maintaining useful frame reduction across moderate threshold values. This behaviour indicates that MOG2 is less sensitive to threshold variation and is capable of preserving continuous motion sequences required for subsequent behavioural analysis.
+
+
+
+\subsection{Pipeline Bottleneck and Latency Analysis}
+
+The computational cost of the proposed pipeline was analyzed by measuring
+the total runtime and per-frame latency of the major processing stages. The results are summarized in Table~\ref{tab:pipeline_latency}. 
+The results show that the computational burden is concentrated in the
+object detection and tracking stages.
+
+The tracking stage represents the largest contribution to the measured
+runtime, accounting for 47.36\% of the total execution time, with an
+average latency of 68.21~ms per frame. YOLO object detection is the
+second-largest contributor, accounting for 41.57\% of the runtime and
+requiring an average of 54.82~ms per frame. Together, these two stages
+account for 88.93\% of the measured pipeline runtime, identifying them
+as the principal computational bottlenecks. This runtime distribution is illustrated in
+Fig.~\ref{fig:runtime_contribution}.
+
+Motion filtering contributes 10.90\% of the total runtime, with an
+average latency of 13.99~ms per frame. In contrast, the relationship
+engine requires only 0.16\% of the total runtime and has an average
+latency of 0.23~ms per frame. This indicates that the spatial
+relationship analysis introduces comparatively negligible computational
+overhead despite substantially reducing the downstream candidate search
+space.
+
+The bottleneck analysis therefore indicates that future optimization
+efforts should primarily target object detection and tracking, while the
+relationship stage can be retained as a low-cost mechanism for further
+forensic search-space reduction.
+
+\begin{table}[t]
+\centering
+\caption{Computational runtime and latency of major pipeline stages.}
+\label{tab:pipeline_latency}
+\scriptsize
+\setlength{\tabcolsep}{2pt}
+\renewcommand{\arraystretch}{0.9}
+\begin{tabular}{lrrrr}
+\hline
+\textbf{Stage} &
+\textbf{Time (s)} &
+\textbf{Run (\%)} &
+\textbf{Avg. (ms)} &
+\textbf{Peak (ms)} \\
+\hline
+Motion & 31.1461 & 10.90 & 13.99 & 72.00 \\
+YOLO & 118.7951 & 41.57 & 54.82 & 1943.19 \\
+Tracking & 135.3338 & 47.36 & 68.21 & 152.97 \\
+Relationship & 0.4648 & 0.16 & 0.23 & 22.00 \\
+Events & 0.0000 & 0.00 & 0.00 & 0.00 \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\columnwidth]{stage_runtime_contribution.png}
+    \caption{Computational runtime contribution of the major pipeline
+    stages. Tracking and YOLO detection account for 88.93\% of the
+    measured runtime.}
+    \label{fig:runtime_contribution}
+\end{figure}
+
+\subsection{Pipeline Architecture Ablation}
+
+An ablation study was conducted to examine the contribution of the
+progressive processing components to the proposed forensic-search
+architecture. Four configurations were evaluated by incrementally
+adding motion filtering, tracking, and the subsequent behavioural
+reasoning stages: (A) YOLO only, (B) Motion + YOLO, (C) Motion + YOLO +
+Tracking, and (D) the complete pipeline. The results are summarized in
+Table~\ref{tab:ablation}.
+
+The results demonstrate a substantial reduction in the downstream
+candidate search space as the architecture is progressively completed.
+Configuration A retained 1,021 candidate frames, while Configurations B
+and C retained 1,984 frames. The complete configuration reduced the
+retained candidate set to only 53 frames. Thus, relative to
+Configuration C, the complete pipeline reduced the retained candidate
+search space by approximately 97.3\%.
+
+The complete configuration also enabled the generation of structured
+forensic candidate events. While Configurations A--C produced no
+candidate events, the full configuration generated 67 candidate events.
+This demonstrates that the downstream reasoning stages transform
+low-level object observations into structured forensic events rather
+than merely producing object-level detections.
+
+In terms of computational cost, the complete pipeline required
+187.4~s, compared with 196.0~s for Configuration C. Although runtime
+does not decrease monotonically as components are added, the complete
+configuration achieved a slightly lower measured runtime than
+Configuration C while substantially reducing the candidate search space
+and enabling forensic event generation. The comparative runtime and
+search-space behaviour are illustrated in
+Fig.~\ref{fig:ablation_runtime_searchspace}.
+
+\begin{table}[t]
+\centering
+\caption{Ablation study of the proposed pipeline architecture.}
+\label{tab:ablation}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lrrrrr}
+\hline
+\textbf{Configuration} &
+\textbf{Runtime (s)} &
+\textbf{Retained} &
+\textbf{Detections} &
+\textbf{Tracks} &
+\textbf{Events} \\
+\hline
+YOLO Only & 36.51 & 1021 & 2569 & 0 & 0 \\
+Motion + YOLO & 95.31 & 1984 & 4947 & 0 & 0 \\
+Motion + YOLO + Tracking & 196.0 & 1984 & 4947 & 4022 & 0 \\
+Full Pipeline & 187.4 & 53 & 4947 & 4022 & 67 \\
+\hline
+\end{tabular}%
+}
+\end{table}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\columnwidth]{ablation_runtime_searchspace.png}
+    \caption{Effect of progressive pipeline components on execution
+    runtime and retained candidate search space. The full pipeline
+    substantially reduces the retained candidate set while enabling
+    forensic event generation.}
+    \label{fig:ablation_runtime_searchspace}
+\end{figure}
+
+\subsection{End-to-End Forensic Detection Performance}
+
+The complete proposed framework was evaluated at the video-event level
+using 35 positive chain-snatching sequences and 8 negative surveillance
+sequences. The system correctly identified 33 positive sequences and all
+8 negative sequences, while two positive sequences were missed. The
+resulting evaluation is summarized in Table~\ref{tab:end_to_end_performance}.
+
+The resulting evaluation produced 33 true positives, 8 true negatives,
+0 false positives, and 2 false negatives. The system achieved a
+precision of 100.00\%, recall of 94.29\%, F1-score of 97.06\%, and
+accuracy of 95.35\%.
+
+The absence of false positives demonstrates that the proposed
+multi-stage reasoning pipeline was highly selective in producing
+crime-event decisions. The recall of 94.29\% indicates that most
+annotated chain-snatching events were successfully identified, while
+the two missed events highlight the remaining limitations of the
+pipeline.
+
+\begin{table}[H]
+\centering
+\caption{End-to-end forensic detection performance.}
+\label{tab:end_to_end_performance}
+\begin{tabular}{lc}
+\hline
+\textbf{Metric} & \textbf{Result} \\
+\hline
+True Positives (TP) & 33 \\
+True Negatives (TN) & 8 \\
+False Positives (FP) & 0 \\
+False Negatives (FN) & 2 \\
+Precision & 100.00\% \\
+Recall & 94.29\% \\
+F1-score & 97.06\% \\
+Accuracy & 95.35\% \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{table*}[t]
+\centering
+\caption{Stage-wise preservation of ground-truth chain-snatching events.}
+\label{tab:evidence_preservation}
+\begin{tabular}{lccccc}
+\hline
+\textbf{Pipeline Stage} &
+\textbf{GT Events Entering} &
+\textbf{Events Preserved} &
+\textbf{Events Discarded} &
+\textbf{Stage Recall (\%)} &
+\textbf{Cumulative Loss (\%)} \\
+\hline
+Raw Video Input & 35 & 35 & 0 & 100.00 & 0.00 \\
+Motion Triage & 35 & 35 & 0 & 100.00 & 0.00 \\
+Semantic Filtering & 35 & 35 & 0 & 100.00 & 0.00 \\
+Interaction Manager & 35 & 35 & 0 & 100.00 & 0.00 \\
+Behaviour Graph & 35 & 35 & 0 & 100.00 & 0.00 \\
+ROI Selection & 35 & 34 & 1 & 97.14 & 2.86 \\
+Pose Estimation & 34 & 34 & 0 & 100.00 & 2.86 \\
+Behaviour Fusion & 34 & 33 & 1 & 97.06 & 5.71 \\
+Signature Engine & 33 & 33 & 0 & 100.00 & 5.71 \\
+\hline
+\end{tabular}
+\end{table*}
+
+\subsection{Progressive Search-Space Reduction}
+
+The ability of the proposed architecture to progressively reduce the
+forensic search space was evaluated using 12 dataset batches containing
+2,227 frames. The number of retained frames decreased from 2,227 at the
+raw video input to 2,167 after motion filtering and 1,984 after YOLO
+detection. The tracking stage maintained the same candidate count while
+providing the temporal association required by subsequent behavioural
+analysis. The stage-wise reduction is summarized in
+Table~\ref{tab:search_space_reduction}.
+
+The largest reduction occurred at the relationship-analysis stage,
+where the retained candidate set decreased from 1,984 to 53 frames.
+This corresponds to a reduction of approximately 97.3\% relative to the
+post-detection candidate set, leaving only 2.38\% of the original
+search space for subsequent forensic reasoning. The overall progression
+of the retained search space is illustrated in
+Fig.~\ref{fig:search_space_progression}.
+
+
+These results demonstrate that the proposed pipeline progressively
+transforms the original video search space into a substantially smaller
+set of spatially and temporally relevant candidates. In particular,
+relationship analysis provides the largest reduction in candidate volume
+before higher-level forensic interpretation.
+
+\begin{table}[H]
+\centering
+\caption{Progressive search-space reduction across the validated
+pipeline stages.}
+\label{tab:search_space_reduction}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lrr}
+\hline
+\textbf{Pipeline Stage} &
+\textbf{Retained Frames} &
+\textbf{Search Space (\%)} \\
+\hline
+Raw Video Input & 2227 & 100.00 \\
+Motion Filtering & 2167 & 97.31 \\
+YOLO Detection & 1984 & 89.09 \\
+Tracking Stage & 1984 & 89.09 \\
+Relationship Engine & 53 & 2.38 \\
+Candidate Events & 53 & 2.38 \\
+\hline
+\end{tabular}%
+}
+\end{table}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\columnwidth]{search_space_progression.png}
+    \caption{Progressive reduction of the CCTV forensic search space across the proposed pipeline stages.}
+    \label{fig:search_space_progression}
+\end{figure}
+
+\subsection{Evidence Preservation Across Pipeline Stages}
+
+A critical requirement of CCTV forensic search is to minimize the loss of
+true crime evidence during progressive filtering. Therefore, stage-wise
+evidence preservation was evaluated using the 35 ground-truth
+chain-snatching events in the evaluation dataset. The results are
+summarized in Table~\ref{tab:evidence_preservation}.
+
+The results show that motion triage, semantic filtering, interaction
+management, and behaviour graph reasoning preserved all 35 ground-truth
+events, achieving 100.0\% event recall at each stage. The first evidence
+loss occurred during ROI selection, where 34 of the 35 events were
+preserved, corresponding to a stage recall of 97.14\%. Pose estimation
+preserved all 34 events entering the stage.
+
+A further reduction occurred during behaviour fusion, where 33 of the
+34 entering events were preserved, resulting in a stage recall of
+97.06\%. The signature engine preserved all 33 events reaching the final
+decision stage. Consequently, the complete pipeline achieved an overall
+event recall of 94.29\% (33/35), corresponding to a cumulative evidence
+loss of 5.71\%.
+
+These results demonstrate that the proposed progressive filtering
+architecture substantially reduces the search space while preserving
+the majority of ground-truth forensic events. The two missed events were
+associated with extreme camera distance and severe vehicle occlusion,
+indicating limitations in downstream spatial and behavioural analysis
+rather than losses introduced by the initial motion-triage stage.
+
+\subsection{Forensic Indexing and Investigator Retrieval Performance}
+
+The forensic indexing stage was evaluated to determine whether generated
+forensic events could be retrieved accurately and efficiently using
+different investigator query types. Four query categories were
+benchmarked, with 1,000 queries executed for each category. The results
+are summarized in Table~\ref{tab:retrieval_performance}.
+
+Single-keyword lookup achieved an average latency of 0.042~ms, while
+multi-attribute filtering required 0.068~ms on average. Track ID tracing
+provided the lowest average latency at 0.025~ms, whereas full-text
+Boolean queries required 0.095~ms on average. The maximum observed
+latencies ranged from 0.08~ms to 0.25~ms across the evaluated query
+types.
+
+All four query categories achieved 100.0\% search accuracy and 100.0\%
+retrieval completeness. The indexing structure required approximately
+1.8~KB of memory per indexed forensic event and achieved a retrieval
+throughput exceeding 10,000 investigator searches per second.
+
+These results demonstrate that the proposed forensic indexing layer
+provides accurate and low-latency retrieval of structured crime events,
+allowing investigators to search indexed evidence using multiple
+attributes without requiring repeated processing of the original video
+data.
+
+\begin{table}[H]
+\centering
+\caption{Forensic indexing and investigator retrieval performance.}
+\label{tab:retrieval_performance}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lccccc}
+\hline
+\textbf{Query Type} &
+\textbf{Avg. Latency (ms)} &
+\textbf{Max. Latency (ms)} &
+\textbf{Accuracy (\%)} &
+\textbf{Completeness (\%)} \\
+\hline
+Single Keyword Lookup & 0.042 & 0.12 & 100.0 & 100.0 \\
+Multi-Attribute Filter & 0.068 & 0.18 & 100.0 & 100.0 \\
+Track ID Trace Lookup & 0.025 & 0.08 & 100.0 & 100.0 \\
+Full-Text Boolean Query  & 0.095 & 0.25 & 100.0 & 100.0 \\
+\hline
+\end{tabular}%
+}
+\end{table}
+
+\subsection{Inferential Statistical Significance Validation}
+
+Inferential statistical analysis was performed to assess whether the
+observed F1-score improvements across the evaluated configurations were
+statistically significant. The results are summarized in
+Table~\ref{tab:statistical_significance}.
+
+\begin{table}[H]
+\centering
+\caption{Statistical significance of progressive architectural improvements in F1-score.}
+\label{tab:statistical_significance}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lccccc}
+\hline
+\textbf{Configuration} &
+\textbf{Mean F1} &
+\textbf{95\% CI} &
+\textbf{$t$-statistic} &
+\textbf{$p$-value} &
+\textbf{Cohen's $d$} \\
+\hline
+Config A (Baseline) & 0.6737 & 0.6581--0.6893 & 28.45 & $<0.0001$ & 5.12 \\
+Config B (+ Motion) & 0.7347 & 0.7203--0.7491 & 22.14 & $<0.0001$ & 4.35 \\
+Config C (+ Graph) & 0.8449 & 0.8332--0.8566 & 14.82 & $<0.0001$ & 2.91 \\
+Config D (Proposed) & \textbf{0.9706} & \textbf{0.9643--0.9769} & -- & -- & -- \\
+\hline
+\end{tabular}%
+}
+\end{table}
+
+\subsection{Overall Discussion}
+
+The experimental results collectively demonstrate that the proposed
+forensic-search framework can progressively reduce the volume of
+surveillance data requiring detailed analysis while retaining relevant
+crime evidence. The complete system achieved 100.00\% precision,
+94.29\% recall, 97.06\% F1-score, and 95.35\% accuracy on the evaluated
+dataset. The evidence-preservation analysis further showed that 33 of
+35 annotated chain-snatching events were ultimately retained, indicating
+that the progressive filtering strategy preserves the majority of
+relevant forensic evidence.
+
+The architectural experiments demonstrate the complementary roles of
+the proposed processing stages. The complete configuration reduced the
+retained candidate search space from 1,984 to 53 frames relative to the
+tracking configuration and enabled the generation of structured
+forensic events. The computational analysis identified YOLO detection
+and tracking as the principal bottlenecks, together accounting for
+88.93\% of the measured runtime, while relationship analysis introduced
+only 0.16\% computational overhead.
+
+Finally, the retrieval evaluation demonstrated that the generated
+forensic events can be accessed efficiently through multiple query
+types, achieving 100.0\% search accuracy and completeness with
+sub-millisecond average query latency. Overall, the results support the
+use of a progressive evidence-processing architecture that combines
+search-space reduction, behavioural reasoning, evidence preservation,
+and efficient forensic retrieval within a unified pipeline.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Conclusion}
+
+This work presented an AI-based forensic search framework for automated
+analysis of CCTV footage containing chain-snatching events. The proposed
+multi-stage architecture progressively processes surveillance footage
+through motion filtering, object detection, tracking, spatial
+relationship analysis, behavioural reasoning, pose-based action
+recognition, evidence fusion, crime-specific signature matching, and
+forensic indexing. Experimental evaluation demonstrated that the
+framework can substantially reduce the downstream search space while
+preserving relevant crime evidence.
+
+The complete system achieved 100.00\% precision, 94.29\% recall,
+97.06\% F1-score, and 95.35\% accuracy on the evaluated dataset, while
+the forensic retrieval layer provided 100.0\% search accuracy and
+completeness with sub-millisecond average query latency. These results
+demonstrate the feasibility of combining progressive visual analysis
+with structured forensic retrieval to support efficient CCTV-based
+investigation.
+
+\nocite{*}
+\bibliographystyle{IEEEtran}
+\bibliography{ref}
+
+\end{document}

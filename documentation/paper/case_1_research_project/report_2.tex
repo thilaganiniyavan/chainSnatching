@@ -1,0 +1,513 @@
+\documentclass[11pt, a4paper]{article}
+
+% --- Packages ---
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage[margin=0.75in]{geometry}
+\usepackage{times}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage{float}
+\usepackage{booktabs} 
+\usepackage{multirow}
+\usepackage{tabularx}
+\usepackage{array} 
+\usepackage{enumitem}
+\usepackage{pifont} 
+\newcommand{\tick}{\ding{52}} 
+\newcommand{\cross}{\ding{56}} 
+\usepackage{caption}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+% --- Amrita Colors ---
+\definecolor{amritaMaroon}{HTML}{A4123F}
+
+% --- Title & Section Formatting ---
+\titlespacing*{\section}{0pt}{12pt}{4pt}
+\titleformat{\section}{\large\bfseries\color{amritaMaroon}}{\thesection}{1em}{}
+\titlespacing*{\subsection}{0pt}{9pt}{3pt}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection}{1em}{}
+\titlespacing*{\subsubsection}{0pt}{6pt}{2pt}
+\titleformat{\subsubsection}{\small\bfseries}{\thesubsubsection}{1em}{}
+
+\pagestyle{empty}
+
+\begin{document}
+
+% ==========================================
+% HEADER
+% ==========================================
+\noindent
+\begin{minipage}{\textwidth}
+    \centering
+    {\Large \textbf{\textcolor{amritaMaroon}{
+        AMRITA VISHWA VIDYAPEETHAM \\
+        SCHOOL OF COMPUTING \\
+        DEPARTMENT OF COMPUTER SCIENCE AND ENGINEERING
+    }}}
+    \vspace{0.2cm} \\
+    {\large \textbf{AI-Driven Forensic Indexing: A Behavioral Model for Chain Snatching Identification}} \\
+    \vspace{0.1cm}
+    23CSE399 -- Project Phase 2 (Panel Review 1) \\ \today
+\end{minipage}
+
+\vspace{0.3cm}
+\hrule
+\vspace{0.3cm}
+
+% --- Team & Guide Details ---
+\noindent
+\begin{center}
+\renewcommand{\arraystretch}{1.4}
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{|l|p{4.2cm}|p{4cm}|p{2.5cm}|c|}
+\hline
+\multicolumn{2}{|c|}{\textbf{Team Members (Team 24)}} & \textbf{Guide} & \textbf{Project Type} & \textbf{Marks} \\
+\hline
+\small CB.SC.U4CSE23151 & \small Vasudev Kishor &
+    \multirow{4}{=}{\raggedright \small \textbf{Ms.~Sathiya R R} \newline \textit{Assistant Professor}} &
+    \multirow{4}{=}{\raggedright \small \textbf{Type 1} \newline Research} &
+    \multirow{4}{*}{\textbf{\huge \dots\ / 20}} \\
+\cline{1-2}
+\small CB.SC.U4CSE23342 & \small P Dharshni & & & \\
+\cline{1-2}
+\small CB.SC.U4CSE23710 & \small Rathish B & & & \\
+\cline{1-2}
+\small CB.SC.U4CSE23750 & \small Thilagan Iniyavan & & & \\
+\hline
+\end{tabular}
+\end{center}
+
+\section{Problem Statement \& Research Context}
+
+\subsection{Problem Statement}
+Municipal CCTV surveillance networks generate vast streams of high-resolution video continuous footage. In criminal forensics—specifically for micro-duration events like chain snatching—investigators face severe processing bottlenecks. Chain-snatching events usually last only a few seconds within hours of uninformative footage, rendering manual inspection unsustainable.
+
+Standard computer vision approaches face significant operational limitations:
+\begin{itemize}[leftmargin=*, noitemsep]
+    \item \textbf{Manual Sifting Bottleneck:} Law enforcement spends hundreds of hours scanning static or non-event footage.
+    \item \textbf{Semantic Intent Deficit:} Bounding-box object detectors (e.g., standard YOLO) locate pedestrians and motorcycles but cannot discern malicious intent or coordinate interaction patterns.
+    \item \textbf{Temporal Spread of Evidence:} Criminal signatures are non-instantaneous; malicious intent is distributed chronologically across approach, interaction, snatching, and escape phases.
+    \item \textbf{Environmental Degradation:} Surveillance feeds suffer from night-time motion blur, heavy occlusions, 2D projection overlap, and small distant target resolution.
+\end{itemize}
+
+\subsection{Research Gap Analysis}
+\begin{table}[H]
+\centering
+\small
+\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\textwidth}{|>{\hsize=0.25\hsize\bfseries}X|>{\hsize=0.35\hsize}X|>{\hsize=0.4\hsize}X|}
+\hline
+\textbf{Current Method} & \textbf{Capability Provided} & \textbf{Identified Forensic Gap} \\
+\hline
+Object Detection & Pinpoints spatial location of targets. & Lacks temporal interaction context; high false positive rate for normal riding. \\
+\hline
+Object Tracking & Maintains target identity across frames. & Fails to recognize coordinate behavioral intent or kinetic theft patterns. \\
+\hline
+Pose / Action Models & Extracts detailed joint kinematics. & Extremely computationally expensive; unfeasible to run continuously across all video streams. \\
+\hline
+End-to-End Classifiers & Outputs direct video-level predictions. & Black-box architecture; provides no verifiable chain of evidence or component traceability. \\
+\hline
+Manual Indexing & Provides human verification. & Unscalable to large-scale municipal CCTV archives. \\
+\hline
+\end{tabularx}
+\caption{Systematic gap analysis of existing forensic video processing approaches.}
+\end{table}
+
+\section{Literature Survey \& Model Selection Strategy}
+
+To establish an optimal pipeline architecture, extensive comparative evaluation of state-of-the-art algorithms was conducted across preprocessing, object detection, and action recognition domains.
+
+\subsection{Comparative Model Analysis}
+
+\textbf{A. Low-Light Enhancement Methods}
+\begin{table}[H]
+\centering
+\scriptsize
+\renewcommand{\arraystretch}{1.2}
+\begin{tabularx}{\textwidth}{|l|X|X|c|}
+\hline
+\textbf{Model} & \textbf{Core Technique} & \textbf{Primary Limitation} & \textbf{Selection Status} \\
+\hline
+LIME & Illumination map estimation via structure-aware smoothing & High per-frame latency; over-exposure in dynamic areas & Low Suitability \\
+\hline
+EnlightenGAN & Unpaired image-to-image translation (GAN) & Risk of artifact generation and feature hallucination & Rejected \\
+\hline
+Zero-DCE & Non-generative dynamic range curve estimation & Requires scene parameter tuning & \textbf{Selected Engine} \\
+\hline
+\end{tabularx}
+\end{table}
+
+\textbf{B. Object Detection Architectures}
+\begin{table}[H]
+\centering
+\scriptsize
+\renewcommand{\arraystretch}{1.2}
+\begin{tabularx}{\textwidth}{|l|c|c|c|X|}
+\hline
+\textbf{Model} & \textbf{mAP@50-95} & \textbf{Latency (ms)} & \textbf{Params} & \textbf{Small Object / Occlusion Handling} \\
+\hline
+YOLOv8 (Nano) & 37.3\% & 12--15 ms & 3.2M & Moderate baseline accuracy. \\
+\hline
+YOLOv10 (Nano) & 38.5\% & 10--12 ms & 2.3M & High performance via NMS-free dual assignments. \\
+\hline
+YOLOv11 (Nano) & 39.5\% & 8--10 ms & 2.6M & Ultra-high accuracy with C2PSA attention modules. \\
+\hline
+\end{tabularx}
+\end{table}
+
+\textbf{C. Action Recognition \& Behavioral Models}
+\begin{table}[H]
+\centering
+\scriptsize
+\renewcommand{\arraystretch}{1.2}
+\begin{tabularx}{\textwidth}{|X|c|c|X|c|}
+\hline
+\textbf{Architecture} & \textbf{Accuracy (NTU-120)} & \textbf{GFLOPs} & \textbf{Night \& Occlusion Robustness} & \textbf{Pipeline Selection} \\
+\hline
+ViViT & 89.1\% & 50.0+ & Low (High pixel dependency) & Rejected (Too heavy) \\
+\hline
+2s-AGCN & 91.2\% & 18.4 & High (Skeleton-based spatial graph) & Candidate \\
+\hline
+ST-GCN & 89.9\% & 16.2 & High (Lightweight Spatio-Temporal Graph) & \textbf{Selected Engine} \\
+\hline
+\end{tabularx}
+\caption{Literature benchmarks driving baseline component choices.}
+\end{table}
+
+\section{System Architecture \& Mathematical Foundations}
+
+\begin{center}
+\IfFileExists{methodology.png}{%
+\includegraphics[width=0.92\textwidth,height=0.32\textheight,keepaspectratio]{methodology.png}\\
+}{%
+\fbox{\parbox[c][3.5cm][0.9\textwidth]{\centering Methodology diagram placeholder: \texttt{methodology.png} not found.}}\\
+}
+{\scriptsize Figure 1: Proposed Progressive Forensic Indexing Architecture}
+\end{center}
+
+\subsection{Architectural Principle \& 17-Stage Pipeline}
+The architecture enforces a cascade principle: inexpensive filters process the raw video stream, passing candidate regions to increasingly sophisticated neural networks only when specific criteria are satisfied.
+
+\begin{table}[H]
+\centering
+\small
+\renewcommand{\arraystretch}{1.25}
+\begin{tabularx}{\textwidth}{|c|>{\hsize=0.32\hsize}X|>{\hsize=0.68\hsize}X|}
+\hline
+\textbf{Stage} & \textbf{Main Operational Question} & \textbf{Module Output} \\
+\hline
+1 & Is there motion? & Motion triage candidate frames. \\
+\hline
+2--3 & Who is present in the scene? & Object tracks for person and vehicle entities. \\
+\hline
+4--7 & Are entities interacting spatially? & Spatial relationship vectors and interaction pairs. \\
+\hline
+8--10 & What behavior trajectory is occurring? & Behavior graphs and localized Region of Interest (ROI) crops. \\
+\hline
+11--13 & What human action is occurring? & Extracted skeleton keypoints and ST-GCN action labels. \\
+\hline
+14--15 & Does multi-modal evidence agree? & Fused interaction probability score. \\
+\hline
+16 & Does it match a snatch signature? & Verified signature score against chronological theft rules. \\
+\hline
+17 & How is it forensically retrieved? & Indexed event records linked to evidence thumbnails and video clips. \\
+\hline
+\end{tabularx}
+\caption{The 17-stage progressive indexing pipeline operational abstraction.}
+\end{table}
+
+\subsection{Mathematical Foundations}
+
+\textbf{1. Zero-DCE Illumination Enhancement Curve:}
+To stabilize feature extraction under low-light night-time conditions without adding generative overhead:
+\begin{equation}
+L_n(x) = L_{n-1}(x) + \alpha_n L_{n-1}(x)(1 - L_{n-1}(x))
+\end{equation}
+where $L_n(x)$ is the enhanced image channel at iteration $n$, and $\alpha_n \in [-1, 1]$ represents trainable curve parameter maps.
+
+\textbf{2. 3D Spatial Proximity & Perspective Correction:}
+To suppress false positive interactions caused by 2D camera projection overlaps, distance $d$ between pedestrian target $s$ and vehicle target $v$ is calculated with depth-scaling factors:
+\begin{equation}
+d = \sqrt{w_x(x_s - x_v)^2 + w_y(y_s - y_v)^2 + w_z(z_s - z_v)^2}
+\end{equation}
+
+\textbf{3. Spatio-Temporal Graph Convolution (ST-GCN):}
+Given a joint skeleton graph $G = (V, E)$ with joint nodes $V$ and bone/temporal edges $E$, layer-wise spatial graph convolutions are computed as:
+\begin{equation}
+f_{out} = \sum_{k}^{K_v} \Lambda_k^{-\frac{1}{2}} A_k \Lambda_k^{-\frac{1}{2}} f_{in} W_k
+\end{equation}
+where $A_k$ represents the adjacency matrix for spatial partition subset $k$, $\Lambda_k$ is the normalized diagonal degree matrix, and $W_k$ represents the trainable weight vector.
+
+\section{Core Intelligent Modules}
+
+The intelligent processing capabilities of the platform are organized into four primary modules.
+
+\subsection{Behavior Intelligence \& Relationship Engine}
+\begin{table}[H]
+\centering
+\small
+\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\textwidth}{|>{\hsize=0.3\hsize\bfseries}X|>{\hsize=0.7\hsize}X|}
+\hline
+\textbf{Sub-Module} & \textbf{Functional Operation \& Engineering Design} \\
+\hline
+Motion Feature Engine & Derives kinematics including instant velocity ($\vec{v}$), acceleration ($\vec{a}$), directional vectors, and trajectory history. \\
+\hline
+Relationship Engine & Evaluates dynamic bounding box spatial overlaps, relative approach rates, and bounding box scale changes between entities. \\
+\hline
+Interaction Manager & Tracks entity-pair interactions over time using sliding window buffers, identifying sustained convergence. \\
+\hline
+Behavior Graph Builder & Encapsulates interaction states into Directed Acyclic Graphs (DAGs) representing temporal transitions (Approach $\rightarrow$ Proximity $\rightarrow$ Separation). \\
+\hline
+\end{tabularx}
+\caption{Behavior Intelligence Layer design specifications.}
+\end{table}
+
+\subsection{Kinematic Pose \& ST-GCN Action Recognition Engine}
+\begin{table}[H]
+\centering
+\small
+\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\textwidth}{|>{\hsize=0.3\hsize\bfseries}X|>{\hsize=0.7\hsize}X|}
+\hline
+\textbf{Feature Dimension} & \textbf{Engine Architecture \& Specification} \\
+\hline
+Input ROI Selection & Crop regions strictly isolated to interacting person--vehicle bounding boxes. \\
+\hline
+Pose Extraction & Baseline MediaPipe engine generating 2D joint coordinate matrices ($17 \text{ keypoints} \times \text{confidence}$). \\
+\hline
+Spatio-Temporal Graph & Maps joints as graph vertices ($V$) across frame temporal sequences ($T$). \\
+\hline
+Action Output & Predicts action probabilities for critical snatch primitives: \textit{Reaching}, \textit{Grabbing}, \textit{Pulling}, and \textit{Normal Riding}. \\
+\hline
+\end{tabularx}
+\caption{Pose Estimation and ST-GCN Module specifications.}
+\end{table}
+
+\subsection{Snatch Signature Verification Layer}
+\begin{table}[H]
+\centering
+\small
+\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\textwidth}{|c|>{\hsize=0.35\hsize\bfseries}X|>{\hsize=0.55\hsize}X|}
+\hline
+\textbf{Sequence Step} & \textbf{Behavioral Primitive} & \textbf{Required Evidence Metric} \\
+\hline
+Step 1 & Approach / Convergence & Decreasing spatial distance trajectory ($d/dt < 0$). \\
+\hline
+Step 2 & Proximity Interaction & Intersection over Union (IoU) / Proximity threshold hit. \\
+\hline
+Step 3 & Upper-Limb Theft Action & High-confidence ST-GCN detection (\textit{Reach/Grab/Pull}). \\
+\hline
+Step 4 & Rapid Acceleration & High positive velocity gradient ($d\vec{v}/dt \gg 0$). \\
+\hline
+Step 5 & Escape Divergence & Rapid spatial divergence ($d/dt \gg 0$). \\
+\hline
+\end{tabularx}
+\caption{Chronological theft signature matching verification steps.}
+\end{table}
+
+\subsection{Forensic Metadata Indexing Module}
+\begin{table}[H]
+\centering
+\small
+\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\textwidth}{|>{\hsize=0.3\hsize\bfseries}X|>{\hsize=0.7\hsize}X|}
+\hline
+\textbf{Index Field} & \textbf{Description and Query Utility} \\
+\hline
+Temporal Metadata & Precise start/end frame indices, system timestamps, and video ID. \\
+\hline
+Entity Association & Track ID links corresponding to involved pedestrian and vehicle instances. \\
+\hline
+Behavioral Labels & Graph transition logs, action predictions, and signature confidence scores. \\
+\hline
+Evidence References & Direct memory offsets to saved keyframe thumbnails and short evidence video clips. \\
+\hline
+Search Capabilities & Supports instant SQL-like query execution (e.g., \texttt{WHERE Action='Grabbing' AND Confidence > 0.85}). \\
+\hline
+\end{tabularx}
+\caption{Data schema for the forensic event database.}
+\end{table}
+
+\section{Research Strategy \& Experimental Matrix}
+
+\subsection{Research Strategy \& Integrity Controls}
+To maintain rigorous scientific standards as a Type 1 Research Project, experiments enforce strict protocol controls:
+
+\begin{table}[H]
+\centering
+\small
+\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\textwidth}{|>{\hsize=0.35\hsize\bfseries}X|>{\hsize=0.65\hsize}X|}
+\hline
+\textbf{Research Challenge} & \textbf{Integrity Control Protocol} \\
+\hline
+Benchmarking Bias & All model comparisons are evaluated on identical, standardized CCTV video benchmarks. \\
+\hline
+Configuration Drift & Hyperparameters, hardware constraints, and seeds are auto-logged per test run. \\
+\hline
+Missing Implementations & Unavailable external models are recorded strictly as \textit{not evaluated} (zero artificial approximation). \\
+\hline
+System Overhead Analysis & Automated tracking of CPU memory, GPU VRAM allocations, and frame-rate throughput. \\
+\hline
+\end{tabularx}
+\caption{Protocol controls for experimental validity.}
+\end{table}
+
+\subsection{Comprehensive Experimental Matrix}
+\begin{table}[H]
+\centering
+\scriptsize
+\renewcommand{\arraystretch}{1.25}
+\begin{tabularx}{\textwidth}{|>{\hsize=0.18\hsize}X|>{\hsize=0.32\hsize}X|>{\hsize=0.32\hsize}X|>{\hsize=0.18\hsize}X|}
+\hline
+\textbf{Pipeline Stage} & \textbf{Candidate Methods} & \textbf{Evaluation Metrics} & \textbf{Status} \\
+\hline
+Motion Triage & Frame Difference, MOG2, KNN & Reduction Rate, Recall, FPS & \textbf{Completed} \\
+\hline
+Object Detection & YOLOv8, YOLOv10, YOLOv11 & mAP@50, Precision, Latency & Planned \\
+\hline
+Tracking & ByteTrack, BoT-SORT & ID Switches, MOTA, Continuity & Planned \\
+\hline
+Relationship & Proximity, Overlap, Scale Change & Precision, Recall & Planned \\
+\hline
+Pose Extraction & MediaPipe, AlphaPose & Keypoint PCK, Latency & \textbf{MediaPipe Active} \\
+\hline
+Action Model & ST-GCN vs Executable Alts & F1-Score, Processing Latency & \textbf{ST-GCN Ready} \\
+\hline
+Evidence Fusion & Weighted, Rule, Bayesian, Voting & Agreement Rate, F1-Score & \textbf{Implemented} \\
+\hline
+Architecture & Baseline vs Progressive Cascade & Throughput (FPS), End-to-End F1 & \textbf{Implemented} \\
+\hline
+Forensic Indexing & Inverted Index vs Linear Scan & Query Latency vs Record Volume & Synthetic Active \\
+\hline
+\end{tabularx}
+\caption{Master experimental matrix for model evaluation and component ablation.}
+\end{table}
+
+\section{Summary of Completed Work ($>$60\% Milestone)}
+
+The fundamental system framework is fully operational, boasting an active verification suite with \textbf{164 out of 164 unit tests passing}.
+
+\subsection{Completed Study: Motion Triage Performance}
+An empirical study was conducted to establish the optimal motion filtering setup to maximize frame reduction while retaining subtle event triggers.
+
+\begin{table}[H]
+\centering
+\small
+\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\textwidth}{|>{\hsize=0.3\hsize\bfseries}X|>{\hsize=0.7\hsize}X|}
+\hline
+\textbf{Parameter} & \textbf{Empirical Result / Observation} \\
+\hline
+Evaluated Methods & Frame Differencing, Mixture of Gaussians (MOG2), K-Nearest Neighbors (KNN). \\
+\hline
+Selected Algorithm & \textbf{Frame Differencing} (Optimal balance between compute overhead and recall). \\
+\hline
+Selected Threshold & \textbf{2000 pixels (Setting 20)}. \\
+\hline
+Processing Speed & \textbf{$\approx 335$ FPS} on standard benchmark footage. \\
+\hline
+Sensitivity Trade-off & Lower thresholds ($<1000$ px) retain noise; higher thresholds ($>3000$ px) risk missing subtle motion buildups. \\
+\hline
+\end{tabularx}
+\caption{Empirical results for Stage 1 Motion Triage.}
+\end{table}
+
+
+\subsection{Current Implementation Progress}
+
+\begin{table}[H]
+\centering
+\small
+\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\textwidth}{|>{\hsize=0.4\hsize}X|c|>{\hsize=0.6\hsize}X|}
+\hline
+\textbf{Module} & \textbf{Status} & \textbf{Current evidence} \\
+\hline
+Motion triage & Completed & Comparison study \\
+\hline
+Detection and tracking & Completed & Integrated pipeline \\
+\hline
+Interaction and behaviour & Completed & Integration tests \\
+\hline
+Behaviour graph & Completed & Integration tests \\
+\hline
+ROI and skeleton preparation & Completed & Pipeline tests \\
+\hline
+Pose estimation & Implemented & MediaPipe baseline \\
+\hline
+ST-GCN action recognition & Implemented & Integrated stage \\
+\hline
+Behaviour fusion & Completed & Multiple strategies \\
+\hline
+Snatch signature engine & Completed & Signature evaluation \\
+\hline
+Forensic indexing & Completed & Query engine \\
+\hline
+Research comparison framework & Implemented & Comparison / ablation runners \\
+\hline
+\end{tabularx}
+\end{table}
+
+\begin{center}
+\textbf{164/164 unit tests passing in the current implementation.}
+\end{center}
+
+
+\subsection{Current Research Findings}
+\begin{table}[H]
+\centering
+\small
+\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\textwidth}{|>{\hsize=0.4\hsize}X|>{\hsize=0.6\hsize}X|}
+\hline
+\textbf{Research Observation} & \textbf{Operational Takeaway} \\
+\hline
+Frame-level motion triage discards non-events & Bypasses expensive neural network processing on static frames, resolving power bottlenecks. \\
+\hline
+Spatial overlap triggers false alarms & Spatial proximity alone is insufficient; chronological behavioral context is mandatory. \\
+\hline
+Behavior Graphs preserve temporal order & Enables representing theft as a dynamic state sequence rather than isolated spatial frame detections. \\
+\hline
+Skeleton-based action models add robustness & Human joint dynamics effectively complement vehicle trajectory tracking in low-light/occluded scenes. \\
+\hline
+Forensic metadata query eliminates rescanning & Investigators search timestamped structured records directly, achieving near-instant clip retrieval. \\
+\hline
+\end{tabularx}
+\caption{Key findings derived from initial system testing.}
+\end{table}
+
+\section{Plan for Upcoming Semesters}
+
+With core modules active and unit-tested, work in upcoming semesters will execute the comparative research roadmap:
+
+\begin{table}[H]
+\centering
+\small
+\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\textwidth}{|c|>{\hsize=0.3\hsize\bfseries}X|>{\hsize=0.6\hsize}X|}
+\hline
+\textbf{Phase} & \textbf{Target Task} & \textbf{Planned Deliverables \& Metrics} \\
+\hline
+Phase 1 & Detector \& Tracker Benchmarks & Evaluate YOLOv8, v10, v11 and ByteTrack vs. BoT-SORT on standard CCTV datasets for precision and ID continuity. \\
+\hline
+Phase 2 & Action Model Benchmarks & Benchmark executable pose/action models against ST-GCN baseline for F1-score and frame throughput. \\
+Phase 3 & Full Pipeline Ablation & Systematically deactivate individual modules (e.g., ST-GCN, Relationship Engine) to quantify accuracy vs. FPS trade-offs. \\
+\hline
+Phase 4 & Edge Case & Study failure modes including severe occlusion, low resolution, and distant camera perspectives. \\
+\hline
+Phase 5 & Final Dissertation & Measure forensic query scaling latency and publish final project research findings. \\
+\hline
+\end{tabularx}
+\caption{Detailed execution plan for Phase 2 implementation.}
+\end{table}
+
+\nocite{*}
+\bibliographystyle{unsrt}
+\bibliography{reff}
+
+\end{document}
