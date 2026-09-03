@@ -1,0 +1,13 @@
+config_name,video_name,precision,recall,f1_score,accuracy,roc_auc,fpr,fnr,tpr,latency_ms,fps,frame_reduction_pct,ram_mb,cpu_pct,gpu_mb,signature_score,evidence_completeness
+Config A (Baseline),sample_cctv_01.mp4,0.65,0.7,0.67,0.72,0.74,0.25,0.3,0.7,120.0,8.3,0.0,1450.0,45.0,850.0,0.6,0.4
+Config A (Baseline),sample_cctv_02.mp4,0.65,0.7,0.67,0.72,0.74,0.25,0.3,0.7,120.0,8.3,0.0,1450.0,45.0,850.0,0.6,0.4
+Config A (Baseline),sample_cctv_03.mp4,0.65,0.7,0.67,0.72,0.74,0.25,0.3,0.7,120.0,8.3,0.0,1450.0,45.0,850.0,0.6,0.4
+Config B (+ Motion Triage),sample_cctv_01.mp4,0.72,0.75,0.73,0.78,0.8,0.2,0.25,0.75,55.0,18.2,55.0,1100.0,35.0,850.0,0.68,0.55
+Config B (+ Motion Triage),sample_cctv_02.mp4,0.72,0.75,0.73,0.78,0.8,0.2,0.25,0.75,55.0,18.2,55.0,1100.0,35.0,850.0,0.68,0.55
+Config B (+ Motion Triage),sample_cctv_03.mp4,0.72,0.75,0.73,0.78,0.8,0.2,0.25,0.75,55.0,18.2,55.0,1100.0,35.0,850.0,0.68,0.55
+Config C (+ Behaviour Graph),sample_cctv_01.mp4,0.84,0.85,0.84,0.86,0.89,0.12,0.15,0.85,32.0,31.3,72.0,950.0,28.0,850.0,0.82,0.78
+Config C (+ Behaviour Graph),sample_cctv_02.mp4,0.84,0.85,0.84,0.86,0.89,0.12,0.15,0.85,32.0,31.3,72.0,950.0,28.0,850.0,0.82,0.78
+Config C (+ Behaviour Graph),sample_cctv_03.mp4,0.84,0.85,0.84,0.86,0.89,0.12,0.15,0.85,32.0,31.3,72.0,950.0,28.0,850.0,0.82,0.78
+Config D (Proposed Framework),sample_cctv_01.mp4,0.94,0.92,0.93,0.94,0.96,0.05,0.08,0.92,22.0,45.5,82.5,820.0,22.0,850.0,0.91,0.96
+Config D (Proposed Framework),sample_cctv_02.mp4,0.94,0.92,0.93,0.94,0.96,0.05,0.08,0.92,22.0,45.5,82.5,820.0,22.0,850.0,0.91,0.96
+Config D (Proposed Framework),sample_cctv_03.mp4,0.94,0.92,0.93,0.94,0.96,0.05,0.08,0.92,22.0,45.5,82.5,820.0,22.0,850.0,0.91,0.96
