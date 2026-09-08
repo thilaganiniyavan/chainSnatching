@@ -50,6 +50,7 @@ def main():
     parser.add_argument("--dataset", nargs="+", default=["Snatch 1.0/Chain Snatching Videos/Snatch Theft", "Snatch 1.0/Chain Snatching Videos/Normal"], help="Paths to dataset directories")
     parser.add_argument("--output_dir", type=str, default="outputs/architecture_validation", help="Output directory")
     parser.add_argument("--limit", type=int, default=5, help="Limit number of videos per experiment for fast benchmarking")
+    parser.add_argument("--max-frames", type=int, default=300, help="Max frames per video to evaluate (default: 300)")
 
     args = parser.parse_args()
 
@@ -72,7 +73,7 @@ def main():
 
     os.makedirs(args.output_dir, exist_ok=True)
 
-    validator = ArchitectureValidator(videos)
+    validator = ArchitectureValidator(videos, max_frames=args.max_frames)
 
     print("\n======================================================================")
     print("PART 1 & 2: Executing Stage Contribution & Search Space Analysis...")

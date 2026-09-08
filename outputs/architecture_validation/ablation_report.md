@@ -2,7 +2,7 @@
 
 | Configuration | Runtime (s) | Processed Frames | Retained Candidate Frames | Total Detections | Total Tracks | Candidate Events | Cost Index |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Config A (YOLO Only)** | `36.51s` | `2227` | `1021` | `2569` | `0` | `0` | `20.39` |
-| **Config B (Motion + YOLO)** | `95.31s` | `2227` | `1984` | `4947` | `0` | `0` | `94.44` |
-| **Config C (Motion + YOLO + Tracking)** | `196.0s` | `2227` | `1984` | `4947` | `4022` | `0` | `194.22` |
-| **Config D (Full Pipeline)** | `187.4s` | `2227` | `53` | `4947` | `4022` | `67` | `23.2` |
+| **Config A (YOLO Only)** | `13.35s` | `1500` | `750` | `5801` | `0` | `0` | `8.01` |
+| **Config B (Motion + YOLO)** | `77.34s` | `1500` | `1500` | `11671` | `0` | `0` | `85.07` |
+| **Config C (Motion + YOLO + Tracking)** | `185.06s` | `1500` | `1500` | `11671` | `7498` | `0` | `203.57` |
+| **Config D (Full Pipeline)** | `557.58s` | `1500` | `1011` | `11671` | `7498` | `2913` | `431.57` |

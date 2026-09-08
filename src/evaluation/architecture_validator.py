@@ -61,8 +61,9 @@ def get_process_resource_usage() -> Tuple[float, float]:
 class ArchitectureValidator:
     """Core evaluation engine for validating the progressive pipeline architecture."""
 
-    def __init__(self, video_paths: List[str]):
+    def __init__(self, video_paths: List[str], max_frames: int | None = 300):
         self.video_paths = video_paths
+        self.max_frames = max_frames
 
     def run_stage_contribution(self) -> Dict[str, Any]:
         """Part 1 & 2: Measure stage contributions and progressive search space reduction."""
@@ -91,7 +92,11 @@ class ArchitectureValidator:
         latencies_tracking = []
         latencies_rel = []
 
-        for v_path in self.video_paths:
+        total_vids = len(self.video_paths)
+        for idx, v_path in enumerate(self.video_paths, start=1):
+            v_name = os.path.basename(v_path)
+            print(f"  [{idx}/{total_vids}] Profiling stages: {v_name} ...", flush=True)
+
             cap = cv2.VideoCapture(v_path)
             if not cap.isOpened():
                 continue
@@ -106,6 +111,9 @@ class ArchitectureValidator:
                     break
 
                 frame_num += 1
+                if self.max_frames and frame_num > self.max_frames:
+                    break
+
                 tot_input_frames += 1
 
                 # Stage 1: Motion Filtering
@@ -238,6 +246,8 @@ class ArchitectureValidator:
                         break
 
                     frame_num += 1
+                    if self.max_frames and frame_num > self.max_frames:
+                        break
                     proc_frames += 1
 
                     # Frame sampling for un-filtered passes to maintain fast benchmarking speed
@@ -343,6 +353,8 @@ class ArchitectureValidator:
                         break
 
                     frame_num += 1
+                    if self.max_frames and frame_num > self.max_frames:
+                        break
 
                     # Frame sampling for un-filtered passes to maintain fast benchmarking speed
                     if exp["bypass_motion"] and frame_num % 2 != 0:
