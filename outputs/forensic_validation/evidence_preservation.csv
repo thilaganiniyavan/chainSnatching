@@ -1,0 +1,7 @@
+stage,incident_frames_entering,incident_frames_retained,incident_frames_lost,retention_percentage
+Raw Video Input,1204,1204,0,100.0
+Motion Filtering,1204,400,804,33.22
+YOLO Detection,400,400,0,100.0
+Tracking Stage,400,400,0,100.0
+Relationship Engine,400,262,138,65.5
+Candidate Events,262,262,0,100.0

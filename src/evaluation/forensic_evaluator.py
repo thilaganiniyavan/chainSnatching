@@ -148,9 +148,10 @@ class GroundTruthGenerator:
 class ForensicEvaluator:
     """Core evaluation suite for measuring evidence preservation and recall metrics."""
 
-    def __init__(self, video_paths: List[str], ground_truth: List[Dict[str, Any]]):
+    def __init__(self, video_paths: List[str], ground_truth: List[Dict[str, Any]], max_frames: int | None = 300):
         self.video_paths = video_paths
         self.gt_dict = {gt["video_path"]: gt for gt in ground_truth}
+        self.max_frames = max_frames
 
     def evaluate_all(self) -> Dict[str, Any]:
         detector = Detector(confidence=0.25)
@@ -180,19 +181,24 @@ class ForensicEvaluator:
         cfgA_candidate_frames = []
         cfgD_candidate_frames = []
 
-        for v_path in self.video_paths:
+        total_vids = len(self.video_paths)
+        for idx, v_path in enumerate(self.video_paths, start=1):
             v_name = os.path.basename(v_path)
             gt_info = self.gt_dict.get(v_path, {})
             is_incident = gt_info.get("category") == "Incident"
+
+            print(f"[{idx}/{total_vids}] Evaluating forensic preservation: {v_name} ...", flush=True)
 
             cap = cv2.VideoCapture(v_path)
             if not cap.isOpened():
                 continue
 
-            total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+            total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0)
             fps = cap.get(cv2.CAP_PROP_FPS)
             if fps <= 0 or fps != fps:
                 fps = 30.0
+
+            target_limit = min(total_frames, self.max_frames) if (self.max_frames and total_frames > 0) else (self.max_frames or total_frames)
 
             mog2 = cv2.createBackgroundSubtractorMOG2(history=500, varThreshold=16, detectShadows=True)
             tracking_stage = TrackingStage()
@@ -218,10 +224,15 @@ class ForensicEvaluator:
                     break
 
                 frame_num += 1
+                if self.max_frames and frame_num > self.max_frames:
+                    break
 
                 # Frame sampling every 3rd frame for fast execution
                 if frame_num % 3 != 0:
                     continue
+
+                if frame_num % 30 == 0 or (target_limit and frame_num >= target_limit):
+                    print(f"  Frame {frame_num}/{target_limit} (Retained: {v_motion_retained})...", end="\r", flush=True)
 
                 # 1. Measure YOLO Only (Baseline)
                 raw_dets = detector.detect(frame)

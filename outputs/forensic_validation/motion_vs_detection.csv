@@ -1,0 +1,6 @@
+video_name,total_frames,removed_frames,objects_lost,objects_retained_per_removed_frame,incident_retention_ratio_pct
+s_11.avi,301,201,0,3.2438,33.22
+s_12.avi,301,201,0,5.5274,33.22
+s_15.avi,301,201,0,6.0597,33.22
+s_18.avi,301,201,0,2.7811,33.22
+s_20.avi,301,201,0,1.6866,33.22

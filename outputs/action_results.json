@@ -1,10 +1,10 @@
 {
   "action_results": [
     {
-      "action_id": "ACT-19182D99",
-      "sequence_id": "SEQ-INT-0001-TRK--1",
+      "action_id": "ACT-02269341",
+      "sequence_id": "SEQ-INT-0001-TRK-10003",
       "interaction_id": "INT-0001",
-      "track_id": -1,
+      "track_id": 10003,
       "predicted_action": "Unknown",
       "action_confidence": 0.9,
       "class_probabilities": {
@@ -41,20 +41,76 @@
           0.05
         ]
       ],
-      "inference_time_ms": 0.01,
+      "inference_time_ms": 0.02,
       "model_name": "ST-GCN",
       "model_version": "1.0.0",
-      "device_used": "CPU",
-      "skeleton_quality": 0.75,
+      "device_used": "CUDA:0",
+      "skeleton_quality": 0.5148,
       "metadata": {
-        "has_torch_runtime": true
+        "has_torch_runtime": true,
+        "inference_mode": "heuristics_fallback",
+        "neural_softmax_max": 0.0,
+        "checkpoint_loaded": true
       }
     },
     {
-      "action_id": "ACT-278088FE",
-      "sequence_id": "SEQ-INT-0002-TRK--1",
+      "action_id": "ACT-02C15109",
+      "sequence_id": "SEQ-INT-0002-TRK-10002",
       "interaction_id": "INT-0002",
-      "track_id": -1,
+      "track_id": 10002,
+      "predicted_action": "Unknown",
+      "action_confidence": 0.9,
+      "class_probabilities": {
+        "Walking": 0.05,
+        "Standing": 0.05,
+        "Running": 0.05,
+        "Approaching": 0.05,
+        "Reaching": 0.05,
+        "Grabbing": 0.05,
+        "Pulling": 0.05,
+        "Turning": 0.05,
+        "Falling": 0.05,
+        "Unknown": 0.9
+      },
+      "top_k_predictions": [
+        [
+          "Unknown",
+          0.9
+        ],
+        [
+          "Walking",
+          0.05
+        ],
+        [
+          "Standing",
+          0.05
+        ],
+        [
+          "Running",
+          0.05
+        ],
+        [
+          "Approaching",
+          0.05
+        ]
+      ],
+      "inference_time_ms": 0.0,
+      "model_name": "ST-GCN",
+      "model_version": "1.0.0",
+      "device_used": "CUDA:0",
+      "skeleton_quality": 0.5,
+      "metadata": {
+        "has_torch_runtime": true,
+        "inference_mode": "heuristics_fallback",
+        "neural_softmax_max": 0.0,
+        "checkpoint_loaded": true
+      }
+    },
+    {
+      "action_id": "ACT-7B554D0E",
+      "sequence_id": "SEQ-INT-0003-TRK-1",
+      "interaction_id": "INT-0003",
+      "track_id": 1,
       "predicted_action": "Unknown",
       "action_confidence": 0.9,
       "class_probabilities": {
@@ -94,22 +150,343 @@
       "inference_time_ms": 0.01,
       "model_name": "ST-GCN",
       "model_version": "1.0.0",
-      "device_used": "CPU",
-      "skeleton_quality": 0.75,
+      "device_used": "CUDA:0",
+      "skeleton_quality": 0.5,
       "metadata": {
-        "has_torch_runtime": true
+        "has_torch_runtime": true,
+        "inference_mode": "heuristics_fallback",
+        "neural_softmax_max": 0.0,
+        "checkpoint_loaded": true
+      }
+    },
+    {
+      "action_id": "ACT-FC9098D1",
+      "sequence_id": "SEQ-INT-0004-TRK-3",
+      "interaction_id": "INT-0004",
+      "track_id": 3,
+      "predicted_action": "Unknown",
+      "action_confidence": 0.9,
+      "class_probabilities": {
+        "Walking": 0.05,
+        "Standing": 0.05,
+        "Running": 0.05,
+        "Approaching": 0.05,
+        "Reaching": 0.05,
+        "Grabbing": 0.05,
+        "Pulling": 0.05,
+        "Turning": 0.05,
+        "Falling": 0.05,
+        "Unknown": 0.9
+      },
+      "top_k_predictions": [
+        [
+          "Unknown",
+          0.9
+        ],
+        [
+          "Walking",
+          0.05
+        ],
+        [
+          "Standing",
+          0.05
+        ],
+        [
+          "Running",
+          0.05
+        ],
+        [
+          "Approaching",
+          0.05
+        ]
+      ],
+      "inference_time_ms": 0.0,
+      "model_name": "ST-GCN",
+      "model_version": "1.0.0",
+      "device_used": "CUDA:0",
+      "skeleton_quality": 0.3987,
+      "metadata": {
+        "has_torch_runtime": true,
+        "inference_mode": "heuristics_fallback",
+        "neural_softmax_max": 0.0,
+        "checkpoint_loaded": true
+      }
+    },
+    {
+      "action_id": "ACT-E239DC71",
+      "sequence_id": "SEQ-INT-0005-TRK-10000",
+      "interaction_id": "INT-0005",
+      "track_id": 10000,
+      "predicted_action": "Unknown",
+      "action_confidence": 0.9,
+      "class_probabilities": {
+        "Walking": 0.05,
+        "Standing": 0.05,
+        "Running": 0.05,
+        "Approaching": 0.05,
+        "Reaching": 0.05,
+        "Grabbing": 0.05,
+        "Pulling": 0.05,
+        "Turning": 0.05,
+        "Falling": 0.05,
+        "Unknown": 0.9
+      },
+      "top_k_predictions": [
+        [
+          "Unknown",
+          0.9
+        ],
+        [
+          "Walking",
+          0.05
+        ],
+        [
+          "Standing",
+          0.05
+        ],
+        [
+          "Running",
+          0.05
+        ],
+        [
+          "Approaching",
+          0.05
+        ]
+      ],
+      "inference_time_ms": 0.01,
+      "model_name": "ST-GCN",
+      "model_version": "1.0.0",
+      "device_used": "CUDA:0",
+      "skeleton_quality": 0.5,
+      "metadata": {
+        "has_torch_runtime": true,
+        "inference_mode": "heuristics_fallback",
+        "neural_softmax_max": 0.0,
+        "checkpoint_loaded": true
+      }
+    },
+    {
+      "action_id": "ACT-1B74EED1",
+      "sequence_id": "SEQ-INT-0008-TRK-10001",
+      "interaction_id": "INT-0008",
+      "track_id": 10001,
+      "predicted_action": "Unknown",
+      "action_confidence": 0.9,
+      "class_probabilities": {
+        "Walking": 0.05,
+        "Standing": 0.05,
+        "Running": 0.05,
+        "Approaching": 0.05,
+        "Reaching": 0.05,
+        "Grabbing": 0.05,
+        "Pulling": 0.05,
+        "Turning": 0.05,
+        "Falling": 0.05,
+        "Unknown": 0.9
+      },
+      "top_k_predictions": [
+        [
+          "Unknown",
+          0.9
+        ],
+        [
+          "Walking",
+          0.05
+        ],
+        [
+          "Standing",
+          0.05
+        ],
+        [
+          "Running",
+          0.05
+        ],
+        [
+          "Approaching",
+          0.05
+        ]
+      ],
+      "inference_time_ms": 0.01,
+      "model_name": "ST-GCN",
+      "model_version": "1.0.0",
+      "device_used": "CUDA:0",
+      "skeleton_quality": 0.8753,
+      "metadata": {
+        "has_torch_runtime": true,
+        "inference_mode": "heuristics_fallback",
+        "neural_softmax_max": 0.0,
+        "checkpoint_loaded": true
+      }
+    },
+    {
+      "action_id": "ACT-41200CD1",
+      "sequence_id": "SEQ-INT-0007-TRK-10000",
+      "interaction_id": "INT-0007",
+      "track_id": 10000,
+      "predicted_action": "Unknown",
+      "action_confidence": 0.9,
+      "class_probabilities": {
+        "Walking": 0.05,
+        "Standing": 0.05,
+        "Running": 0.05,
+        "Approaching": 0.05,
+        "Reaching": 0.05,
+        "Grabbing": 0.05,
+        "Pulling": 0.05,
+        "Turning": 0.05,
+        "Falling": 0.05,
+        "Unknown": 0.9
+      },
+      "top_k_predictions": [
+        [
+          "Unknown",
+          0.9
+        ],
+        [
+          "Walking",
+          0.05
+        ],
+        [
+          "Standing",
+          0.05
+        ],
+        [
+          "Running",
+          0.05
+        ],
+        [
+          "Approaching",
+          0.05
+        ]
+      ],
+      "inference_time_ms": 0.0,
+      "model_name": "ST-GCN",
+      "model_version": "1.0.0",
+      "device_used": "CUDA:0",
+      "skeleton_quality": 0.5,
+      "metadata": {
+        "has_torch_runtime": true,
+        "inference_mode": "heuristics_fallback",
+        "neural_softmax_max": 0.0,
+        "checkpoint_loaded": true
+      }
+    },
+    {
+      "action_id": "ACT-F0ED5A95",
+      "sequence_id": "SEQ-INT-0019-TRK-4",
+      "interaction_id": "INT-0019",
+      "track_id": 4,
+      "predicted_action": "Unknown",
+      "action_confidence": 0.9,
+      "class_probabilities": {
+        "Walking": 0.05,
+        "Standing": 0.05,
+        "Running": 0.05,
+        "Approaching": 0.05,
+        "Reaching": 0.05,
+        "Grabbing": 0.05,
+        "Pulling": 0.05,
+        "Turning": 0.05,
+        "Falling": 0.05,
+        "Unknown": 0.9
+      },
+      "top_k_predictions": [
+        [
+          "Unknown",
+          0.9
+        ],
+        [
+          "Walking",
+          0.05
+        ],
+        [
+          "Standing",
+          0.05
+        ],
+        [
+          "Running",
+          0.05
+        ],
+        [
+          "Approaching",
+          0.05
+        ]
+      ],
+      "inference_time_ms": 0.01,
+      "model_name": "ST-GCN",
+      "model_version": "1.0.0",
+      "device_used": "CUDA:0",
+      "skeleton_quality": 0.827,
+      "metadata": {
+        "has_torch_runtime": true,
+        "inference_mode": "heuristics_fallback",
+        "neural_softmax_max": 0.0,
+        "checkpoint_loaded": true
+      }
+    },
+    {
+      "action_id": "ACT-0689C76A",
+      "sequence_id": "SEQ-INT-0026-TRK-10002",
+      "interaction_id": "INT-0026",
+      "track_id": 10002,
+      "predicted_action": "Unknown",
+      "action_confidence": 0.9,
+      "class_probabilities": {
+        "Walking": 0.05,
+        "Standing": 0.05,
+        "Running": 0.05,
+        "Approaching": 0.05,
+        "Reaching": 0.05,
+        "Grabbing": 0.05,
+        "Pulling": 0.05,
+        "Turning": 0.05,
+        "Falling": 0.05,
+        "Unknown": 0.9
+      },
+      "top_k_predictions": [
+        [
+          "Unknown",
+          0.9
+        ],
+        [
+          "Walking",
+          0.05
+        ],
+        [
+          "Standing",
+          0.05
+        ],
+        [
+          "Running",
+          0.05
+        ],
+        [
+          "Approaching",
+          0.05
+        ]
+      ],
+      "inference_time_ms": 0.01,
+      "model_name": "ST-GCN",
+      "model_version": "1.0.0",
+      "device_used": "CUDA:0",
+      "skeleton_quality": 0.5,
+      "metadata": {
+        "has_torch_runtime": true,
+        "inference_mode": "heuristics_fallback",
+        "neural_softmax_max": 0.0,
+        "checkpoint_loaded": true
       }
     }
   ],
   "summary": {
-    "total_action_classifications": 2,
+    "total_action_classifications": 9,
     "average_confidence": 0.9,
     "average_inference_time_ms": 0.01,
     "models_used": [
       "ST-GCN"
     ],
     "action_counts": {
-      "Unknown": 2
+      "Unknown": 9
     }
   }
 }

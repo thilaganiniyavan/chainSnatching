@@ -1,3 +1,10 @@
 sequence_id,interaction_id,person_track_id,start_frame,end_frame,frame_count,duration_seconds,topology,num_joints,normalization_method,quality_score,completeness_score,is_accepted,rejection_reason
-SEQ-INT-0001-TRK--1,INT-0001,-1,44,44,1,0.033,COCO_17,17,hip_centered,0.75,1.0,True,Accepted
-SEQ-INT-0002-TRK--1,INT-0002,-1,311,311,1,0.033,COCO_17,17,hip_centered,0.75,1.0,True,Accepted
+SEQ-INT-0001-TRK-10003,INT-0001,10003,44,118,32,1.068,COCO_17,17,hip_centered,0.4749,1.0,True,Accepted
+SEQ-INT-0002-TRK-10002,INT-0002,10002,44,118,32,1.068,COCO_17,17,hip_centered,0.4467,1.0,True,Accepted
+SEQ-INT-0003-TRK-1,INT-0003,1,119,230,103,3.437,COCO_17,17,hip_centered,0.5085,1.0,True,Accepted
+SEQ-INT-0004-TRK-3,INT-0004,3,176,542,333,11.111,COCO_17,17,hip_centered,0.4308,1.0,True,Accepted
+SEQ-INT-0005-TRK-10000,INT-0005,10000,311,311,1,0.033,COCO_17,17,hip_centered,0.5,1.0,True,Accepted
+SEQ-INT-0008-TRK-10001,INT-0008,10001,340,350,8,0.267,COCO_17,17,hip_centered,0.5489,1.0,True,Accepted
+SEQ-INT-0007-TRK-10000,INT-0007,10000,340,350,8,0.267,COCO_17,17,hip_centered,0.449,1.0,True,Accepted
+SEQ-INT-0019-TRK-4,INT-0019,4,451,542,82,2.736,COCO_17,17,hip_centered,0.1757,1.0,False,Stability 0.27 < threshold 0.30
+SEQ-INT-0026-TRK-10002,INT-0026,10002,526,526,1,0.033,COCO_17,17,hip_centered,0.5,1.0,True,Accepted
