@@ -3,12 +3,14 @@
     {
       "fusion_id": "FUSED-INT-0001",
       "interaction_id": "INT-0001",
-      "person_track_id": -1,
-      "vehicle_track_id": -1,
+      "person_track_id": 10003,
+      "vehicle_track_id": 10000,
       "start_frame": 44,
       "end_frame": 44,
       "duration_seconds": 0.033,
-      "behaviour_patterns": [],
+      "behaviour_patterns": [
+        "STOP_PATTERN"
+      ],
       "action_timeline": [
         {
           "frame": 44,
@@ -18,14 +20,13 @@
         }
       ],
       "motion_evidence": {
-        "node_count": 0,
+        "node_count": 1,
         "edge_count": 0,
-        "average_speed_px": 0.0,
-        "direction_deg": 0.0
+        "average_speed_px": 0.0
       },
       "spatial_evidence": {
-        "has_vehicle": false,
-        "min_distance_px": 0.0
+        "has_vehicle": true,
+        "min_distance_px": 134.7
       },
       "temporal_evidence": {
         "start_frame": 44,
@@ -34,37 +35,212 @@
       },
       "action_evidence": [
         {
-          "action_id": "ACT-19182D99",
+          "action_id": "ACT-02269341",
           "label": "Unknown",
           "confidence": 0.9
         }
       ],
-      "behaviour_confidence": 0.5,
+      "behaviour_confidence": 0.9,
       "action_confidence": 0.5,
-      "fusion_confidence": 0.56,
+      "fusion_confidence": 0.72,
       "fusion_strategy": "weighted_confidence",
       "evidence_timeline": [
         {
           "frame": 44,
           "timestamp": 1.468,
-          "behaviour_pattern": "NONE",
-          "behaviour_confidence": 0.0,
+          "behaviour_pattern": "STOP_PATTERN",
+          "behaviour_confidence": 0.9,
           "action_label": "Unknown",
           "action_confidence": 0.9
         }
       ],
-      "explanation_text": "Person (Track -1) engaged in an interaction. Kinematic dynamics exhibited minimum proximity of 0.0px, interaction duration of 0.0s, average relative speed of 0.0px/s. Multi-modal fusion confidence: 56% (strategy: weighted_confidence).",
+      "explanation_text": "Vehicle (Track 10000) and Person (Track 10003) engaged in an interaction. Observed behaviour pattern sequence: [STOP_PATTERN]. Kinematic dynamics exhibited minimum proximity of 134.7px, interaction duration of 0.0s, average relative speed of 0.0px/s. Multi-modal fusion confidence: 72% (strategy: weighted_confidence).",
       "metadata": {}
     },
     {
       "fusion_id": "FUSED-INT-0002",
       "interaction_id": "INT-0002",
-      "person_track_id": -1,
-      "vehicle_track_id": -1,
+      "person_track_id": 10002,
+      "vehicle_track_id": 10003,
+      "start_frame": 44,
+      "end_frame": 44,
+      "duration_seconds": 0.033,
+      "behaviour_patterns": [
+        "STOP_PATTERN"
+      ],
+      "action_timeline": [
+        {
+          "frame": 44,
+          "action_label": "Unknown",
+          "action_confidence": 0.9,
+          "model_name": "ST-GCN"
+        }
+      ],
+      "motion_evidence": {
+        "node_count": 1,
+        "edge_count": 0,
+        "average_speed_px": 0.0
+      },
+      "spatial_evidence": {
+        "has_vehicle": true,
+        "min_distance_px": 59.1
+      },
+      "temporal_evidence": {
+        "start_frame": 44,
+        "end_frame": 44,
+        "duration_seconds": 0.033
+      },
+      "action_evidence": [
+        {
+          "action_id": "ACT-02C15109",
+          "label": "Unknown",
+          "confidence": 0.9
+        }
+      ],
+      "behaviour_confidence": 0.9,
+      "action_confidence": 0.5,
+      "fusion_confidence": 0.72,
+      "fusion_strategy": "weighted_confidence",
+      "evidence_timeline": [
+        {
+          "frame": 44,
+          "timestamp": 1.468,
+          "behaviour_pattern": "STOP_PATTERN",
+          "behaviour_confidence": 0.9,
+          "action_label": "Unknown",
+          "action_confidence": 0.9
+        }
+      ],
+      "explanation_text": "Vehicle (Track 10003) and Person (Track 10002) engaged in an interaction. Observed behaviour pattern sequence: [STOP_PATTERN]. Kinematic dynamics exhibited minimum proximity of 59.1px, interaction duration of 0.0s, average relative speed of 0.0px/s. Multi-modal fusion confidence: 72% (strategy: weighted_confidence).",
+      "metadata": {}
+    },
+    {
+      "fusion_id": "FUSED-INT-0003",
+      "interaction_id": "INT-0003",
+      "person_track_id": 1,
+      "vehicle_track_id": 3,
+      "start_frame": 119,
+      "end_frame": 119,
+      "duration_seconds": 0.033,
+      "behaviour_patterns": [
+        "STOP_PATTERN"
+      ],
+      "action_timeline": [
+        {
+          "frame": 119,
+          "action_label": "Unknown",
+          "action_confidence": 0.9,
+          "model_name": "ST-GCN"
+        }
+      ],
+      "motion_evidence": {
+        "node_count": 1,
+        "edge_count": 0,
+        "average_speed_px": 5.83,
+        "direction_deg": 225.0
+      },
+      "spatial_evidence": {
+        "has_vehicle": true,
+        "min_distance_px": 128.1
+      },
+      "temporal_evidence": {
+        "start_frame": 119,
+        "end_frame": 119,
+        "duration_seconds": 0.033
+      },
+      "action_evidence": [
+        {
+          "action_id": "ACT-7B554D0E",
+          "label": "Unknown",
+          "confidence": 0.9
+        }
+      ],
+      "behaviour_confidence": 0.9,
+      "action_confidence": 0.5,
+      "fusion_confidence": 0.72,
+      "fusion_strategy": "weighted_confidence",
+      "evidence_timeline": [
+        {
+          "frame": 119,
+          "timestamp": 3.971,
+          "behaviour_pattern": "STOP_PATTERN",
+          "behaviour_confidence": 0.9,
+          "action_label": "Unknown",
+          "action_confidence": 0.9
+        }
+      ],
+      "explanation_text": "Vehicle (Track 3) and Person (Track 1) engaged in an interaction. Observed behaviour pattern sequence: [STOP_PATTERN]. Kinematic dynamics exhibited minimum proximity of 128.1px, interaction duration of 0.0s, average relative speed of 5.8px/s. Multi-modal fusion confidence: 72% (strategy: weighted_confidence).",
+      "metadata": {}
+    },
+    {
+      "fusion_id": "FUSED-INT-0004",
+      "interaction_id": "INT-0004",
+      "person_track_id": 3,
+      "vehicle_track_id": 1,
+      "start_frame": 176,
+      "end_frame": 176,
+      "duration_seconds": 0.033,
+      "behaviour_patterns": [
+        "PROXIMITY_PATTERN"
+      ],
+      "action_timeline": [
+        {
+          "frame": 176,
+          "action_label": "Unknown",
+          "action_confidence": 0.9,
+          "model_name": "ST-GCN"
+        }
+      ],
+      "motion_evidence": {
+        "node_count": 1,
+        "edge_count": 0,
+        "average_speed_px": 3.63,
+        "direction_deg": 180.0
+      },
+      "spatial_evidence": {
+        "has_vehicle": true,
+        "min_distance_px": 62.6
+      },
+      "temporal_evidence": {
+        "start_frame": 176,
+        "end_frame": 176,
+        "duration_seconds": 0.033
+      },
+      "action_evidence": [
+        {
+          "action_id": "ACT-FC9098D1",
+          "label": "Unknown",
+          "confidence": 0.9
+        }
+      ],
+      "behaviour_confidence": 0.8435,
+      "action_confidence": 0.5,
+      "fusion_confidence": 0.6974,
+      "fusion_strategy": "weighted_confidence",
+      "evidence_timeline": [
+        {
+          "frame": 176,
+          "timestamp": 5.873,
+          "behaviour_pattern": "PROXIMITY_PATTERN",
+          "behaviour_confidence": 0.8435,
+          "action_label": "Unknown",
+          "action_confidence": 0.9
+        }
+      ],
+      "explanation_text": "Vehicle (Track 1) and Person (Track 3) engaged in an interaction. Observed behaviour pattern sequence: [PROXIMITY_PATTERN]. Kinematic dynamics exhibited minimum proximity of 62.6px, interaction duration of 0.0s, average relative speed of 3.6px/s. Multi-modal fusion confidence: 70% (strategy: weighted_confidence).",
+      "metadata": {}
+    },
+    {
+      "fusion_id": "FUSED-INT-0005",
+      "interaction_id": "INT-0005",
+      "person_track_id": 10000,
+      "vehicle_track_id": 10001,
       "start_frame": 311,
       "end_frame": 311,
       "duration_seconds": 0.033,
-      "behaviour_patterns": [],
+      "behaviour_patterns": [
+        "PROXIMITY_PATTERN"
+      ],
       "action_timeline": [
         {
           "frame": 311,
@@ -74,14 +250,14 @@
         }
       ],
       "motion_evidence": {
-        "node_count": 0,
+        "node_count": 1,
         "edge_count": 0,
-        "average_speed_px": 0.0,
-        "direction_deg": 0.0
+        "average_speed_px": 89.54,
+        "direction_deg": 283.1
       },
       "spatial_evidence": {
-        "has_vehicle": false,
-        "min_distance_px": 0.0
+        "has_vehicle": true,
+        "min_distance_px": 133.1
       },
       "temporal_evidence": {
         "start_frame": 311,
@@ -90,32 +266,1029 @@
       },
       "action_evidence": [
         {
-          "action_id": "ACT-278088FE",
+          "action_id": "ACT-E239DC71",
           "label": "Unknown",
           "confidence": 0.9
         }
       ],
-      "behaviour_confidence": 0.5,
+      "behaviour_confidence": 0.6672,
       "action_confidence": 0.5,
-      "fusion_confidence": 0.56,
+      "fusion_confidence": 0.6269,
       "fusion_strategy": "weighted_confidence",
       "evidence_timeline": [
         {
           "frame": 311,
           "timestamp": 10.377,
-          "behaviour_pattern": "NONE",
-          "behaviour_confidence": 0.0,
+          "behaviour_pattern": "PROXIMITY_PATTERN",
+          "behaviour_confidence": 0.6672,
           "action_label": "Unknown",
           "action_confidence": 0.9
         }
       ],
-      "explanation_text": "Person (Track -1) engaged in an interaction. Kinematic dynamics exhibited minimum proximity of 0.0px, interaction duration of 0.0s, average relative speed of 0.0px/s. Multi-modal fusion confidence: 56% (strategy: weighted_confidence).",
+      "explanation_text": "Vehicle (Track 10001) and Person (Track 10000) engaged in an interaction. Observed behaviour pattern sequence: [PROXIMITY_PATTERN]. Kinematic dynamics exhibited minimum proximity of 133.1px, interaction duration of 0.0s, average relative speed of 89.5px/s. Multi-modal fusion confidence: 63% (strategy: weighted_confidence).",
+      "metadata": {}
+    },
+    {
+      "fusion_id": "FUSED-INT-0006",
+      "interaction_id": "INT-0006",
+      "person_track_id": 10000,
+      "vehicle_track_id": 10002,
+      "start_frame": 340,
+      "end_frame": 340,
+      "duration_seconds": 0.033,
+      "behaviour_patterns": [
+        "PROXIMITY_PATTERN"
+      ],
+      "action_timeline": [],
+      "motion_evidence": {
+        "node_count": 1,
+        "edge_count": 0,
+        "average_speed_px": 105.12,
+        "direction_deg": 81.9
+      },
+      "spatial_evidence": {
+        "has_vehicle": true,
+        "min_distance_px": 38.9
+      },
+      "temporal_evidence": {
+        "start_frame": 340,
+        "end_frame": 340,
+        "duration_seconds": 0.033
+      },
+      "action_evidence": [],
+      "behaviour_confidence": 0.9028,
+      "action_confidence": 0.5,
+      "fusion_confidence": 0.7211,
+      "fusion_strategy": "weighted_confidence",
+      "evidence_timeline": [
+        {
+          "frame": 340,
+          "timestamp": 11.345,
+          "behaviour_pattern": "PROXIMITY_PATTERN",
+          "behaviour_confidence": 0.9028,
+          "action_label": "Unknown",
+          "action_confidence": 0.0
+        }
+      ],
+      "explanation_text": "Vehicle (Track 10002) and Person (Track 10000) engaged in an interaction. Observed behaviour pattern sequence: [PROXIMITY_PATTERN]. Kinematic dynamics exhibited minimum proximity of 38.9px, interaction duration of 0.0s, average relative speed of 105.1px/s. Multi-modal fusion confidence: 72% (strategy: weighted_confidence).",
+      "metadata": {}
+    },
+    {
+      "fusion_id": "FUSED-INT-0007",
+      "interaction_id": "INT-0007",
+      "person_track_id": 10000,
+      "vehicle_track_id": 10003,
+      "start_frame": 340,
+      "end_frame": 340,
+      "duration_seconds": 0.033,
+      "behaviour_patterns": [
+        "PROXIMITY_PATTERN"
+      ],
+      "action_timeline": [
+        {
+          "frame": 340,
+          "action_label": "Unknown",
+          "action_confidence": 0.9,
+          "model_name": "ST-GCN"
+        }
+      ],
+      "motion_evidence": {
+        "node_count": 1,
+        "edge_count": 0,
+        "average_speed_px": 78.15,
+        "direction_deg": 81.9
+      },
+      "spatial_evidence": {
+        "has_vehicle": true,
+        "min_distance_px": 18.4
+      },
+      "temporal_evidence": {
+        "start_frame": 340,
+        "end_frame": 340,
+        "duration_seconds": 0.033
+      },
+      "action_evidence": [
+        {
+          "action_id": "ACT-41200CD1",
+          "label": "Unknown",
+          "confidence": 0.9
+        }
+      ],
+      "behaviour_confidence": 0.954,
+      "action_confidence": 0.5,
+      "fusion_confidence": 0.7416,
+      "fusion_strategy": "weighted_confidence",
+      "evidence_timeline": [
+        {
+          "frame": 340,
+          "timestamp": 11.345,
+          "behaviour_pattern": "PROXIMITY_PATTERN",
+          "behaviour_confidence": 0.954,
+          "action_label": "Unknown",
+          "action_confidence": 0.9
+        }
+      ],
+      "explanation_text": "Vehicle (Track 10003) and Person (Track 10000) engaged in an interaction. Observed behaviour pattern sequence: [PROXIMITY_PATTERN]. Kinematic dynamics exhibited minimum proximity of 18.4px, interaction duration of 0.0s, average relative speed of 78.2px/s. Multi-modal fusion confidence: 74% (strategy: weighted_confidence).",
+      "metadata": {}
+    },
+    {
+      "fusion_id": "FUSED-INT-0008",
+      "interaction_id": "INT-0008",
+      "person_track_id": 10001,
+      "vehicle_track_id": 10002,
+      "start_frame": 340,
+      "end_frame": 340,
+      "duration_seconds": 0.033,
+      "behaviour_patterns": [
+        "PROXIMITY_PATTERN"
+      ],
+      "action_timeline": [
+        {
+          "frame": 340,
+          "action_label": "Unknown",
+          "action_confidence": 0.9,
+          "model_name": "ST-GCN"
+        }
+      ],
+      "motion_evidence": {
+        "node_count": 1,
+        "edge_count": 0,
+        "average_speed_px": 105.12,
+        "direction_deg": 262.1
+      },
+      "spatial_evidence": {
+        "has_vehicle": true,
+        "min_distance_px": 11.2
+      },
+      "temporal_evidence": {
+        "start_frame": 340,
+        "end_frame": 340,
+        "duration_seconds": 0.033
+      },
+      "action_evidence": [
+        {
+          "action_id": "ACT-1B74EED1",
+          "label": "Unknown",
+          "confidence": 0.9
+        }
+      ],
+      "behaviour_confidence": 0.972,
+      "action_confidence": 0.5,
+      "fusion_confidence": 0.7488,
+      "fusion_strategy": "weighted_confidence",
+      "evidence_timeline": [
+        {
+          "frame": 340,
+          "timestamp": 11.345,
+          "behaviour_pattern": "PROXIMITY_PATTERN",
+          "behaviour_confidence": 0.972,
+          "action_label": "Unknown",
+          "action_confidence": 0.9
+        }
+      ],
+      "explanation_text": "Vehicle (Track 10002) and Person (Track 10001) engaged in an interaction. Observed behaviour pattern sequence: [PROXIMITY_PATTERN]. Kinematic dynamics exhibited minimum proximity of 11.2px, interaction duration of 0.0s, average relative speed of 105.1px/s. Multi-modal fusion confidence: 75% (strategy: weighted_confidence).",
+      "metadata": {}
+    },
+    {
+      "fusion_id": "FUSED-INT-0009",
+      "interaction_id": "INT-0009",
+      "person_track_id": 10001,
+      "vehicle_track_id": 10003,
+      "start_frame": 340,
+      "end_frame": 340,
+      "duration_seconds": 0.033,
+      "behaviour_patterns": [
+        "PROXIMITY_PATTERN"
+      ],
+      "action_timeline": [],
+      "motion_evidence": {
+        "node_count": 1,
+        "edge_count": 0,
+        "average_speed_px": 58.1,
+        "direction_deg": 262.1
+      },
+      "spatial_evidence": {
+        "has_vehicle": true,
+        "min_distance_px": 20.2
+      },
+      "temporal_evidence": {
+        "start_frame": 340,
+        "end_frame": 340,
+        "duration_seconds": 0.033
+      },
+      "action_evidence": [],
+      "behaviour_confidence": 0.9494,
+      "action_confidence": 0.5,
+      "fusion_confidence": 0.7398,
+      "fusion_strategy": "weighted_confidence",
+      "evidence_timeline": [
+        {
+          "frame": 340,
+          "timestamp": 11.345,
+          "behaviour_pattern": "PROXIMITY_PATTERN",
+          "behaviour_confidence": 0.9494,
+          "action_label": "Unknown",
+          "action_confidence": 0.0
+        }
+      ],
+      "explanation_text": "Vehicle (Track 10003) and Person (Track 10001) engaged in an interaction. Observed behaviour pattern sequence: [PROXIMITY_PATTERN]. Kinematic dynamics exhibited minimum proximity of 20.2px, interaction duration of 0.0s, average relative speed of 58.1px/s. Multi-modal fusion confidence: 74% (strategy: weighted_confidence).",
+      "metadata": {}
+    },
+    {
+      "fusion_id": "FUSED-INT-0010",
+      "interaction_id": "INT-0010",
+      "person_track_id": 10002,
+      "vehicle_track_id": 10003,
+      "start_frame": 340,
+      "end_frame": 340,
+      "duration_seconds": 0.033,
+      "behaviour_patterns": [
+        "PROXIMITY_PATTERN"
+      ],
+      "action_timeline": [],
+      "motion_evidence": {
+        "node_count": 1,
+        "edge_count": 0,
+        "average_speed_px": 105.12,
+        "direction_deg": 265.8
+      },
+      "spatial_evidence": {
+        "has_vehicle": true,
+        "min_distance_px": 30.4
+      },
+      "temporal_evidence": {
+        "start_frame": 340,
+        "end_frame": 340,
+        "duration_seconds": 0.033
+      },
+      "action_evidence": [],
+      "behaviour_confidence": 0.924,
+      "action_confidence": 0.5,
+      "fusion_confidence": 0.7296,
+      "fusion_strategy": "weighted_confidence",
+      "evidence_timeline": [
+        {
+          "frame": 340,
+          "timestamp": 11.345,
+          "behaviour_pattern": "PROXIMITY_PATTERN",
+          "behaviour_confidence": 0.924,
+          "action_label": "Unknown",
+          "action_confidence": 0.0
+        }
+      ],
+      "explanation_text": "Vehicle (Track 10003) and Person (Track 10002) engaged in an interaction. Observed behaviour pattern sequence: [PROXIMITY_PATTERN]. Kinematic dynamics exhibited minimum proximity of 30.4px, interaction duration of 0.0s, average relative speed of 105.1px/s. Multi-modal fusion confidence: 73% (strategy: weighted_confidence).",
+      "metadata": {}
+    },
+    {
+      "fusion_id": "FUSED-INT-0011",
+      "interaction_id": "INT-0011",
+      "person_track_id": 10000,
+      "vehicle_track_id": 10005,
+      "start_frame": 341,
+      "end_frame": 341,
+      "duration_seconds": 0.033,
+      "behaviour_patterns": [
+        "ESCAPE_PATTERN"
+      ],
+      "action_timeline": [],
+      "motion_evidence": {
+        "node_count": 1,
+        "edge_count": 0,
+        "average_speed_px": 69.43,
+        "direction_deg": 249.4
+      },
+      "spatial_evidence": {
+        "has_vehicle": true,
+        "min_distance_px": 42.8
+      },
+      "temporal_evidence": {
+        "start_frame": 341,
+        "end_frame": 341,
+        "duration_seconds": 0.033
+      },
+      "action_evidence": [],
+      "behaviour_confidence": 0.95,
+      "action_confidence": 0.5,
+      "fusion_confidence": 0.74,
+      "fusion_strategy": "weighted_confidence",
+      "evidence_timeline": [
+        {
+          "frame": 341,
+          "timestamp": 11.378,
+          "behaviour_pattern": "ESCAPE_PATTERN",
+          "behaviour_confidence": 0.95,
+          "action_label": "Unknown",
+          "action_confidence": 0.0
+        }
+      ],
+      "explanation_text": "Vehicle (Track 10005) and Person (Track 10000) engaged in an interaction. Observed behaviour pattern sequence: [ESCAPE_PATTERN]. Kinematic dynamics exhibited minimum proximity of 42.8px, interaction duration of 0.0s, average relative speed of 69.4px/s. Multi-modal fusion confidence: 74% (strategy: weighted_confidence).",
+      "metadata": {}
+    },
+    {
+      "fusion_id": "FUSED-INT-0012",
+      "interaction_id": "INT-0012",
+      "person_track_id": 10001,
+      "vehicle_track_id": 10005,
+      "start_frame": 341,
+      "end_frame": 341,
+      "duration_seconds": 0.033,
+      "behaviour_patterns": [
+        "ESCAPE_PATTERN"
+      ],
+      "action_timeline": [],
+      "motion_evidence": {
+        "node_count": 1,
+        "edge_count": 0,
+        "average_speed_px": 51.94,
+        "direction_deg": 143.1
+      },
+      "spatial_evidence": {
+        "has_vehicle": true,
+        "min_distance_px": 12.2
+      },
+      "temporal_evidence": {
+        "start_frame": 341,
+        "end_frame": 341,
+        "duration_seconds": 0.033
+      },
+      "action_evidence": [],
+      "behaviour_confidence": 0.95,
+      "action_confidence": 0.5,
+      "fusion_confidence": 0.74,
+      "fusion_strategy": "weighted_confidence",
+      "evidence_timeline": [
+        {
+          "frame": 341,
+          "timestamp": 11.378,
+          "behaviour_pattern": "ESCAPE_PATTERN",
+          "behaviour_confidence": 0.95,
+          "action_label": "Unknown",
+          "action_confidence": 0.0
+        }
+      ],
+      "explanation_text": "Vehicle (Track 10005) and Person (Track 10001) engaged in an interaction. Observed behaviour pattern sequence: [ESCAPE_PATTERN]. Kinematic dynamics exhibited minimum proximity of 12.2px, interaction duration of 0.0s, average relative speed of 51.9px/s. Multi-modal fusion confidence: 74% (strategy: weighted_confidence).",
+      "metadata": {}
+    },
+    {
+      "fusion_id": "FUSED-INT-0013",
+      "interaction_id": "INT-0013",
+      "person_track_id": 10002,
+      "vehicle_track_id": 10005,
+      "start_frame": 341,
+      "end_frame": 341,
+      "duration_seconds": 0.033,
+      "behaviour_patterns": [
+        "ESCAPE_PATTERN"
+      ],
+      "action_timeline": [],
+      "motion_evidence": {
+        "node_count": 1,
+        "edge_count": 0,
+        "average_speed_px": 88.09,
+        "direction_deg": 18.9
+      },
+      "spatial_evidence": {
+        "has_vehicle": true,
+        "min_distance_px": 46.7
+      },
+      "temporal_evidence": {
+        "start_frame": 341,
+        "end_frame": 341,
+        "duration_seconds": 0.033
+      },
+      "action_evidence": [],
+      "behaviour_confidence": 0.95,
+      "action_confidence": 0.5,
+      "fusion_confidence": 0.74,
+      "fusion_strategy": "weighted_confidence",
+      "evidence_timeline": [
+        {
+          "frame": 341,
+          "timestamp": 11.378,
+          "behaviour_pattern": "ESCAPE_PATTERN",
+          "behaviour_confidence": 0.95,
+          "action_label": "Unknown",
+          "action_confidence": 0.0
+        }
+      ],
+      "explanation_text": "Vehicle (Track 10005) and Person (Track 10002) engaged in an interaction. Observed behaviour pattern sequence: [ESCAPE_PATTERN]. Kinematic dynamics exhibited minimum proximity of 46.7px, interaction duration of 0.0s, average relative speed of 88.1px/s. Multi-modal fusion confidence: 74% (strategy: weighted_confidence).",
+      "metadata": {}
+    },
+    {
+      "fusion_id": "FUSED-INT-0014",
+      "interaction_id": "INT-0014",
+      "person_track_id": 10000,
+      "vehicle_track_id": 10004,
+      "start_frame": 344,
+      "end_frame": 344,
+      "duration_seconds": 0.033,
+      "behaviour_patterns": [
+        "ESCAPE_PATTERN"
+      ],
+      "action_timeline": [],
+      "motion_evidence": {
+        "node_count": 1,
+        "edge_count": 0,
+        "average_speed_px": 59.36,
+        "direction_deg": 168.9
+      },
+      "spatial_evidence": {
+        "has_vehicle": true,
+        "min_distance_px": 49.8
+      },
+      "temporal_evidence": {
+        "start_frame": 344,
+        "end_frame": 344,
+        "duration_seconds": 0.033
+      },
+      "action_evidence": [],
+      "behaviour_confidence": 0.95,
+      "action_confidence": 0.5,
+      "fusion_confidence": 0.74,
+      "fusion_strategy": "weighted_confidence",
+      "evidence_timeline": [
+        {
+          "frame": 344,
+          "timestamp": 11.478,
+          "behaviour_pattern": "ESCAPE_PATTERN",
+          "behaviour_confidence": 0.95,
+          "action_label": "Unknown",
+          "action_confidence": 0.0
+        }
+      ],
+      "explanation_text": "Vehicle (Track 10004) and Person (Track 10000) engaged in an interaction. Observed behaviour pattern sequence: [ESCAPE_PATTERN]. Kinematic dynamics exhibited minimum proximity of 49.8px, interaction duration of 0.0s, average relative speed of 59.4px/s. Multi-modal fusion confidence: 74% (strategy: weighted_confidence).",
+      "metadata": {}
+    },
+    {
+      "fusion_id": "FUSED-INT-0015",
+      "interaction_id": "INT-0015",
+      "person_track_id": 10001,
+      "vehicle_track_id": 10004,
+      "start_frame": 344,
+      "end_frame": 344,
+      "duration_seconds": 0.033,
+      "behaviour_patterns": [
+        "ESCAPE_PATTERN"
+      ],
+      "action_timeline": [],
+      "motion_evidence": {
+        "node_count": 1,
+        "edge_count": 0,
+        "average_speed_px": 44.67,
+        "direction_deg": 335.4
+      },
+      "spatial_evidence": {
+        "has_vehicle": true,
+        "min_distance_px": 20.0
+      },
+      "temporal_evidence": {
+        "start_frame": 344,
+        "end_frame": 344,
+        "duration_seconds": 0.033
+      },
+      "action_evidence": [],
+      "behaviour_confidence": 0.95,
+      "action_confidence": 0.5,
+      "fusion_confidence": 0.74,
+      "fusion_strategy": "weighted_confidence",
+      "evidence_timeline": [
+        {
+          "frame": 344,
+          "timestamp": 11.478,
+          "behaviour_pattern": "ESCAPE_PATTERN",
+          "behaviour_confidence": 0.95,
+          "action_label": "Unknown",
+          "action_confidence": 0.0
+        }
+      ],
+      "explanation_text": "Vehicle (Track 10004) and Person (Track 10001) engaged in an interaction. Observed behaviour pattern sequence: [ESCAPE_PATTERN]. Kinematic dynamics exhibited minimum proximity of 20.0px, interaction duration of 0.0s, average relative speed of 44.7px/s. Multi-modal fusion confidence: 74% (strategy: weighted_confidence).",
+      "metadata": {}
+    },
+    {
+      "fusion_id": "FUSED-INT-0016",
+      "interaction_id": "INT-0016",
+      "person_track_id": 10002,
+      "vehicle_track_id": 10004,
+      "start_frame": 344,
+      "end_frame": 344,
+      "duration_seconds": 0.033,
+      "behaviour_patterns": [
+        "ESCAPE_PATTERN"
+      ],
+      "action_timeline": [],
+      "motion_evidence": {
+        "node_count": 1,
+        "edge_count": 0,
+        "average_speed_px": 69.8,
+        "direction_deg": 303.7
+      },
+      "spatial_evidence": {
+        "has_vehicle": true,
+        "min_distance_px": 45.9
+      },
+      "temporal_evidence": {
+        "start_frame": 344,
+        "end_frame": 344,
+        "duration_seconds": 0.033
+      },
+      "action_evidence": [],
+      "behaviour_confidence": 0.95,
+      "action_confidence": 0.5,
+      "fusion_confidence": 0.74,
+      "fusion_strategy": "weighted_confidence",
+      "evidence_timeline": [
+        {
+          "frame": 344,
+          "timestamp": 11.478,
+          "behaviour_pattern": "ESCAPE_PATTERN",
+          "behaviour_confidence": 0.95,
+          "action_label": "Unknown",
+          "action_confidence": 0.0
+        }
+      ],
+      "explanation_text": "Vehicle (Track 10004) and Person (Track 10002) engaged in an interaction. Observed behaviour pattern sequence: [ESCAPE_PATTERN]. Kinematic dynamics exhibited minimum proximity of 45.9px, interaction duration of 0.0s, average relative speed of 69.8px/s. Multi-modal fusion confidence: 74% (strategy: weighted_confidence).",
+      "metadata": {}
+    },
+    {
+      "fusion_id": "FUSED-INT-0017",
+      "interaction_id": "INT-0017",
+      "person_track_id": 10003,
+      "vehicle_track_id": 10004,
+      "start_frame": 344,
+      "end_frame": 344,
+      "duration_seconds": 0.033,
+      "behaviour_patterns": [
+        "ESCAPE_PATTERN"
+      ],
+      "action_timeline": [],
+      "motion_evidence": {
+        "node_count": 1,
+        "edge_count": 0,
+        "average_speed_px": 42.53,
+        "direction_deg": 135.0
+      },
+      "spatial_evidence": {
+        "has_vehicle": true,
+        "min_distance_px": 30.0
+      },
+      "temporal_evidence": {
+        "start_frame": 344,
+        "end_frame": 344,
+        "duration_seconds": 0.033
+      },
+      "action_evidence": [],
+      "behaviour_confidence": 0.95,
+      "action_confidence": 0.5,
+      "fusion_confidence": 0.74,
+      "fusion_strategy": "weighted_confidence",
+      "evidence_timeline": [
+        {
+          "frame": 344,
+          "timestamp": 11.478,
+          "behaviour_pattern": "ESCAPE_PATTERN",
+          "behaviour_confidence": 0.95,
+          "action_label": "Unknown",
+          "action_confidence": 0.0
+        }
+      ],
+      "explanation_text": "Vehicle (Track 10004) and Person (Track 10003) engaged in an interaction. Observed behaviour pattern sequence: [ESCAPE_PATTERN]. Kinematic dynamics exhibited minimum proximity of 30.0px, interaction duration of 0.0s, average relative speed of 42.5px/s. Multi-modal fusion confidence: 74% (strategy: weighted_confidence).",
+      "metadata": {}
+    },
+    {
+      "fusion_id": "FUSED-INT-0018",
+      "interaction_id": "INT-0018",
+      "person_track_id": 3,
+      "vehicle_track_id": 4,
+      "start_frame": 374,
+      "end_frame": 374,
+      "duration_seconds": 0.033,
+      "behaviour_patterns": [
+        "ESCAPE_PATTERN"
+      ],
+      "action_timeline": [],
+      "motion_evidence": {
+        "node_count": 1,
+        "edge_count": 0,
+        "average_speed_px": 3.33,
+        "direction_deg": 270.0
+      },
+      "spatial_evidence": {
+        "has_vehicle": true,
+        "min_distance_px": 68.4
+      },
+      "temporal_evidence": {
+        "start_frame": 374,
+        "end_frame": 374,
+        "duration_seconds": 0.033
+      },
+      "action_evidence": [],
+      "behaviour_confidence": 0.95,
+      "action_confidence": 0.5,
+      "fusion_confidence": 0.74,
+      "fusion_strategy": "weighted_confidence",
+      "evidence_timeline": [
+        {
+          "frame": 374,
+          "timestamp": 12.479,
+          "behaviour_pattern": "ESCAPE_PATTERN",
+          "behaviour_confidence": 0.95,
+          "action_label": "Unknown",
+          "action_confidence": 0.0
+        }
+      ],
+      "explanation_text": "Vehicle (Track 4) and Person (Track 3) engaged in an interaction. Observed behaviour pattern sequence: [ESCAPE_PATTERN]. Kinematic dynamics exhibited minimum proximity of 68.4px, interaction duration of 0.0s, average relative speed of 3.3px/s. Multi-modal fusion confidence: 74% (strategy: weighted_confidence).",
+      "metadata": {}
+    },
+    {
+      "fusion_id": "FUSED-INT-0019",
+      "interaction_id": "INT-0019",
+      "person_track_id": 4,
+      "vehicle_track_id": 6,
+      "start_frame": 451,
+      "end_frame": 451,
+      "duration_seconds": 0.033,
+      "behaviour_patterns": [
+        "PROXIMITY_PATTERN"
+      ],
+      "action_timeline": [
+        {
+          "frame": 451,
+          "action_label": "Unknown",
+          "action_confidence": 0.9,
+          "model_name": "ST-GCN"
+        }
+      ],
+      "motion_evidence": {
+        "node_count": 1,
+        "edge_count": 0,
+        "average_speed_px": 2.2,
+        "direction_deg": 170.5
+      },
+      "spatial_evidence": {
+        "has_vehicle": true,
+        "min_distance_px": 132.0
+      },
+      "temporal_evidence": {
+        "start_frame": 451,
+        "end_frame": 451,
+        "duration_seconds": 0.033
+      },
+      "action_evidence": [
+        {
+          "action_id": "ACT-F0ED5A95",
+          "label": "Unknown",
+          "confidence": 0.9
+        }
+      ],
+      "behaviour_confidence": 0.67,
+      "action_confidence": 0.5,
+      "fusion_confidence": 0.628,
+      "fusion_strategy": "weighted_confidence",
+      "evidence_timeline": [
+        {
+          "frame": 451,
+          "timestamp": 15.048,
+          "behaviour_pattern": "PROXIMITY_PATTERN",
+          "behaviour_confidence": 0.67,
+          "action_label": "Unknown",
+          "action_confidence": 0.9
+        }
+      ],
+      "explanation_text": "Vehicle (Track 6) and Person (Track 4) engaged in an interaction. Observed behaviour pattern sequence: [PROXIMITY_PATTERN]. Kinematic dynamics exhibited minimum proximity of 132.0px, interaction duration of 0.0s, average relative speed of 2.2px/s. Multi-modal fusion confidence: 63% (strategy: weighted_confidence).",
+      "metadata": {}
+    },
+    {
+      "fusion_id": "FUSED-INT-0020",
+      "interaction_id": "INT-0020",
+      "person_track_id": 4,
+      "vehicle_track_id": 7,
+      "start_frame": 460,
+      "end_frame": 460,
+      "duration_seconds": 0.033,
+      "behaviour_patterns": [
+        "CO_TRAVEL_PATTERN"
+      ],
+      "action_timeline": [],
+      "motion_evidence": {
+        "node_count": 1,
+        "edge_count": 0,
+        "average_speed_px": 2.15,
+        "direction_deg": 0.0
+      },
+      "spatial_evidence": {
+        "has_vehicle": true,
+        "min_distance_px": 106.3
+      },
+      "temporal_evidence": {
+        "start_frame": 460,
+        "end_frame": 460,
+        "duration_seconds": 0.033
+      },
+      "action_evidence": [],
+      "behaviour_confidence": 0.9,
+      "action_confidence": 0.5,
+      "fusion_confidence": 0.72,
+      "fusion_strategy": "weighted_confidence",
+      "evidence_timeline": [
+        {
+          "frame": 460,
+          "timestamp": 15.349,
+          "behaviour_pattern": "CO_TRAVEL_PATTERN",
+          "behaviour_confidence": 0.9,
+          "action_label": "Unknown",
+          "action_confidence": 0.0
+        }
+      ],
+      "explanation_text": "Vehicle (Track 7) and Person (Track 4) engaged in an interaction. Observed behaviour pattern sequence: [CO_TRAVEL_PATTERN]. Kinematic dynamics exhibited minimum proximity of 106.3px, interaction duration of 0.0s, average relative speed of 2.1px/s. Multi-modal fusion confidence: 72% (strategy: weighted_confidence).",
+      "metadata": {}
+    },
+    {
+      "fusion_id": "FUSED-INT-0021",
+      "interaction_id": "INT-0021",
+      "person_track_id": 7,
+      "vehicle_track_id": 4,
+      "start_frame": 505,
+      "end_frame": 505,
+      "duration_seconds": 0.033,
+      "behaviour_patterns": [
+        "PROXIMITY_PATTERN"
+      ],
+      "action_timeline": [],
+      "motion_evidence": {
+        "node_count": 1,
+        "edge_count": 0,
+        "average_speed_px": 7.22,
+        "direction_deg": 190.3
+      },
+      "spatial_evidence": {
+        "has_vehicle": true,
+        "min_distance_px": 63.5
+      },
+      "temporal_evidence": {
+        "start_frame": 505,
+        "end_frame": 505,
+        "duration_seconds": 0.033
+      },
+      "action_evidence": [],
+      "behaviour_confidence": 0.8412,
+      "action_confidence": 0.5,
+      "fusion_confidence": 0.6965,
+      "fusion_strategy": "weighted_confidence",
+      "evidence_timeline": [
+        {
+          "frame": 505,
+          "timestamp": 16.85,
+          "behaviour_pattern": "PROXIMITY_PATTERN",
+          "behaviour_confidence": 0.8412,
+          "action_label": "Unknown",
+          "action_confidence": 0.0
+        }
+      ],
+      "explanation_text": "Vehicle (Track 4) and Person (Track 7) engaged in an interaction. Observed behaviour pattern sequence: [PROXIMITY_PATTERN]. Kinematic dynamics exhibited minimum proximity of 63.5px, interaction duration of 0.0s, average relative speed of 7.2px/s. Multi-modal fusion confidence: 70% (strategy: weighted_confidence).",
+      "metadata": {}
+    },
+    {
+      "fusion_id": "FUSED-INT-0022",
+      "interaction_id": "INT-0022",
+      "person_track_id": 10000,
+      "vehicle_track_id": 10001,
+      "start_frame": 526,
+      "end_frame": 526,
+      "duration_seconds": 0.033,
+      "behaviour_patterns": [
+        "PROXIMITY_PATTERN"
+      ],
+      "action_timeline": [],
+      "motion_evidence": {
+        "node_count": 1,
+        "edge_count": 0,
+        "average_speed_px": 63.28,
+        "direction_deg": 177.9
+      },
+      "spatial_evidence": {
+        "has_vehicle": true,
+        "min_distance_px": 133.2
+      },
+      "temporal_evidence": {
+        "start_frame": 526,
+        "end_frame": 526,
+        "duration_seconds": 0.033
+      },
+      "action_evidence": [],
+      "behaviour_confidence": 0.667,
+      "action_confidence": 0.5,
+      "fusion_confidence": 0.6268,
+      "fusion_strategy": "weighted_confidence",
+      "evidence_timeline": [
+        {
+          "frame": 526,
+          "timestamp": 17.551,
+          "behaviour_pattern": "PROXIMITY_PATTERN",
+          "behaviour_confidence": 0.667,
+          "action_label": "Unknown",
+          "action_confidence": 0.0
+        }
+      ],
+      "explanation_text": "Vehicle (Track 10001) and Person (Track 10000) engaged in an interaction. Observed behaviour pattern sequence: [PROXIMITY_PATTERN]. Kinematic dynamics exhibited minimum proximity of 133.2px, interaction duration of 0.0s, average relative speed of 63.3px/s. Multi-modal fusion confidence: 63% (strategy: weighted_confidence).",
+      "metadata": {}
+    },
+    {
+      "fusion_id": "FUSED-INT-0023",
+      "interaction_id": "INT-0023",
+      "person_track_id": 10000,
+      "vehicle_track_id": 10002,
+      "start_frame": 526,
+      "end_frame": 526,
+      "duration_seconds": 0.033,
+      "behaviour_patterns": [
+        "PROXIMITY_PATTERN"
+      ],
+      "action_timeline": [],
+      "motion_evidence": {
+        "node_count": 1,
+        "edge_count": 0,
+        "average_speed_px": 73.53,
+        "direction_deg": 177.9
+      },
+      "spatial_evidence": {
+        "has_vehicle": true,
+        "min_distance_px": 43.9
+      },
+      "temporal_evidence": {
+        "start_frame": 526,
+        "end_frame": 526,
+        "duration_seconds": 0.033
+      },
+      "action_evidence": [],
+      "behaviour_confidence": 0.8902,
+      "action_confidence": 0.5,
+      "fusion_confidence": 0.7161,
+      "fusion_strategy": "weighted_confidence",
+      "evidence_timeline": [
+        {
+          "frame": 526,
+          "timestamp": 17.551,
+          "behaviour_pattern": "PROXIMITY_PATTERN",
+          "behaviour_confidence": 0.8902,
+          "action_label": "Unknown",
+          "action_confidence": 0.0
+        }
+      ],
+      "explanation_text": "Vehicle (Track 10002) and Person (Track 10000) engaged in an interaction. Observed behaviour pattern sequence: [PROXIMITY_PATTERN]. Kinematic dynamics exhibited minimum proximity of 43.9px, interaction duration of 0.0s, average relative speed of 73.5px/s. Multi-modal fusion confidence: 72% (strategy: weighted_confidence).",
+      "metadata": {}
+    },
+    {
+      "fusion_id": "FUSED-INT-0024",
+      "interaction_id": "INT-0024",
+      "person_track_id": 10000,
+      "vehicle_track_id": 10003,
+      "start_frame": 526,
+      "end_frame": 526,
+      "duration_seconds": 0.033,
+      "behaviour_patterns": [
+        "PROXIMITY_PATTERN"
+      ],
+      "action_timeline": [],
+      "motion_evidence": {
+        "node_count": 1,
+        "edge_count": 0,
+        "average_speed_px": 58.8,
+        "direction_deg": 177.9
+      },
+      "spatial_evidence": {
+        "has_vehicle": true,
+        "min_distance_px": 52.0
+      },
+      "temporal_evidence": {
+        "start_frame": 526,
+        "end_frame": 526,
+        "duration_seconds": 0.033
+      },
+      "action_evidence": [],
+      "behaviour_confidence": 0.8699,
+      "action_confidence": 0.5,
+      "fusion_confidence": 0.708,
+      "fusion_strategy": "weighted_confidence",
+      "evidence_timeline": [
+        {
+          "frame": 526,
+          "timestamp": 17.551,
+          "behaviour_pattern": "PROXIMITY_PATTERN",
+          "behaviour_confidence": 0.8699,
+          "action_label": "Unknown",
+          "action_confidence": 0.0
+        }
+      ],
+      "explanation_text": "Vehicle (Track 10003) and Person (Track 10000) engaged in an interaction. Observed behaviour pattern sequence: [PROXIMITY_PATTERN]. Kinematic dynamics exhibited minimum proximity of 52.0px, interaction duration of 0.0s, average relative speed of 58.8px/s. Multi-modal fusion confidence: 71% (strategy: weighted_confidence).",
+      "metadata": {}
+    },
+    {
+      "fusion_id": "FUSED-INT-0025",
+      "interaction_id": "INT-0025",
+      "person_track_id": 10001,
+      "vehicle_track_id": 10002,
+      "start_frame": 526,
+      "end_frame": 526,
+      "duration_seconds": 0.033,
+      "behaviour_patterns": [
+        "PROXIMITY_PATTERN"
+      ],
+      "action_timeline": [],
+      "motion_evidence": {
+        "node_count": 1,
+        "edge_count": 0,
+        "average_speed_px": 73.53,
+        "direction_deg": 172.3
+      },
+      "spatial_evidence": {
+        "has_vehicle": true,
+        "min_distance_px": 139.2
+      },
+      "temporal_evidence": {
+        "start_frame": 526,
+        "end_frame": 526,
+        "duration_seconds": 0.033
+      },
+      "action_evidence": [],
+      "behaviour_confidence": 0.652,
+      "action_confidence": 0.5,
+      "fusion_confidence": 0.6208,
+      "fusion_strategy": "weighted_confidence",
+      "evidence_timeline": [
+        {
+          "frame": 526,
+          "timestamp": 17.551,
+          "behaviour_pattern": "PROXIMITY_PATTERN",
+          "behaviour_confidence": 0.652,
+          "action_label": "Unknown",
+          "action_confidence": 0.0
+        }
+      ],
+      "explanation_text": "Vehicle (Track 10002) and Person (Track 10001) engaged in an interaction. Observed behaviour pattern sequence: [PROXIMITY_PATTERN]. Kinematic dynamics exhibited minimum proximity of 139.2px, interaction duration of 0.0s, average relative speed of 73.5px/s. Multi-modal fusion confidence: 62% (strategy: weighted_confidence).",
+      "metadata": {}
+    },
+    {
+      "fusion_id": "FUSED-INT-0026",
+      "interaction_id": "INT-0026",
+      "person_track_id": 10002,
+      "vehicle_track_id": 10003,
+      "start_frame": 526,
+      "end_frame": 526,
+      "duration_seconds": 0.033,
+      "behaviour_patterns": [
+        "PROXIMITY_PATTERN"
+      ],
+      "action_timeline": [
+        {
+          "frame": 526,
+          "action_label": "Unknown",
+          "action_confidence": 0.9,
+          "model_name": "ST-GCN"
+        }
+      ],
+      "motion_evidence": {
+        "node_count": 1,
+        "edge_count": 0,
+        "average_speed_px": 73.53,
+        "direction_deg": 191.2
+      },
+      "spatial_evidence": {
+        "has_vehicle": true,
+        "min_distance_px": 14.2
+      },
+      "temporal_evidence": {
+        "start_frame": 526,
+        "end_frame": 526,
+        "duration_seconds": 0.033
+      },
+      "action_evidence": [
+        {
+          "action_id": "ACT-0689C76A",
+          "label": "Unknown",
+          "confidence": 0.9
+        }
+      ],
+      "behaviour_confidence": 0.9645,
+      "action_confidence": 0.5,
+      "fusion_confidence": 0.7458,
+      "fusion_strategy": "weighted_confidence",
+      "evidence_timeline": [
+        {
+          "frame": 526,
+          "timestamp": 17.551,
+          "behaviour_pattern": "PROXIMITY_PATTERN",
+          "behaviour_confidence": 0.9645,
+          "action_label": "Unknown",
+          "action_confidence": 0.9
+        }
+      ],
+      "explanation_text": "Vehicle (Track 10003) and Person (Track 10002) engaged in an interaction. Observed behaviour pattern sequence: [PROXIMITY_PATTERN]. Kinematic dynamics exhibited minimum proximity of 14.2px, interaction duration of 0.0s, average relative speed of 73.5px/s. Multi-modal fusion confidence: 75% (strategy: weighted_confidence).",
       "metadata": {}
     }
   ],
   "summary": {
-    "total_fused_interactions": 2,
-    "average_fusion_confidence": 0.56,
+    "total_fused_interactions": 26,
+    "average_fusion_confidence": 0.7134,
     "fusion_strategies_used": [
       "weighted_confidence"
     ]

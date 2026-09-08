@@ -1,7 +1,480 @@
 {
-  "events": [],
+  "events": [
+    {
+      "event_id": "EVT-0387",
+      "event_type": "SUSPICIOUS_ENCOUNTER",
+      "confidence": 1.0,
+      "start_frame": 119,
+      "end_frame": 223,
+      "duration_frames": 56,
+      "duration_seconds": 1.869,
+      "participants": {
+        "person_track_id": 1,
+        "vehicle_track_id": 3
+      },
+      "interaction_id": "INT-0003",
+      "supporting_sequence": [
+        "APPROACHING",
+        "RAPID_ACCELERATION",
+        "CLOSE_INTERACTION"
+      ],
+      "motion_evidence": {
+        "person_avg_speed": 1.3656,
+        "person_max_speed": 8.0623,
+        "vehicle_avg_speed": 3.712,
+        "vehicle_max_speed": 21.587,
+        "peak_relative_velocity": 17.9216,
+        "avg_relative_velocity": -1.3881,
+        "peak_relative_acceleration": 18.554,
+        "final_relative_velocity": -1.7228,
+        "final_relative_acceleration": -4.4163
+      },
+      "spatial_evidence": {
+        "min_distance": 36.0139,
+        "max_distance": 128.1405,
+        "avg_distance": 70.6122,
+        "final_distance": 54.5711,
+        "distance_samples": 54
+      },
+      "explanation": "vehicle (Track 3) approached pedestrian (Track 1) for 1.9 seconds, remained within 36 pixels, accelerated by 18.6 px/frame\u00b2, and rapidly separated.",
+      "is_tentative": false,
+      "metadata": {
+        "rule_event_type": "SUSPICIOUS_ENCOUNTER",
+        "rule_priority": 5,
+        "matched_primitives": [
+          "APPROACHING",
+          "CLOSE_INTERACTION",
+          "RAPID_ACCELERATION"
+        ],
+        "rule_description": "Approach followed by close interaction and sudden acceleration. The approach-contact-accelerate pattern indicates potentially concerning behaviour."
+      }
+    },
+    {
+      "event_id": "EVT-0407",
+      "event_type": "RAPID_ESCAPE",
+      "confidence": 0.9133,
+      "start_frame": 176,
+      "end_frame": 232,
+      "duration_frames": 8,
+      "duration_seconds": 0.267,
+      "participants": {
+        "person_track_id": 3,
+        "vehicle_track_id": 1
+      },
+      "interaction_id": "INT-0004",
+      "supporting_sequence": [
+        "RAPID_ACCELERATION",
+        "RAPID_SEPARATION"
+      ],
+      "motion_evidence": {
+        "person_avg_speed": 1.2472,
+        "person_max_speed": 2.2361,
+        "vehicle_avg_speed": 8.7528,
+        "vehicle_max_speed": 13.9284,
+        "peak_relative_velocity": 15.6108,
+        "avg_relative_velocity": 0.0578,
+        "peak_relative_acceleration": 25.5301,
+        "final_relative_velocity": 2.4102,
+        "final_relative_acceleration": -7.5091
+      },
+      "spatial_evidence": {
+        "min_distance": 50.4876,
+        "max_distance": 66.0984,
+        "avg_distance": 60.4792,
+        "final_distance": 62.8172,
+        "distance_samples": 5
+      },
+      "explanation": "vehicle (Track 1) rapidly separated from pedestrian (Track 3) after 0.3 seconds, accelerating by 25.5 px/frame\u00b2 up to relative speed 15.6 px/frame.",
+      "is_tentative": false,
+      "metadata": {
+        "rule_event_type": "RAPID_ESCAPE",
+        "rule_priority": 6,
+        "matched_primitives": [
+          "RAPID_ACCELERATION",
+          "RAPID_SEPARATION"
+        ],
+        "rule_description": "Sudden departure after an interaction. High acceleration combined with rapid increase in distance."
+      }
+    },
+    {
+      "event_id": "EVT-0864",
+      "event_type": "RAPID_ESCAPE",
+      "confidence": 0.9083,
+      "start_frame": 340,
+      "end_frame": 386,
+      "duration_frames": 5,
+      "duration_seconds": 0.167,
+      "participants": {
+        "person_track_id": 10000,
+        "vehicle_track_id": 10003
+      },
+      "interaction_id": "INT-0007",
+      "supporting_sequence": [
+        "RAPID_ACCELERATION",
+        "RAPID_SEPARATION"
+      ],
+      "motion_evidence": {
+        "person_avg_speed": 23.1665,
+        "person_max_speed": 46.8722,
+        "vehicle_avg_speed": 20.9307,
+        "vehicle_max_speed": 40.5216,
+        "peak_relative_velocity": 8.3224,
+        "avg_relative_velocity": 4.0929,
+        "peak_relative_acceleration": 8.4589,
+        "final_relative_velocity": 8.3224,
+        "final_relative_acceleration": 8.4589
+      },
+      "spatial_evidence": {
+        "min_distance": 18.2483,
+        "max_distance": 26.5707,
+        "avg_distance": 21.0679,
+        "final_distance": 26.5707,
+        "distance_samples": 3
+      },
+      "explanation": "vehicle (Track 10003) rapidly separated from pedestrian (Track 10000) after 0.2 seconds, accelerating by 8.5 px/frame\u00b2 up to relative speed 8.3 px/frame.",
+      "is_tentative": false,
+      "metadata": {
+        "rule_event_type": "RAPID_ESCAPE",
+        "rule_priority": 6,
+        "matched_primitives": [
+          "RAPID_ACCELERATION",
+          "RAPID_SEPARATION"
+        ],
+        "rule_description": "Sudden departure after an interaction. High acceleration combined with rapid increase in distance."
+      }
+    },
+    {
+      "event_id": "EVT-0865",
+      "event_type": "CLOSE_ENCOUNTER",
+      "confidence": 0.7246,
+      "start_frame": 340,
+      "end_frame": 386,
+      "duration_frames": 5,
+      "duration_seconds": 0.167,
+      "participants": {
+        "person_track_id": 10001,
+        "vehicle_track_id": 10003
+      },
+      "interaction_id": "INT-0009",
+      "supporting_sequence": [
+        "CLOSE_INTERACTION"
+      ],
+      "motion_evidence": {
+        "person_avg_speed": 53.8875,
+        "person_max_speed": 123.1787,
+        "vehicle_avg_speed": 20.9307,
+        "vehicle_max_speed": 40.5216,
+        "peak_relative_velocity": 2.4231,
+        "avg_relative_velocity": 1.4192,
+        "peak_relative_acceleration": 2.0079,
+        "final_relative_velocity": 0.4152,
+        "final_relative_acceleration": -2.0079
+      },
+      "spatial_evidence": {
+        "min_distance": 20.2485,
+        "max_distance": 23.0868,
+        "avg_distance": 22.0023,
+        "final_distance": 23.0868,
+        "distance_samples": 3
+      },
+      "explanation": "vehicle (Track 10003) encountered pedestrian (Track 10001) for 0.2 seconds, closing to a minimum distance of 20 pixels.",
+      "is_tentative": false,
+      "metadata": {
+        "rule_event_type": "CLOSE_ENCOUNTER",
+        "rule_priority": 3,
+        "matched_primitives": [
+          "CLOSE_INTERACTION"
+        ],
+        "rule_description": "Significant proximity event where the vehicle and pedestrian come within a tight distance threshold."
+      }
+    },
+    {
+      "event_id": "EVT-0867",
+      "event_type": "RAPID_ESCAPE",
+      "confidence": 0.9083,
+      "start_frame": 340,
+      "end_frame": 386,
+      "duration_frames": 5,
+      "duration_seconds": 0.167,
+      "participants": {
+        "person_track_id": 10002,
+        "vehicle_track_id": 10003
+      },
+      "interaction_id": "INT-0010",
+      "supporting_sequence": [
+        "RAPID_ACCELERATION",
+        "RAPID_SEPARATION"
+      ],
+      "motion_evidence": {
+        "person_avg_speed": 63.2632,
+        "person_max_speed": 123.3288,
+        "vehicle_avg_speed": 20.9307,
+        "vehicle_max_speed": 40.5216,
+        "peak_relative_velocity": 16.2762,
+        "avg_relative_velocity": -4.8991,
+        "peak_relative_acceleration": 22.7541,
+        "final_relative_velocity": -16.2762,
+        "final_relative_acceleration": -22.7541
+      },
+      "spatial_evidence": {
+        "min_distance": 20.6155,
+        "max_distance": 36.8917,
+        "avg_distance": 29.307,
+        "final_distance": 20.6155,
+        "distance_samples": 3
+      },
+      "explanation": "vehicle (Track 10003) rapidly separated from pedestrian (Track 10002) after 0.2 seconds, accelerating by 22.8 px/frame\u00b2 up to relative speed 16.3 px/frame.",
+      "is_tentative": false,
+      "metadata": {
+        "rule_event_type": "RAPID_ESCAPE",
+        "rule_priority": 6,
+        "matched_primitives": [
+          "RAPID_ACCELERATION",
+          "RAPID_SEPARATION"
+        ],
+        "rule_description": "Sudden departure after an interaction. High acceleration combined with rapid increase in distance."
+      }
+    },
+    {
+      "event_id": "EVT-0875",
+      "event_type": "CLOSE_ENCOUNTER",
+      "confidence": 0.7619,
+      "start_frame": 311,
+      "end_frame": 387,
+      "duration_frames": 35,
+      "duration_seconds": 1.168,
+      "participants": {
+        "person_track_id": 10000,
+        "vehicle_track_id": 10001
+      },
+      "interaction_id": "INT-0005",
+      "supporting_sequence": [
+        "CLOSE_INTERACTION"
+      ],
+      "motion_evidence": {
+        "person_avg_speed": 38.2772,
+        "person_max_speed": 141.6616,
+        "vehicle_avg_speed": 34.0922,
+        "vehicle_max_speed": 123.1787,
+        "peak_relative_velocity": 105.2785,
+        "avg_relative_velocity": -16.7782,
+        "peak_relative_acceleration": 112.7629,
+        "final_relative_velocity": 0.0,
+        "final_relative_acceleration": -13.3974
+      },
+      "spatial_evidence": {
+        "min_distance": 27.8568,
+        "max_distance": 133.1353,
+        "avg_distance": 55.1115,
+        "final_distance": 49.2443,
+        "distance_samples": 6
+      },
+      "explanation": "vehicle (Track 10001) encountered pedestrian (Track 10000) for 1.2 seconds, closing to a minimum distance of 28 pixels.",
+      "is_tentative": false,
+      "metadata": {
+        "rule_event_type": "CLOSE_ENCOUNTER",
+        "rule_priority": 3,
+        "matched_primitives": [
+          "CLOSE_INTERACTION"
+        ],
+        "rule_description": "Significant proximity event where the vehicle and pedestrian come within a tight distance threshold."
+      }
+    },
+    {
+      "event_id": "EVT-0877",
+      "event_type": "RAPID_ESCAPE",
+      "confidence": 0.91,
+      "start_frame": 340,
+      "end_frame": 387,
+      "duration_frames": 6,
+      "duration_seconds": 0.2,
+      "participants": {
+        "person_track_id": 10000,
+        "vehicle_track_id": 10002
+      },
+      "interaction_id": "INT-0006",
+      "supporting_sequence": [
+        "RAPID_ACCELERATION",
+        "RAPID_SEPARATION"
+      ],
+      "motion_evidence": {
+        "person_avg_speed": 17.6004,
+        "person_max_speed": 46.8722,
+        "vehicle_avg_speed": 49.481,
+        "vehicle_max_speed": 123.3288,
+        "peak_relative_velocity": 45.4621,
+        "avg_relative_velocity": -2.7601,
+        "peak_relative_acceleration": 80.8349,
+        "final_relative_velocity": 21.4537,
+        "final_relative_acceleration": 66.9157
+      },
+      "spatial_evidence": {
+        "min_distance": 6.4031,
+        "max_distance": 51.8652,
+        "avg_distance": 28.303,
+        "final_distance": 27.8568,
+        "distance_samples": 5
+      },
+      "explanation": "vehicle (Track 10002) rapidly separated from pedestrian (Track 10000) after 0.2 seconds, accelerating by 80.8 px/frame\u00b2 up to relative speed 45.5 px/frame.",
+      "is_tentative": false,
+      "metadata": {
+        "rule_event_type": "RAPID_ESCAPE",
+        "rule_priority": 6,
+        "matched_primitives": [
+          "RAPID_ACCELERATION",
+          "RAPID_SEPARATION"
+        ],
+        "rule_description": "Sudden departure after an interaction. High acceleration combined with rapid increase in distance."
+      }
+    },
+    {
+      "event_id": "EVT-0879",
+      "event_type": "RAPID_ESCAPE",
+      "confidence": 0.91,
+      "start_frame": 340,
+      "end_frame": 387,
+      "duration_frames": 6,
+      "duration_seconds": 0.2,
+      "participants": {
+        "person_track_id": 10001,
+        "vehicle_track_id": 10002
+      },
+      "interaction_id": "INT-0008",
+      "supporting_sequence": [
+        "RAPID_ACCELERATION",
+        "RAPID_SEPARATION"
+      ],
+      "motion_evidence": {
+        "person_avg_speed": 35.6153,
+        "person_max_speed": 123.1787,
+        "vehicle_avg_speed": 49.481,
+        "vehicle_max_speed": 123.3288,
+        "peak_relative_velocity": 27.2872,
+        "avg_relative_velocity": 2.7106,
+        "peak_relative_acceleration": 48.8305,
+        "final_relative_velocity": -21.5433,
+        "final_relative_acceleration": -48.8305
+      },
+      "spatial_evidence": {
+        "min_distance": 11.1803,
+        "max_distance": 43.566,
+        "avg_distance": 25.8124,
+        "final_distance": 22.0227,
+        "distance_samples": 5
+      },
+      "explanation": "vehicle (Track 10002) rapidly separated from pedestrian (Track 10001) after 0.2 seconds, accelerating by 48.8 px/frame\u00b2 up to relative speed 27.3 px/frame.",
+      "is_tentative": false,
+      "metadata": {
+        "rule_event_type": "RAPID_ESCAPE",
+        "rule_priority": 6,
+        "matched_primitives": [
+          "RAPID_ACCELERATION",
+          "RAPID_SEPARATION"
+        ],
+        "rule_description": "Sudden departure after an interaction. High acceleration combined with rapid increase in distance."
+      }
+    },
+    {
+      "event_id": "EVT-1151",
+      "event_type": "RAPID_ESCAPE",
+      "confidence": 1.0,
+      "start_frame": 374,
+      "end_frame": 474,
+      "duration_frames": 61,
+      "duration_seconds": 2.035,
+      "participants": {
+        "person_track_id": 3,
+        "vehicle_track_id": 4
+      },
+      "interaction_id": "INT-0018",
+      "supporting_sequence": [
+        "RAPID_ACCELERATION",
+        "RAPID_SEPARATION"
+      ],
+      "motion_evidence": {
+        "person_avg_speed": 2.2696,
+        "person_max_speed": 15.8114,
+        "vehicle_avg_speed": 2.2489,
+        "vehicle_max_speed": 16.5529,
+        "peak_relative_velocity": 22.0571,
+        "avg_relative_velocity": 1.4253,
+        "peak_relative_acceleration": 30.0286,
+        "final_relative_velocity": 0.0,
+        "final_relative_acceleration": -1.3264
+      },
+      "spatial_evidence": {
+        "min_distance": 57.4282,
+        "max_distance": 145.4132,
+        "avg_distance": 76.299,
+        "final_distance": 145.4132,
+        "distance_samples": 55
+      },
+      "explanation": "vehicle (Track 4) rapidly separated from pedestrian (Track 3) after 2.0 seconds, accelerating by 30.0 px/frame\u00b2 up to relative speed 22.1 px/frame.",
+      "is_tentative": false,
+      "metadata": {
+        "rule_event_type": "RAPID_ESCAPE",
+        "rule_priority": 6,
+        "matched_primitives": [
+          "RAPID_ACCELERATION",
+          "RAPID_SEPARATION"
+        ],
+        "rule_description": "Sudden departure after an interaction. High acceleration combined with rapid increase in distance."
+      }
+    },
+    {
+      "event_id": "EVT-1291",
+      "event_type": "RAPID_ESCAPE",
+      "confidence": 0.9117,
+      "start_frame": 451,
+      "end_frame": 497,
+      "duration_frames": 7,
+      "duration_seconds": 0.234,
+      "participants": {
+        "person_track_id": 4,
+        "vehicle_track_id": 6
+      },
+      "interaction_id": "INT-0019",
+      "supporting_sequence": [
+        "RAPID_ACCELERATION",
+        "RAPID_SEPARATION"
+      ],
+      "motion_evidence": {
+        "person_avg_speed": 2.2644,
+        "person_max_speed": 6.0828,
+        "vehicle_avg_speed": 5.5127,
+        "vehicle_max_speed": 13.9284,
+        "peak_relative_velocity": 12.641,
+        "avg_relative_velocity": -0.1654,
+        "peak_relative_acceleration": 23.5199,
+        "final_relative_velocity": 2.9291,
+        "final_relative_acceleration": 7.8127
+      },
+      "spatial_evidence": {
+        "min_distance": 128.0976,
+        "max_distance": 144.8378,
+        "avg_distance": 133.5883,
+        "final_distance": 131.0267,
+        "distance_samples": 7
+      },
+      "explanation": "vehicle (Track 6) rapidly separated from pedestrian (Track 4) after 0.2 seconds, accelerating by 23.5 px/frame\u00b2 up to relative speed 12.6 px/frame.",
+      "is_tentative": false,
+      "metadata": {
+        "rule_event_type": "RAPID_ESCAPE",
+        "rule_priority": 6,
+        "matched_primitives": [
+          "RAPID_ACCELERATION",
+          "RAPID_SEPARATION"
+        ],
+        "rule_description": "Sudden departure after an interaction. High acceleration combined with rapid increase in distance."
+      }
+    }
+  ],
   "summary": {
-    "total_events": 0,
-    "events_by_type": {}
+    "total_events": 10,
+    "events_by_type": {
+      "SUSPICIOUS_ENCOUNTER": 1,
+      "RAPID_ESCAPE": 7,
+      "CLOSE_ENCOUNTER": 2
+    }
   }
 }

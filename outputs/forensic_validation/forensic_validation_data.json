@@ -1,0 +1,260 @@
+{
+  "evidence_preservation": [
+    {
+      "stage": "Raw Video Input",
+      "incident_frames_entering": 1204,
+      "incident_frames_retained": 1204,
+      "incident_frames_lost": 0,
+      "retention_percentage": 100.0
+    },
+    {
+      "stage": "Motion Filtering",
+      "incident_frames_entering": 1204,
+      "incident_frames_retained": 400,
+      "incident_frames_lost": 804,
+      "retention_percentage": 33.22
+    },
+    {
+      "stage": "YOLO Detection",
+      "incident_frames_entering": 400,
+      "incident_frames_retained": 400,
+      "incident_frames_lost": 0,
+      "retention_percentage": 100.0
+    },
+    {
+      "stage": "Tracking Stage",
+      "incident_frames_entering": 400,
+      "incident_frames_retained": 400,
+      "incident_frames_lost": 0,
+      "retention_percentage": 100.0
+    },
+    {
+      "stage": "Relationship Engine",
+      "incident_frames_entering": 400,
+      "incident_frames_retained": 262,
+      "incident_frames_lost": 138,
+      "retention_percentage": 65.5
+    },
+    {
+      "stage": "Candidate Events",
+      "incident_frames_entering": 262,
+      "incident_frames_retained": 262,
+      "incident_frames_lost": 0,
+      "retention_percentage": 100.0
+    }
+  ],
+  "event_metrics": [
+    {
+      "video_name": "s_11.avi",
+      "category": "Incident",
+      "incident_detected": "YES",
+      "true_positive": 1,
+      "false_positive": 0,
+      "false_negative": 0,
+      "true_negative": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1_score": 1.0
+    },
+    {
+      "video_name": "s_12.avi",
+      "category": "Incident",
+      "incident_detected": "YES",
+      "true_positive": 1,
+      "false_positive": 0,
+      "false_negative": 0,
+      "true_negative": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1_score": 1.0
+    },
+    {
+      "video_name": "s_15.avi",
+      "category": "Incident",
+      "incident_detected": "YES",
+      "true_positive": 1,
+      "false_positive": 0,
+      "false_negative": 0,
+      "true_negative": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1_score": 1.0
+    },
+    {
+      "video_name": "s_18.avi",
+      "category": "Incident",
+      "incident_detected": "YES",
+      "true_positive": 1,
+      "false_positive": 0,
+      "false_negative": 0,
+      "true_negative": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1_score": 1.0
+    },
+    {
+      "video_name": "s_20.avi",
+      "category": "Normal",
+      "incident_detected": "YES",
+      "true_positive": 0,
+      "false_positive": 1,
+      "false_negative": 0,
+      "true_negative": 0,
+      "precision": 0.0,
+      "recall": 1.0,
+      "f1_score": 0.0
+    }
+  ],
+  "object_preservation": [
+    {
+      "object_class": "person",
+      "yolo_only_detections": 3002,
+      "motion_yolo_detections": 3002,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1_score": 1.0,
+      "preservation_percentage": 100.0
+    },
+    {
+      "object_class": "motorcycle",
+      "yolo_only_detections": 615,
+      "motion_yolo_detections": 615,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1_score": 1.0,
+      "preservation_percentage": 100.0
+    },
+    {
+      "object_class": "bicycle",
+      "yolo_only_detections": 35,
+      "motion_yolo_detections": 35,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1_score": 1.0,
+      "preservation_percentage": 100.0
+    },
+    {
+      "object_class": "car",
+      "yolo_only_detections": 194,
+      "motion_yolo_detections": 194,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1_score": 1.0,
+      "preservation_percentage": 100.0
+    },
+    {
+      "object_class": "bus",
+      "yolo_only_detections": 12,
+      "motion_yolo_detections": 12,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1_score": 1.0,
+      "preservation_percentage": 100.0
+    },
+    {
+      "object_class": "truck",
+      "yolo_only_detections": 21,
+      "motion_yolo_detections": 21,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1_score": 1.0,
+      "preservation_percentage": 100.0
+    }
+  ],
+  "motion_vs_detection": [
+    {
+      "video_name": "s_11.avi",
+      "total_frames": 301,
+      "removed_frames": 201,
+      "objects_lost": 0,
+      "objects_retained_per_removed_frame": 3.2438,
+      "incident_retention_ratio_pct": 33.22
+    },
+    {
+      "video_name": "s_12.avi",
+      "total_frames": 301,
+      "removed_frames": 201,
+      "objects_lost": 0,
+      "objects_retained_per_removed_frame": 5.5274,
+      "incident_retention_ratio_pct": 33.22
+    },
+    {
+      "video_name": "s_15.avi",
+      "total_frames": 301,
+      "removed_frames": 201,
+      "objects_lost": 0,
+      "objects_retained_per_removed_frame": 6.0597,
+      "incident_retention_ratio_pct": 33.22
+    },
+    {
+      "video_name": "s_18.avi",
+      "total_frames": 301,
+      "removed_frames": 201,
+      "objects_lost": 0,
+      "objects_retained_per_removed_frame": 2.7811,
+      "incident_retention_ratio_pct": 33.22
+    },
+    {
+      "video_name": "s_20.avi",
+      "total_frames": 301,
+      "removed_frames": 201,
+      "objects_lost": 0,
+      "objects_retained_per_removed_frame": 1.6866,
+      "incident_retention_ratio_pct": 33.22
+    }
+  ],
+  "architecture_effectiveness": [
+    {
+      "configuration": "Config A (YOLO Only)",
+      "runtime_seconds": 17.62,
+      "search_space_reduction_pct": 0.0,
+      "event_recall_pct": 100.0,
+      "object_recall_pct": 100.0,
+      "candidate_events": 301,
+      "false_positives": 285,
+      "false_negatives": 0
+    },
+    {
+      "configuration": "Config B (Motion + YOLO)",
+      "runtime_seconds": 11.21,
+      "search_space_reduction_pct": 15.0,
+      "event_recall_pct": 98.0,
+      "object_recall_pct": 96.5,
+      "candidate_events": 255,
+      "false_positives": 240,
+      "false_negatives": 0
+    },
+    {
+      "configuration": "Config C (Motion + YOLO + Tracking)",
+      "runtime_seconds": 8.81,
+      "search_space_reduction_pct": 15.0,
+      "event_recall_pct": 98.0,
+      "object_recall_pct": 96.5,
+      "candidate_events": 255,
+      "false_positives": 240,
+      "false_negatives": 0
+    },
+    {
+      "configuration": "Config D (Full Pipeline)",
+      "runtime_seconds": 8.01,
+      "search_space_reduction_pct": 97.6,
+      "event_recall_pct": 96.0,
+      "object_recall_pct": 95.8,
+      "candidate_events": 53,
+      "false_positives": 2,
+      "false_negatives": 0
+    }
+  ],
+  "statistical_validation": {
+    "runtime_paired_ttest": {
+      "t_statistic": 12.6473,
+      "p_value": 0.000225,
+      "cohens_d": 5.656
+    },
+    "candidate_noise_paired_ttest": {
+      "t_statistic": 13.5538,
+      "p_value": 0.000172,
+      "cohens_d": 6.0614
+    }
+  }
+}

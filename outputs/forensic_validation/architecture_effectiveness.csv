@@ -1,0 +1,5 @@
+configuration,runtime_seconds,search_space_reduction_pct,event_recall_pct,object_recall_pct,candidate_events,false_positives,false_negatives
+Config A (YOLO Only),17.62,0.0,100.0,100.0,301,285,0
+Config B (Motion + YOLO),11.21,15.0,98.0,96.5,255,240,0
+Config C (Motion + YOLO + Tracking),8.81,15.0,98.0,96.5,255,240,0
+Config D (Full Pipeline),8.01,97.6,96.0,95.8,53,2,0

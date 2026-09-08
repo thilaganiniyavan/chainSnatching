@@ -1,0 +1,7 @@
+object_class,yolo_only_detections,motion_yolo_detections,precision,recall,f1_score,preservation_percentage
+person,3002,3002,1.0,1.0,1.0,100.0
+motorcycle,615,615,1.0,1.0,1.0,100.0
+bicycle,35,35,1.0,1.0,1.0,100.0
+car,194,194,1.0,1.0,1.0,100.0
+bus,12,12,1.0,1.0,1.0,100.0
+truck,21,21,1.0,1.0,1.0,100.0

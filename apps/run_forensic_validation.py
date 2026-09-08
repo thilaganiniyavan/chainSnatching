@@ -53,6 +53,7 @@ def main():
     parser.add_argument("--dataset", nargs="+", default=["Snatch 1.0/Chain Snatching Videos/Snatch Theft", "Snatch 1.0/Chain Snatching Videos/Normal"], help="Paths to dataset directories")
     parser.add_argument("--output_dir", type=str, default="outputs/forensic_validation", help="Output directory")
     parser.add_argument("--limit", type=int, default=5, help="Limit number of videos for fast benchmarking")
+    parser.add_argument("--max-frames", type=int, default=300, help="Max frames per video to evaluate (default: 300)")
 
     args = parser.parse_args()
 
@@ -85,7 +86,7 @@ def main():
     print("\n======================================================================")
     print("PARTS 2-7: Executing Evidence Preservation, Recall & Statistical Tests...")
     print("======================================================================")
-    evaluator = ForensicEvaluator(videos, ground_truth)
+    evaluator = ForensicEvaluator(videos, ground_truth, max_frames=args.max_frames)
     results = evaluator.evaluate_all()
 
     print("\n======================================================================")
