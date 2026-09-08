@@ -110,6 +110,41 @@ class TestSTGCNRecognizer:
         assert results[0].sequence_id == "SEQ-001"
         assert results[1].sequence_id == "SEQ-002"
 
+    def test_predict_action_reach_retract_impulse(self):
+        recognizer = STGCNRecognizer()
+        T = 8
+        tensor = np.zeros((T, 17, 4), dtype=float)
+        # Shoulders at (0.5, 0.5)
+        tensor[:, 5] = (0.45, 0.5, 0.9, 1.0)
+        tensor[:, 6] = (0.55, 0.5, 0.9, 1.0)
+        # Nose at (0.5, 0.4)
+        tensor[:, 0] = (0.5, 0.4, 0.9, 1.0)
+        # Right wrist reaches out horizontally to 1.2 at t=4, then snaps back to 0.6 at t=7
+        wrist_x = [0.6, 0.8, 1.0, 1.2, 1.1, 0.8, 0.6, 0.55]
+        for t in range(T):
+            tensor[t, 10] = (wrist_x[t], 0.52, 0.9, 1.0)
+            tensor[t, 9] = (0.4, 0.55, 0.9, 1.0)
+
+        seq = SkeletonSequence(
+            sequence_id="SEQ-REACH-RETRACT",
+            interaction_id="INT-001",
+            person_track_id=1,
+            start_frame=1,
+            end_frame=T,
+            frame_count=T,
+            duration_seconds=round(T / 30.0, 3),
+            topology="COCO_17",
+            num_joints=17,
+            skeleton_tensor=tensor,
+            joint_confidence_matrix=np.ones((T, 17), dtype=float) * 0.9,
+            quality_score=0.9,
+            is_accepted=True,
+        )
+
+        res = recognizer.predict_action(seq)
+        assert res.predicted_action in ("Grabbing", "Pulling", "Reaching")
+        assert res.action_confidence >= 0.80
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

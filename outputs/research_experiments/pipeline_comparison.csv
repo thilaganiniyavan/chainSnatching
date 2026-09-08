@@ -1,0 +1,5 @@
+config_name,dataset_f1_score,precision,recall,accuracy,roc_auc,tp,fp,fn,tn,avg_fps,frame_reduction_pct,avg_ram_mb
+Config A (Baseline),0.6875,0.7586,0.6286,0.5238,0.1061,22,7,13,0,18.4,17.3,1058.0
+Config B (+ Motion Triage),0.6875,0.7586,0.6286,0.5238,0.1061,22,7,13,0,15.3,21.3,523.7
+Config C (+ Behaviour Graph),0.5763,0.7083,0.4857,0.4048,0.2327,17,7,18,0,14.1,21.3,525.3
+Config D (Proposed Framework),0.7541,0.8846,0.6571,0.6429,0.6408,23,3,12,4,4.2,21.3,581.4

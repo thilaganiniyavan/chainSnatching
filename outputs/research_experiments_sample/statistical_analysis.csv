@@ -1,0 +1,5 @@
+config_name,metric,mean,median,std_dev,ci_lower,ci_upper,t_statistic,p_value,cohens_d,effect_size
+Config A (Baseline),F1-Score,0.6667,1.0,0.5164,0.2535,1.0799,-2.236,0.0756,-1.074,Large
+Config B (+ Motion Triage),F1-Score,0.6667,1.0,0.5164,0.2535,1.0799,-2.236,0.0756,-1.074,Large
+Config C (+ Behaviour Graph),F1-Score,0.5,0.5,0.5477,0.0617,0.9383,-1.581,0.1747,-0.69,Medium
+Config D (Proposed Framework),F1-Score,0.1667,0.0,0.4082,-0.16,0.4933,0.0,nan,0.0,Negligible

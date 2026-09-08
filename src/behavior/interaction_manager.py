@@ -250,6 +250,16 @@ class InteractionManager:
             )
         interaction._previous_velocity = interaction.relative_velocity
 
+        # Victim kinematics & Jerk
+        p_speed = person_track.instantaneous_speed or 0.0
+        prev_p_speed = getattr(interaction, "_prev_person_speed", p_speed)
+        p_acc = abs(p_speed - prev_p_speed)
+        prev_p_acc = getattr(interaction, "_prev_person_acc", p_acc)
+        p_jerk = abs(p_acc - prev_p_acc)
+        interaction._prev_person_speed = p_speed
+        interaction._prev_person_acc = p_acc
+        interaction.peak_victim_jerk = max(getattr(interaction, "peak_victim_jerk", 0.0), p_jerk)
+
         # Heading
         interaction.heading_difference = self._compute_heading_difference(
             person_track, vehicle_track
@@ -273,7 +283,7 @@ class InteractionManager:
             }
         )
         interaction.motion_history.append(
-            self._build_motion_snapshot(person_track, vehicle_track, frame_number)
+            self._build_motion_snapshot(person_track, vehicle_track, frame_number, p_jerk)
         )
 
     def _end_interaction(self, interaction: Interaction, frame_number: int) -> None:
@@ -365,7 +375,7 @@ class InteractionManager:
 
     @staticmethod
     def _build_motion_snapshot(
-        person: Track, vehicle: Track, frame_number: int
+        person: Track, vehicle: Track, frame_number: int, victim_jerk: float = 0.0
     ) -> dict:
         """Build a per-frame motion snapshot dictionary."""
         return {
@@ -376,4 +386,5 @@ class InteractionManager:
             "vehicle_direction": vehicle.direction,
             "person_center": person.center,
             "vehicle_center": vehicle.center,
+            "victim_jerk": victim_jerk,
         }

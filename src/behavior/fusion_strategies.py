@@ -119,16 +119,16 @@ class FusionStrategyEngine:
         actions = {act.predicted_action for act in action_results}
 
         bonus = 0.0
-        # Rule 1: High interaction pattern co-occurring with Reaching / Grabbing
-        if "INTERACTION_PATTERN" in patterns and ("Reaching" in actions or "Grabbing" in actions):
+        # Rule 1: High interaction pattern co-occurring with Reaching / Grabbing / Falling / Turning
+        if "INTERACTION_PATTERN" in patterns and any(a in actions for a in ("Reaching", "Grabbing", "Pulling", "Falling", "Turning")):
             bonus += 0.15
 
         # Rule 2: Approach or Follow co-occurring with Approaching / Running
-        if ("APPROACH_PATTERN" in patterns or "FOLLOW_PATTERN" in patterns) and ("Approaching" in actions or "Running" in actions):
+        if ("APPROACH_PATTERN" in patterns or "FOLLOW_PATTERN" in patterns) and any(a in actions for a in ("Approaching", "Running")):
             bonus += 0.10
 
-        # Rule 3: Escape co-occurring with Running
-        if "ESCAPE_PATTERN" in patterns and "Running" in actions:
+        # Rule 3: Escape or Direction Discontinuity co-occurring with Running, Turning, or Falling
+        if ("ESCAPE_PATTERN" in patterns or "DIVERGENCE_PATTERN" in patterns) and any(a in actions for a in ("Running", "Falling", "Turning")):
             bonus += 0.15
 
         base_conf = 0.5 * b_conf + 0.5 * a_conf

@@ -1,0 +1,5 @@
+config_name,avg_f1_score,avg_roc_auc,avg_fps,frame_reduction_pct,avg_ram_mb
+Config A (Baseline),0.6667,0.25,22.7,15.8,1243.4
+Config B (+ Motion Triage),0.6667,0.25,15.5,16.8,1280.6
+Config C (+ Behaviour Graph),0.5,0.0,15.6,16.8,1229.9
+Config D (Proposed Framework),0.1667,0.0,10.1,16.8,1348.1

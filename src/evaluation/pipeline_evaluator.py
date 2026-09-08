@@ -243,6 +243,13 @@ class PipelineEvaluator:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
 
+            # Calculate dataset-wide average total frames, motion triaged, and processed frames
+            total_frames_avg = int(np.mean([vm["total_frames"] for vm in self.video_metrics])) if self.video_metrics else 100
+            motion_frames_avg = int(np.mean([vm["motion_triaged_frames"] for vm in self.video_metrics])) if self.video_metrics else 80
+            processed_frames_avg = int(np.mean([vm["processed_frames"] for vm in self.video_metrics])) if self.video_metrics else 50
+
+            current_entering = total_frames_avg
+
             for idx, stage_name in enumerate(STAGE_NAMES):
                 # Calculate average stage time across video metrics
                 st_times = [
@@ -251,9 +258,18 @@ class PipelineEvaluator:
                 avg_ms = float(np.mean(st_times)) if st_times else 5.0
                 fps = (1000.0 / avg_ms) if avg_ms > 0 else 0.0
 
-                entering = self.video_metrics[0]["total_frames"] if self.video_metrics else 100
-                leaving = self.video_metrics[0]["processed_frames"] if self.video_metrics else 50
-                red_pct = ((entering - leaving) / max(1, entering)) * 100.0 if idx == 0 else 0.0
+                entering = current_entering
+
+                # Compute stage leaving frames
+                if stage_name == "Motion Triage":
+                    leaving = motion_frames_avg
+                elif stage_name == "Semantic Filtering":
+                    leaving = processed_frames_avg
+                else:
+                    leaving = entering  # Frame context is passed downstream continuously
+
+                red_pct = ((entering - leaving) / max(1, entering)) * 100.0
+                current_entering = leaving  # Next stage enters with leaving frames of current stage
 
                 writer.writerow(
                     {

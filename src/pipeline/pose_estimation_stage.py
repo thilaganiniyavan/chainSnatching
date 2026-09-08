@@ -56,33 +56,54 @@ class PoseEstimationStage(Stage):
 
     def process(self, context: FrameContext) -> FrameContext:
         """Process current frame context, run pose estimation on active accepted ROIs."""
-
         roi_engine = context.metadata.get("roi_engine")
         accepted_rois = context.metadata.get("accepted_rois", [])
 
         current_frame_poses = []
+        if roi_engine:
+            raw_target_rois = accepted_rois if accepted_rois else roi_engine.get_active_rois()
+            # Prioritize top 3 most confident/close ROIs to prevent explosion on multi-person background scenes
+            sorted_rois = sorted(
+                raw_target_rois,
+                key=lambda r: getattr(r, "interaction_confidence", 0.5),
+                reverse=True,
+            )[:3]
 
-        if roi_engine and accepted_rois:
-            for roi in accepted_rois:
+            processed_tracks: set[int] = set()
+
+            for roi in sorted_rois:
+                # Avoid redundant pose inference on the same person multiple times per frame
+                if roi.person_track_id in processed_tracks:
+                    continue
+
                 if context.frame_number in roi.frame_index_mapping:
-                    samples = roi_engine.prepare_skeleton_samples(roi)
-                    # Filter samples for the current frame
-                    current_samples = [s for s in samples if s.frame_number == context.frame_number]
+                    try:
+                        idx = roi.frame_index_mapping.index(context.frame_number)
+                        expanded_box = roi.expanded_bounding_boxes[idx]
+                    except (ValueError, IndexError):
+                        continue
 
-                    for s in current_samples:
-                        pose_res = self.estimator.estimate_pose(
-                            image=context.frame,
-                            bbox=s.expanded_bbox,
-                            frame_index=s.frame_number,
-                            timestamp=s.timestamp,
-                            track_id=s.person_track_id,
-                            interaction_id=s.interaction_id,
-                            roi_id=s.roi_id,
-                        )
-                        current_frame_poses.append(pose_res)
-                        if s.sample_id not in self._evaluated_sample_ids:
-                            self.logger.log_pose(pose_res)
-                            self._evaluated_sample_ids.add(s.sample_id)
+                    if expanded_box is None:
+                        continue
+
+                    ts = roi.timestamps[idx] if idx < len(roi.timestamps) else round(context.frame_number / 30.0, 3)
+
+                    pose_res = self.estimator.estimate_pose(
+                        image=context.frame,
+                        bbox=expanded_box,
+                        frame_index=context.frame_number,
+                        timestamp=ts,
+                        track_id=roi.person_track_id,
+                        interaction_id=roi.interaction_id,
+                        roi_id=roi.roi_id,
+                    )
+                    current_frame_poses.append(pose_res)
+                    processed_tracks.add(roi.person_track_id)
+
+                    sample_key = f"{roi.roi_id}_{context.frame_number}"
+                    if sample_key not in self._evaluated_sample_ids:
+                        self.logger.log_pose(pose_res)
+                        self._evaluated_sample_ids.add(sample_key)
 
         context.poses = current_frame_poses
         context.metadata["pose_results"] = current_frame_poses

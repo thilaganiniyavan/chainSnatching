@@ -184,6 +184,19 @@ class TestPatternEvaluator:
         types = [n.pattern_type for n in nodes]
         assert "WAITING_PATTERN" in types
 
+    def test_reach_grab_retract_pattern(self):
+        evaluator = PatternEvaluator()
+        interaction = _make_interaction(min_dist=50.0, curr_dist=80.0, rel_vel=3.0, rel_acc=2.5)
+        prims = [_make_primitive("REACHING"), _make_primitive("RAPID_ACCELERATION")]
+        timeline = []
+
+        nodes = evaluator.evaluate(interaction, prims, timeline, frame_number=15)
+        types = [n.pattern_type for n in nodes]
+        assert "REACH_GRAB_RETRACT_PATTERN" in types
+        rgr_node = next(n for n in nodes if n.pattern_type == "REACH_GRAB_RETRACT_PATTERN")
+        assert rgr_node.confidence >= 0.85
+        assert rgr_node.priority == 11
+
     def test_archived_interaction_returns_empty(self):
         evaluator = PatternEvaluator()
         interaction = _make_interaction(state=InteractionState.ARCHIVED)

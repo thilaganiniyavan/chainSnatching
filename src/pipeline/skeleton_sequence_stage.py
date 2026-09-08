@@ -68,15 +68,19 @@ class SkeletonSequenceStage(Stage):
             seq_id = f"SEQ-{p.interaction_id}-TRK-{p.track_id}"
             self.builder.append_pose(seq_id, p)
 
-        # Finalize active sequences for completed interactions
+        # Finalize active sequences for candidate/accepted interactions
+        roi_engine = context.metadata.get("roi_engine")
         accepted_rois = context.metadata.get("accepted_rois", [])
-        for roi in accepted_rois:
+        target_rois = accepted_rois if accepted_rois else (roi_engine.get_active_rois() if roi_engine else [])
+        for roi in target_rois:
             seq_id = f"SEQ-{roi.interaction_id}-TRK-{roi.person_track_id}"
-            if roi.end_frame <= context.frame_number:
+            if roi.end_frame <= context.frame_number or roi.frame_count >= 3:
                 self.builder.finalize_sequence(seq_id)
 
         all_seqs = self.builder.get_completed_sequences()
         accepted_seqs = [s for s in all_seqs if s.is_accepted]
+        if not accepted_seqs and all_seqs:
+            accepted_seqs = [s for s in all_seqs if s.frame_count >= 3]
 
         context.sequences = accepted_seqs
         context.metadata["skeleton_sequences"] = all_seqs

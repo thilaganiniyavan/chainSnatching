@@ -61,17 +61,32 @@ class SequenceQualityEvaluator:
         T, V, C = tensor.shape
         conf_matrix = sequence.joint_confidence_matrix # shape (T, V)
 
-        # 1. Average keypoint confidence
-        avg_conf = float(np.mean(conf_matrix)) if conf_matrix.size > 0 else 0.0
+        # 1. Upper-body prioritized keypoint confidence (70% upper body / arms / wrists, 30% lower body)
+        upper_body_indices = [5, 6, 7, 8, 9, 10] if sequence.topology == "COCO_17" else [11, 12, 13, 14, 15, 16]
+        upper_body_indices = [idx for idx in upper_body_indices if idx < V]
 
-        # 2. Missing joint ratio (conf < 0.3)
-        missing_count = int(np.sum(conf_matrix < 0.3))
-        total_joints = T * V
-        missing_ratio = missing_count / max(1, total_joints)
+        if upper_body_indices and conf_matrix.size > 0:
+            upper_conf = float(np.mean(conf_matrix[:, upper_body_indices]))
+            lower_indices = [idx for idx in range(V) if idx not in upper_body_indices]
+            lower_conf = float(np.mean(conf_matrix[:, lower_indices])) if lower_indices else upper_conf
+            avg_conf = 0.70 * upper_conf + 0.30 * lower_conf
+
+            # 2. Upper-body prioritized missing joint ratio
+            upper_missing = int(np.sum(conf_matrix[:, upper_body_indices] < 0.25))
+            upper_missing_ratio = upper_missing / max(1, T * len(upper_body_indices))
+            total_missing_ratio = int(np.sum(conf_matrix < 0.3)) / max(1, T * V)
+            missing_ratio = 0.70 * upper_missing_ratio + 0.30 * total_missing_ratio
+        else:
+            avg_conf = float(np.mean(conf_matrix)) if conf_matrix.size > 0 else 0.0
+            missing_count = int(np.sum(conf_matrix < 0.3))
+            missing_ratio = missing_count / max(1, T * V)
 
         # 3. Completeness score
         valid_frames_count = sum(
-            1 for t in range(T) if np.mean(conf_matrix[t]) >= 0.25
+            1 for t in range(T) if (
+                np.mean(conf_matrix[t, upper_body_indices]) >= 0.20
+                if upper_body_indices else np.mean(conf_matrix[t]) >= 0.25
+            )
         )
         completeness = valid_frames_count / max(1, T)
 

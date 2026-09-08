@@ -33,8 +33,8 @@ class PatternConfig:
     """
 
     # Spatial thresholds
-    proximity_distance_threshold: float = 80.0
-    close_interaction_distance_threshold: float = 60.0
+    proximity_distance_threshold: float = 160.0
+    close_interaction_distance_threshold: float = 140.0
 
     # Kinematic thresholds
     approach_velocity_threshold: float = -1.5
@@ -53,6 +53,11 @@ class PatternConfig:
     min_follow_frames: int = 5
     min_lingering_frames: int = 10
     min_waiting_frames: int = 15
+    max_reach_retract_window_frames: int = 15
+
+    # Snatch dynamic thresholds
+    min_reach_retract_velocity: float = 0.06
+    min_retraction_delta: float = 0.15
 
     # Base confidence scores
     base_confidence: float = 0.6

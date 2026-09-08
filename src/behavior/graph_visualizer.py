@@ -26,6 +26,7 @@ from src.core.models.track import Track
 
 # Pattern Type -> Colour Mapping (BGR for OpenCV, RGB for NetworkX)
 _PATTERN_COLOURS_CV: dict[str, tuple[int, int, int]] = {
+    "REACH_GRAB_RETRACT_PATTERN": (0, 0, 255), # Red (Snatch Threat)
     "APPROACH_PATTERN": (255, 150, 0),       # Blue-ish
     "FOLLOW_PATTERN": (0, 165, 255),        # Orange
     "CO_TRAVEL_PATTERN": (0, 200, 200),      # Yellow-Green
@@ -40,6 +41,7 @@ _PATTERN_COLOURS_CV: dict[str, tuple[int, int, int]] = {
 }
 
 _PATTERN_COLOURS_NX: dict[str, str] = {
+    "REACH_GRAB_RETRACT_PATTERN": "#d62728",
     "APPROACH_PATTERN": "#1f77b4",
     "FOLLOW_PATTERN": "#ff7f0e",
     "CO_TRAVEL_PATTERN": "#2ca02c",

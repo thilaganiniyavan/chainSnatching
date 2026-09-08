@@ -37,9 +37,8 @@ class TrackingStage(Stage):
 
         depth_map = context.depth_map
 
-        for box in result.boxes:
-
-            tracking_id = int(box.id[0]) if box.id is not None else -1
+        for idx, box in enumerate(result.boxes):
+            tracking_id = int(box.id[0]) if box.id is not None else (10000 + idx)
 
             class_id = int(box.cls[0])
             class_name = names[class_id]

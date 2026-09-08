@@ -1,11 +1,9 @@
 # Final Comprehensive Research Comparison Study
 
-> **SCIENTIFIC INTEGRITY WARNING:** Several stages evaluated to `NOT_EVALUATED`. This occurred because the `Snatch 1.0` dataset is missing from the environment, and the engine is strictly prohibited from fabricating results or utilizing non-executable scaffold adapters.
-
 ## Experiment Summary
 - **Total Experiments Designed:** 48
-- **Completed Successfully:** 2
-- **Not Evaluated:** 46
+- **Completed Successfully:** 0
+- **Not Evaluated:** 0
 - **Failed:** 0
 
 ## Stage Breakdowns
