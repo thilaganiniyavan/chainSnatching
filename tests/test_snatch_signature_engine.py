@@ -29,9 +29,9 @@ def _make_fusion(iid: str = "INT-001") -> FusedInteraction:
         interaction_id=iid,
         person_track_id=1,
         vehicle_track_id=2,
-        behaviour_patterns=["APPROACH_PATTERN", "INTERACTION_PATTERN", "ESCAPE_PATTERN"],
+        behaviour_patterns=["APPROACH_PATTERN", "INTERACTION_PATTERN", "REACH_GRAB_RETRACT_PATTERN", "ESCAPE_PATTERN"],
         action_timeline=[{"action_label": "Reaching", "action_confidence": 0.90}],
-        motion_evidence={"average_speed_px": 0.15},
+        motion_evidence={"average_speed_px": 4.5, "peak_relative_acceleration": 3.0},
         spatial_evidence={"min_distance_px": 45.0},
         fusion_confidence=0.88,
     )

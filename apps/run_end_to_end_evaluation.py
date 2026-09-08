@@ -13,6 +13,7 @@ Outputs:
 """
 
 import argparse
+import gc
 import glob
 import os
 import sys
@@ -46,25 +47,29 @@ def run_evaluation_on_video(
     video_path: str,
     args: argparse.Namespace,
     evaluator: PipelineEvaluator,
+    detector: Detector,
+    video_idx: int = 1,
+    total_videos: int = 1,
 ) -> None:
     """Run full pipeline on a single video file and record evaluation metrics."""
-    print(f"\n--- Evaluating Video: {video_path} ---")
+    video_basename = os.path.basename(video_path)
+    print(f"\n[{video_idx}/{total_videos}] Evaluating: {video_basename} ...")
 
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
-        print(f"Error: Could not open video file {video_path}")
+        print(f"  ! Error: Could not open video file {video_path}")
         return
 
-    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0)
     fps = cap.get(cv2.CAP_PROP_FPS)
-    if fps == 0 or fps != fps:
+    if fps <= 0 or fps != fps:
         fps = 20.0
 
-    video_basename = os.path.basename(video_path)
+    max_limit = args.max_frames if (args.max_frames and args.max_frames > 0) else total_frames
+    target_frames = min(total_frames, max_limit) if (max_limit and total_frames > 0) else max_limit
 
-    # Initialize detection & background subtractor
+    # Initialize background subtractor
     mog2 = cv2.createBackgroundSubtractorMOG2(history=500, varThreshold=16, detectShadows=True)
-    detector = Detector()
 
     # Initialize all 13 pipeline stages
     tracking_stage = TrackingStage()
@@ -81,7 +86,7 @@ def run_evaluation_on_video(
     snatch_stage = SnatchSignatureStage()
     indexing_stage = ForensicIndexingStage(video_id=video_basename, location="Camera 1")
 
-    pipeline = Pipeline(stages=[
+    stages = [
         tracking_stage,
         relationship_stage,
         interaction_stage,
@@ -95,77 +100,117 @@ def run_evaluation_on_video(
         fusion_stage,
         snatch_stage,
         indexing_stage,
-    ])
+    ]
+    pipeline = Pipeline(stages=stages)
 
     frame_number = 0
     motion_triaged_cnt = 0
     processed_cnt = 0
+    last_context = None
 
     start_time = time.time()
     stage_times: dict[str, float] = {name: 0.0 for name in STAGE_NAMES}
+    stage_map = {
+        "TrackingStage": "Multi-Object Tracking",
+        "RelationshipStage": "Relationship Engine",
+        "InteractionStage": "Interaction Manager",
+        "BehaviourStage": "Behaviour Intelligence",
+        "ReasoningStage": "Behaviour Intelligence",
+        "GraphReasoningStage": "Behaviour Graph Reasoning",
+        "ROISelectionStage": "ROI Selection",
+        "PoseEstimationStage": "Pose Estimation",
+        "SkeletonSequenceStage": "Skeleton Sequence Builder",
+        "ActionRecognitionStage": "Human Action Recognition",
+        "BehaviourFusionStage": "Behaviour Fusion",
+        "SnatchSignatureStage": "Snatch Signature Engine",
+        "ForensicIndexingStage": "Forensic Indexing & Retrieval",
+    }
 
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            break
+    try:
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
 
-        frame_number += 1
+            frame_number += 1
+            if args.max_frames and frame_number > args.max_frames:
+                break
 
-        # Motion Triage
-        t0 = time.perf_counter()
-        fg_mask = mog2.apply(frame)
-        motion_pixels = cv2.countNonZero(fg_mask)
-        stage_times["Motion Triage"] += (time.perf_counter() - t0) * 1000.0
+            # Motion Triage
+            t0 = time.perf_counter()
+            fg_mask = mog2.apply(frame)
+            motion_pixels = cv2.countNonZero(fg_mask)
+            stage_times["Motion Triage"] += (time.perf_counter() - t0) * 1000.0
 
-        if motion_pixels <= 5000:
-            continue
+            if motion_pixels <= 5000:
+                continue
 
-        motion_triaged_cnt += 1
+            motion_triaged_cnt += 1
 
-        # Semantic Filtering & Detection
-        t0 = time.perf_counter()
-        detections = detector.detect(frame)
-        stage_times["YOLO Detection"] += (time.perf_counter() - t0) * 1000.0
+            # Semantic Filtering & Detection
+            t0 = time.perf_counter()
+            detections = detector.detect(frame)
+            det_elapsed = (time.perf_counter() - t0) * 1000.0
+            stage_times["YOLO Detection"] += det_elapsed
 
-        if not detections:
-            continue
+            sf_t0 = time.perf_counter()
+            has_detections = bool(detections)
+            stage_times["Semantic Filtering"] += (time.perf_counter() - sf_t0) * 1000.0
 
-        processed_cnt += 1
+            if not has_detections:
+                continue
 
-        context = FrameContext(
-            frame=frame,
-            frame_number=frame_number,
-            timestamp=time.time(),
-            detections=detections,
-        )
+            processed_cnt += 1
 
-        t0 = time.perf_counter()
-        context = pipeline.run(context)
-        elapsed_stage_ms = (time.perf_counter() - t0) * 1000.0 / max(1, len(STAGE_NAMES) - 3)
+            context = FrameContext(
+                frame=frame,
+                frame_number=frame_number,
+                timestamp=frame_number / fps,
+                detections=detections,
+            )
 
-        # Distribute timing across downstream stages
-        for name in STAGE_NAMES[3:]:
-            stage_times[name] += elapsed_stage_ms
+            # Measure each downstream stage individually
+            for stage in pipeline.stages:
+                s_t0 = time.perf_counter()
+                context = stage.process(context)
+                s_elapsed = (time.perf_counter() - s_t0) * 1000.0
+                stage_key = stage_map.get(type(stage).__name__)
+                if stage_key in stage_times:
+                    stage_times[stage_key] += s_elapsed
 
-    elapsed_seconds = time.time() - start_time
-    cap.release()
+            last_context = context
 
-    # Finalize stage outputs
-    behaviour_stage.finalize()
-    reasoning_stage.finalize()
-    graph_stage.finalize()
-    roi_stage.finalize()
-    pose_stage.finalize()
-    sequence_stage.finalize()
-    action_stage.finalize()
-    fusion_stage.finalize()
-    snatch_stage.finalize()
-    indexing_stage.finalize()
+            if frame_number % 10 == 0 or frame_number == target_frames:
+                print(f"  Frame {frame_number}/{target_frames} (Processed: {processed_cnt})...", end="\r", flush=True)
 
-    # Extract artifact counts
-    det_cnt = sum(len(context.detections) for _ in range(1)) if processed_cnt > 0 else 0
-    tr_cnt = len(context.tracks)
-    int_cnt = len(context.interactions)
+    finally:
+        cap.release()
+
+        # Finalize stages safely
+        for stage in stages:
+            if hasattr(stage, "finalize"):
+                try:
+                    stage.finalize()
+                except Exception:
+                    pass
+
+        # Explicitly release MediaPipe C++ session
+        if hasattr(pose_stage, "estimator"):
+            est = pose_stage.estimator
+            if hasattr(est, "_pose_solution") and est._pose_solution is not None:
+                try:
+                    est._pose_solution.close()
+                    est._pose_solution = None
+                except Exception:
+                    pass
+
+    elapsed_seconds = max(1e-6, time.time() - start_time)
+    fps_metric = processed_cnt / elapsed_seconds if processed_cnt > 0 else 0.0
+
+    # Extract artifact counts safely
+    det_cnt = len(last_context.detections) if (last_context and last_context.detections) else 0
+    tr_cnt = len(last_context.tracks) if (last_context and hasattr(last_context, "tracks")) else 0
+    int_cnt = len(last_context.interactions) if (last_context and hasattr(last_context, "interactions")) else 0
     gr_cnt = len(graph_stage.engine.get_completed_graphs())
     roi_cnt = len(roi_stage.engine.get_accepted_rois())
     pose_cnt = len(pose_stage.logger.get_pose_results())
@@ -195,12 +240,20 @@ def run_evaluation_on_video(
         stage_times_ms=stage_times,
     )
 
+    print(f"\n  ✓ Done {video_basename}: {processed_cnt}/{frame_number} frames processed in {elapsed_seconds:.1f}s ({fps_metric:.1f} FPS)\n", flush=True)
+
+    # Immediate garbage collection between videos
+    del pipeline, stages, mog2, last_context
+    gc.collect()
+
 
 def main():
     parser = argparse.ArgumentParser(description="End-to-End Pipeline Evaluation Runner")
     parser.add_argument("--input-dir", type=str, help="Directory containing CCTV video files")
     parser.add_argument("--input", type=str, help="Single CCTV video file path")
     parser.add_argument("--output-dir", type=str, default="outputs/evaluation_results", help="Directory for evaluation results")
+    parser.add_argument("--max-videos", type=int, default=None, help="Maximum number of videos to evaluate (e.g. 5 or 10)")
+    parser.add_argument("--max-frames", type=int, default=350, help="Maximum frames per video to evaluate (default: 350, pass 0 for all frames)")
     parser.add_argument("--backend", type=str, default="mediapipe", help="Pose estimation backend")
     parser.add_argument("--norm", type=str, default="hip_centered", help="Skeleton normalization strategy")
     parser.add_argument("--action-backend", type=str, default="stgcn", help="Action recognition backend")
@@ -211,7 +264,7 @@ def main():
 
     video_files = []
     if args.input_dir and os.path.exists(args.input_dir):
-        video_files = glob.glob(os.path.join(args.input_dir, "*.mp4")) + glob.glob(os.path.join(args.input_dir, "*.avi"))
+        video_files = sorted(glob.glob(os.path.join(args.input_dir, "*.mp4")) + glob.glob(os.path.join(args.input_dir, "*.avi")))
     elif args.input and os.path.exists(args.input):
         video_files = [args.input]
 
@@ -219,10 +272,18 @@ def main():
         print(f"No video files found in '{args.input_dir or args.input}'. Evaluation cannot proceed.")
         return
 
-    print(f"Starting End-to-End Framework Evaluation across {len(video_files)} video file(s)...")
+    if args.max_videos and len(video_files) > args.max_videos:
+        print(f"Limiting evaluation to a sample of {args.max_videos} video file(s)...")
+        video_files = video_files[:args.max_videos]
 
-    for v_path in video_files:
-        run_evaluation_on_video(v_path, args, evaluator)
+    print(f"\nStarting End-to-End Framework Evaluation across {len(video_files)} video file(s)...")
+    print(f"Max frames per video: {args.max_frames if args.max_frames else 'All'}\n")
+
+    # Reuse detector across videos
+    detector = Detector()
+
+    for idx, v_path in enumerate(video_files, start=1):
+        run_evaluation_on_video(v_path, args, evaluator, detector, video_idx=idx, total_videos=len(video_files))
 
     evaluator.export_all()
 
@@ -230,7 +291,7 @@ def main():
     print("End-to-End Pipeline Evaluation Completed Successfully!")
     print(f"Results saved to: {args.output_dir}")
     print(f"Thesis Report: {os.path.join(args.output_dir, 'framework_summary.md')}")
-    print("============================================================")
+    print("============================================================\n")
 
 
 if __name__ == "__main__":

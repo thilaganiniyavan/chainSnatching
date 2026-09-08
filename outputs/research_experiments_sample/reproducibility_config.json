@@ -1,0 +1,25 @@
+{
+  "experiment_timestamp": "2026-09-06 20:51:49",
+  "random_seed": 42,
+  "python_version": "3.11.9",
+  "os_platform": "Windows-10-10.0.26200-SP0",
+  "processor": "Intel64 Family 6 Model 141 Stepping 1, GenuineIntel",
+  "evaluated_configurations": [
+    "Config A (Baseline)",
+    "Config B (+ Motion Triage)",
+    "Config C (+ Behaviour Graph)",
+    "Config D (Proposed Framework)"
+  ],
+  "evaluated_ablations": [
+    "Ablation: Motion Triage Removed",
+    "Ablation: Semantic Filtering Removed",
+    "Ablation: Behaviour Graph Removed",
+    "Ablation: ROI Selection Removed",
+    "Ablation: Pose Estimation Removed",
+    "Ablation: Behaviour Fusion Removed",
+    "Ablation: Action Recognition Removed",
+    "Ablation: Relationship Engine Removed",
+    "Ablation: Interaction Manager Removed",
+    "Ablation: Forensic Indexing Removed"
+  ]
+}

@@ -102,22 +102,26 @@ class SkeletonNormalizer:
                     valid_pts = frame_kps[frame_kps[:, 2] > 0.1, :2]
                     hip_center = np.mean(valid_pts, axis=0) if len(valid_pts) > 0 else np.array([0.0, 0.0])
 
+                # Compute torso height from raw un-shifted coordinates
+                l_sh_raw = frame_kps[left_sh_idx, :2]
+                r_sh_raw = frame_kps[right_sh_idx, :2]
+                sh_center_raw = (l_sh_raw + r_sh_raw) / 2.0
+                torso_h = float(np.linalg.norm(sh_center_raw - hip_center))
+
+                # Shift origin to hip center
                 frame_kps[:, 0] -= hip_center[0]
                 frame_kps[:, 1] -= hip_center[1]
 
                 # Scale by torso height or bounding box size
-                l_sh = frame_kps[left_sh_idx, :2]
-                r_sh = frame_kps[right_sh_idx, :2]
-                sh_center = (l_sh + r_sh) / 2.0
-                torso_h = np.linalg.norm(sh_center - hip_center)
-
-                if torso_h > 1.0:
+                if torso_h > 5.0:
                     frame_kps[:, :2] /= torso_h
                 elif bbox is not None:
-                    _, _, x2, y2 = bbox
-                    diag = float(math.sqrt((x2 - bbox[0])**2 + (y2 - bbox[1])**2))
-                    if diag > 1.0:
+                    x1, y1, x2, y2 = bbox
+                    diag = float(math.sqrt((x2 - x1)**2 + (y2 - y1)**2))
+                    if diag > 5.0:
                         frame_kps[:, :2] /= diag
+                else:
+                    frame_kps[:, :2] /= 50.0
 
             # Optional rotation alignment
             if self.enable_rotation:

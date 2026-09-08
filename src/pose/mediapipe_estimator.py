@@ -17,7 +17,7 @@ from src.core.models.pose_result import PoseResult
 from src.core.models.interaction_roi import PreparedSkeletonSample
 from src.pose.base_estimator import AbstractPoseEstimator
 
-# Try importing mediapipe pose solutions
+# Try importing mediapipe pose solutions or ultralytics YOLO Pose
 HAS_MEDIAPIPE = False
 try:
     import mediapipe as mp
@@ -25,6 +25,13 @@ try:
         HAS_MEDIAPIPE = True
 except Exception:
     HAS_MEDIAPIPE = False
+
+HAS_YOLO = False
+try:
+    from ultralytics import YOLO
+    HAS_YOLO = True
+except Exception:
+    HAS_YOLO = False
 
 
 # COCO 17 Keypoint Indices mapping from MediaPipe 33 Landmarks
@@ -51,7 +58,7 @@ _MP_TO_COCO_MAP = [
 
 
 class MediaPipePoseEstimator(AbstractPoseEstimator):
-    """MediaPipe Pose estimation implementation using mp.solutions.pose.
+    """MediaPipe & YOLO Pose estimation implementation.
 
     Args:
         min_detection_confidence: Confidence threshold for person detection.
@@ -71,6 +78,8 @@ class MediaPipePoseEstimator(AbstractPoseEstimator):
         self.topology = topology.upper()
 
         self._pose_solution = None
+        self._yolo_pose = None
+
         if HAS_MEDIAPIPE:
             try:
                 self._mp_pose = mp.solutions.pose
@@ -82,6 +91,12 @@ class MediaPipePoseEstimator(AbstractPoseEstimator):
                 )
             except Exception:
                 self._pose_solution = None
+
+        if self._pose_solution is None and HAS_YOLO:
+            try:
+                self._yolo_pose = YOLO("yolo11n-pose.pt")
+            except Exception:
+                self._yolo_pose = None
 
     def estimate_pose(
         self,
@@ -147,7 +162,27 @@ class MediaPipePoseEstimator(AbstractPoseEstimator):
                         keypoints_px.append((round(x_px, 1), round(y_px, 1), round(conf, 4), round(vis, 4)))
                         keypoints_norm.append((round(x_norm, 4), round(y_norm, 4), round(conf, 4), round(vis, 4)))
 
-        # Fallback synthetic generation if mediapipe produces no result or solution missing
+        elif self._yolo_pose is not None and crop.size > 0:
+            try:
+                res = self._yolo_pose(crop, verbose=False, conf=self.min_detection_confidence)
+                if res and len(res) > 0 and res[0].keypoints is not None:
+                    kpts_data = res[0].keypoints.data
+                    if kpts_data is not None and len(kpts_data) > 0:
+                        person_kpts = kpts_data[0].cpu().numpy()
+                        for i in range(min(17, len(person_kpts))):
+                            kx, ky, kconf = person_kpts[i]
+                            abs_x = float(x1_c + kx)
+                            abs_y = float(y1_c + ky)
+                            norm_x = round(abs_x / max(1, w_img), 4)
+                            norm_y = round(abs_y / max(1, h_img), 4)
+                            conf = float(kconf)
+                            vis = 1.0 if conf > 0.3 else 0.0
+                            keypoints_px.append((round(abs_x, 1), round(abs_y, 1), round(conf, 4), round(vis, 4)))
+                            keypoints_norm.append((norm_x, norm_y, round(conf, 4), round(vis, 4)))
+            except Exception:
+                pass
+
+        # Fallback synthetic generation if pose model produces no result or solution missing
         if not keypoints_px:
             keypoints_px, keypoints_norm = self._generate_synthetic_pose(
                 bbox, w_img, h_img, self.topology
@@ -174,9 +209,9 @@ class MediaPipePoseEstimator(AbstractPoseEstimator):
             overall_confidence=round(avg_conf, 4),
             quality_score=quality_score,
             bbox_reference=bbox,
-            backend_name="MediaPipe",
+            backend_name="YOLO-Pose" if self._pose_solution is None and self._yolo_pose is not None else "MediaPipe",
             processing_time_ms=round(elapsed_ms, 2),
-            metadata={"has_mediapipe_runtime": HAS_MEDIAPIPE},
+            metadata={"has_mediapipe_runtime": HAS_MEDIAPIPE, "has_yolo_runtime": HAS_YOLO},
         )
 
     def estimate_batch(
@@ -208,30 +243,43 @@ class MediaPipePoseEstimator(AbstractPoseEstimator):
         h_img: int,
         topology: str,
     ) -> tuple[list[tuple[float, float, float, float]], list[tuple[float, float, float, float]]]:
-        """Generates realistic synthetic keypoints for fallback when mediapipe is absent/untriggered."""
+        """Generates realistic anatomically neutral keypoints for fallback when pose model is absent."""
         x1, y1, x2, y2 = bbox
         cx = (x1 + x2) / 2.0
         cy = (y1 + y2) / 2.0
-        w = max(10.0, float(x2 - x1))
-        h = max(10.0, float(y2 - y1))
+        bw = max(10.0, float(x2 - x1))
+        bh = max(10.0, float(y2 - y1))
 
-        num_joints = 17 if topology == "COCO_17" else 33
+        # Proportional neutral layout: head top, shoulders y=-0.30, wrists down by sides y=+0.08, hips y=+0.05
+        rel_layout = [
+            (0.0, -0.42),   # 0: nose
+            (-0.05, -0.45), # 1: l_eye
+            (0.05, -0.45),  # 2: r_eye
+            (-0.12, -0.43), # 3: l_ear
+            (0.12, -0.43),  # 4: r_ear
+            (-0.20, -0.30), # 5: l_shoulder
+            (0.20, -0.30),  # 6: r_shoulder
+            (-0.22, -0.10), # 7: l_elbow
+            (0.22, -0.10),  # 8: r_elbow
+            (-0.22, 0.08),  # 9: l_wrist (side hang)
+            (0.22, 0.08),   # 10: r_wrist (side hang)
+            (-0.15, 0.05),  # 11: l_hip
+            (0.15, 0.05),   # 12: r_hip
+            (-0.15, 0.28),  # 13: l_knee
+            (0.15, 0.28),   # 14: r_knee
+            (-0.15, 0.48),  # 15: l_ankle
+            (0.15, 0.48),   # 16: r_ankle
+        ]
         px_list: list[tuple[float, float, float, float]] = []
         norm_list: list[tuple[float, float, float, float]] = []
 
-        for i in range(num_joints):
-            # Spread joints vertically/horizontally inside the bbox
-            offset_x = (i % 3 - 1) * (w * 0.25)
-            offset_y = (i / num_joints - 0.5) * (h * 0.8)
-
-            jx = max(0.0, min(cx + offset_x, float(w_img)))
-            jy = max(0.0, min(cy + offset_y, float(h_img)))
-            conf = 0.75
-            vis = 0.80
-
+        for rx, ry in rel_layout:
+            jx = max(0.0, min(cx + rx * bw, float(w_img)))
+            jy = max(0.0, min(cy + ry * bh, float(h_img)))
+            conf = 0.50
+            vis = 0.50
             jx_norm = round(jx / max(1, w_img), 4)
             jy_norm = round(jy / max(1, h_img), 4)
-
             px_list.append((round(jx, 1), round(jy, 1), conf, vis))
             norm_list.append((jx_norm, jy_norm, conf, vis))
 

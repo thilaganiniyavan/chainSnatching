@@ -48,7 +48,7 @@ class SnatchSignatureEngine:
         res.explanation_text = exp_text
         res.recommendation = rec_text
 
-        self._results_map[res.signature_id] = res
+        self._results_map[res.fusion_id] = res
         return res
 
     def evaluate_batch(
@@ -58,8 +58,10 @@ class SnatchSignatureEngine:
         return [self.evaluate_interaction(f) for f in fusions]
 
     def get_signature_result(self, signature_id: str) -> Optional[SnatchSignatureResult]:
-        """Return SnatchSignatureResult by signature_id."""
-        return self._results_map.get(signature_id)
+        """Return SnatchSignatureResult by signature_id or fusion_id."""
+        if signature_id in self._results_map:
+            return self._results_map[signature_id]
+        return next((r for r in self._results_map.values() if r.signature_id == signature_id), None)
 
     def get_flagged_results(
         self, min_score: float = 0.55

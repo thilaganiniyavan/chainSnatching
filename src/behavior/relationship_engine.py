@@ -18,6 +18,7 @@ class RelationshipEngine:
         persons = [t for t in tracks if t.class_name == self.person_class and t.center is not None]
         vehicles = [t for t in tracks if t.class_name in self.vehicle_classes and t.center is not None]
 
+        # 1. Person - Vehicle relationships
         for person in persons:
             nearest_vehicle = None
             min_distance = float('inf')
@@ -37,9 +38,28 @@ class RelationshipEngine:
                     relationship_type="near",
                     distance=min_distance,
                     timestamp=timestamp,
-                    metadata={}
+                    metadata={"pair_type": "person_vehicle"}
                 )
                 relationships.append(rel)
+
+        # 2. Person - Person relationships (perpetrator - victim physical proximity)
+        for i in range(len(persons)):
+            p1 = persons[i]
+            for j in range(i + 1, len(persons)):
+                p2 = persons[j]
+                dist = self._euclidean_distance(p1.center, p2.center)
+                if dist < self.distance_threshold:
+                    rel = Relationship(
+                        subject_id=p1.tracking_id,
+                        subject_class="person",
+                        object_id=p2.tracking_id,
+                        object_class="person",
+                        relationship_type="near_person",
+                        distance=dist,
+                        timestamp=timestamp,
+                        metadata={"pair_type": "person_person"}
+                    )
+                    relationships.append(rel)
 
         return relationships
 

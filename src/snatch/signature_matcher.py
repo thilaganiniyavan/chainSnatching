@@ -1,13 +1,11 @@
 """Signature Matcher Engine — weighted multi-modal evidence evaluation.
 
 Evaluates FusedInteraction multi-modal evidence against configurable SignatureTemplates.
-Checks:
-- Behaviour Graph pattern sequence
-- Target action predictions (Reaching, Grabbing, Pulling)
-- Spatial proximity distance constraints
-- Kinematic motion dynamics (speed, acceleration)
-- Temporal ordering of events
-- Missing evidence identification
+Implements the 4-State Weighted Chronological State Model:
+- S0: Closing Approach Vector (0.20)
+- S1: Directed Grab / Physical Attack (0.35)
+- S2: Victim Reactive Jerk / Head Deflection (0.25)
+- S3: Rapid Getaway / Escape (0.20)
 """
 
 from __future__ import annotations
@@ -49,128 +47,153 @@ class SignatureMatcher:
         ]
         sp = fusion.spatial_evidence
         mo = fusion.motion_evidence
-
-        # 1. Approach Pattern check
-        w_app = weights.get("approach_pattern", 0.15)
-        if "APPROACH_PATTERN" in patterns or "FOLLOW_PATTERN" in patterns:
-            matched_evidence.append({
-                "component": "approach_pattern",
-                "weight": w_app,
-                "description": "Observed approach or follow behaviour pattern.",
-                "symbol": "✓",
-            })
-        else:
-            missing_evidence.append({
-                "component": "approach_pattern",
-                "weight": w_app,
-                "description": "Approach pattern not detected in graph.",
-                "symbol": "✗",
-            })
-
-        # 2. Interaction / Proximity Pattern check
-        w_int = weights.get("interaction_pattern", 0.20)
-        if "INTERACTION_PATTERN" in patterns or "PROXIMITY_PATTERN" in patterns:
-            matched_evidence.append({
-                "component": "interaction_pattern",
-                "weight": w_int,
-                "description": "Observed interaction or proximity pattern.",
-                "symbol": "✓",
-            })
-        else:
-            missing_evidence.append({
-                "component": "interaction_pattern",
-                "weight": w_int,
-                "description": "Close interaction pattern missing.",
-                "symbol": "✗",
-            })
-
-        # 3. Target Action (Reaching / Grabbing / Pulling) check
-        w_act = weights.get("target_action", 0.25)
-        matched_target_actions = [a for a in actions if a in self.template.target_actions]
-        if matched_target_actions:
-            act_label = matched_target_actions[0]
-            matched_evidence.append({
-                "component": "target_action",
-                "weight": w_act,
-                "description": f"Pose action recognition detected '{act_label}'.",
-                "symbol": "✓",
-            })
-        else:
-            missing_evidence.append({
-                "component": "target_action",
-                "weight": w_act,
-                "description": "Confirmed reaching or grabbing action not detected.",
-                "symbol": "✗",
-            })
-
-        # 4. Rapid Acceleration / Motion Dynamics check
-        w_acc = weights.get("rapid_acceleration", 0.15)
-        avg_spd = mo.get("average_speed_px", 0.0)
-        if avg_spd >= self.template.min_average_speed or "ESCAPE_PATTERN" in patterns:
-            matched_evidence.append({
-                "component": "rapid_acceleration",
-                "weight": w_acc,
-                "description": "High relative speed or escape acceleration observed.",
-                "symbol": "✓",
-            })
-        else:
-            missing_evidence.append({
-                "component": "rapid_acceleration",
-                "weight": w_acc,
-                "description": "Rapid acceleration or high-speed escape absent.",
-                "symbol": "✗",
-            })
-
-        # 5. Escape / Separation Pattern check
-        w_esc = weights.get("escape_pattern", 0.15)
-        if "ESCAPE_PATTERN" in patterns or "SEPARATION_PATTERN" in patterns:
-            matched_evidence.append({
-                "component": "escape_pattern",
-                "weight": w_esc,
-                "description": "Rapid separation or escape trajectory detected.",
-                "symbol": "✓",
-            })
-        else:
-            missing_evidence.append({
-                "component": "escape_pattern",
-                "weight": w_esc,
-                "description": "Escape or rapid separation pattern missing.",
-                "symbol": "✗",
-            })
-
-        # 6. Spatial Proximity Constraint check
-        w_prox = weights.get("proximity_constraint", 0.10)
         min_dist = sp.get("min_distance_px", 999.0)
-        if min_dist <= self.template.max_proximity_px:
+
+        # -------------------------------------------------------------
+        # Action attack density and sustained physical contact metrics
+        # -------------------------------------------------------------
+        attack_timeline_acts = [
+            a for a in fusion.action_timeline
+            if a.get("action_label") in {"Grabbing", "Reaching", "Pulling"}
+        ]
+        high_conf_attacks = [a for a in attack_timeline_acts if a.get("action_confidence", 0.0) >= 0.65]
+        total_acts = max(1, len(fusion.action_timeline))
+        attack_ratio = len(attack_timeline_acts) / total_acts
+
+        # Sustained attack: 3+ attack frames OR high attack density (>= 35%) at close body contact (<= 60px)
+        is_sustained_attack = (
+            (len(attack_timeline_acts) >= 3 or attack_ratio >= 0.35)
+            and min_dist <= 60.0
+        )
+
+        has_valid_attack_pattern = (
+            is_sustained_attack
+            or len(high_conf_attacks) >= 1
+            or len(attack_timeline_acts) >= 2
+            or (attack_ratio >= 0.20 and len(attack_timeline_acts) > 0)
+        )
+
+        # -------------------------------------------------------------
+        # State S0: Closing Approach Vector (Weight: 0.20)
+        # -------------------------------------------------------------
+        w_app = weights.get("closing_approach_vector", 0.20)
+        has_approach = (
+            "APPROACH_PATTERN" in patterns
+            or "FOLLOW_PATTERN" in patterns
+            or (min_dist <= 130.0 and len(patterns) >= 1)
+            or is_sustained_attack
+        )
+        if has_approach:
             matched_evidence.append({
-                "component": "proximity_constraint",
-                "weight": w_prox,
-                "description": f"Spatial proximity distance ({min_dist:.1f}px) within threshold.",
+                "component": "closing_approach_vector",
+                "weight": w_app,
+                "description": "Observed vehicle/perpetrator closing approach trajectory towards victim.",
                 "symbol": "✓",
             })
         else:
             missing_evidence.append({
-                "component": "proximity_constraint",
-                "weight": w_prox,
-                "description": "Spatial proximity distance exceeded allowable limit.",
+                "component": "closing_approach_vector",
+                "weight": w_app,
+                "description": "Closing approach vector not observed.",
                 "symbol": "✗",
             })
 
-        # Calculate total weighted signature match score
-        total_possible_weight = sum(weights.values())
-        achieved_weight = sum(item["weight"] for item in matched_evidence)
-        signature_score = round(achieved_weight / max(1e-5, total_possible_weight), 4)
+        # -------------------------------------------------------------
+        # State S1: Directed Grab / Physical Attack (Weight: 0.35)
+        # -------------------------------------------------------------
+        w_grab = weights.get("directed_grab", 0.35)
+        has_grab = (
+            ("REACH_GRAB_RETRACT_PATTERN" in patterns and has_valid_attack_pattern)
+            or (has_valid_attack_pattern and min_dist <= self.template.max_proximity_px)
+        )
+        if has_grab:
+            matched_act = attack_timeline_acts[0].get("action_label") if attack_timeline_acts else "Reaching/Grabbing"
+            matched_evidence.append({
+                "component": "directed_grab",
+                "weight": w_grab,
+                "description": f"Directed grab/reach attack confirmed ({matched_act}) at close proximity ({min_dist:.1f}px).",
+                "symbol": "✓",
+            })
+        else:
+            missing_evidence.append({
+                "component": "directed_grab",
+                "weight": w_grab,
+                "description": "Directed physical grab attack during close proximity absent.",
+                "symbol": "✗",
+            })
 
-        # Determine decision boundary label
-        decision = self._classify_decision(signature_score)
+        # -------------------------------------------------------------
+        # State S2: Victim Reactive Jerk / Head Deflection (Weight: 0.25)
+        # -------------------------------------------------------------
+        w_jerk = weights.get("victim_reactive_jerk", 0.25)
+        peak_jerk = mo.get("peak_victim_jerk", 0.0)
+        peak_acc = mo.get("peak_relative_acceleration", 0.0)
+        has_victim_fall = any(a.get("action_label") == "Falling" for a in fusion.action_timeline)
+        has_jerk = (
+            peak_jerk >= 1.4
+            or peak_acc >= 1.6
+            or has_victim_fall
+            or is_sustained_attack
+            or ("INTERACTION_PATTERN" in patterns and min_dist <= 75.0 and mo.get("average_speed_px", 0.0) >= 2.5)
+        )
+        if has_jerk:
+            matched_evidence.append({
+                "component": "victim_reactive_jerk",
+                "weight": w_jerk,
+                "description": f"Victim reactive jerk, sudden impulse (jerk={peak_jerk:.1f}), or stumbling/deflection detected.",
+                "symbol": "✓",
+            })
+        else:
+            missing_evidence.append({
+                "component": "victim_reactive_jerk",
+                "weight": w_jerk,
+                "description": "Victim reactive recoil or sudden impulse not detected.",
+                "symbol": "✗",
+            })
+
+        # -------------------------------------------------------------
+        # State S3: Rapid Getaway / Escape (Weight: 0.20)
+        # (Requires genuine high velocity / acceleration, not 0 px/f walking)
+        # -------------------------------------------------------------
+        w_esc = weights.get("rapid_getaway_escape", 0.20)
+        avg_spd = mo.get("average_speed_px", 0.0)
+        has_escape = (
+            avg_spd >= 2.8
+            or peak_acc >= 1.8
+            or (("ESCAPE_PATTERN" in patterns or "DIVERGENCE_PATTERN" in patterns) and avg_spd >= 2.2)
+        )
+        if has_escape:
+            matched_evidence.append({
+                "component": "rapid_getaway_escape",
+                "weight": w_esc,
+                "description": f"Rapid getaway / high-speed divergence ({avg_spd:.1f} px/f) observed.",
+                "symbol": "✓",
+            })
+        else:
+            missing_evidence.append({
+                "component": "rapid_getaway_escape",
+                "weight": w_esc,
+                "description": "Rapid getaway or high-speed divergence trajectory absent.",
+                "symbol": "✗",
+            })
+
+        # -------------------------------------------------------------
+        # Transparent Additive Score Calculation
+        # -------------------------------------------------------------
+        total_possible = w_app + w_grab + w_jerk + w_esc
+        achieved_weight = sum(item["weight"] for item in matched_evidence)
+        final_score = round(float(achieved_weight / max(1e-5, total_possible)), 4)
+
+        # Classify decision
+        decision = self._classify_decision(final_score)
 
         return SnatchSignatureResult(
             interaction_id=fusion.interaction_id,
             fusion_id=fusion.fusion_id,
             matched_signature_name=self.template.signature_name,
-            signature_score=signature_score,
+            signature_score=final_score,
             decision=decision,
-            confidence=round(fusion.fusion_confidence * signature_score, 4),
+            confidence=round(fusion.fusion_confidence * final_score, 4),
             matched_evidence=matched_evidence,
             missing_evidence=missing_evidence,
             behaviour_evidence=patterns,
@@ -192,13 +215,13 @@ class SignatureMatcher:
     def _classify_decision(self, score: float) -> str:
         """Classify signature score into decision label based on template thresholds."""
         thresholds = self.template.decision_thresholds
-        if score >= thresholds.get("High Confidence Match", 0.85):
+        if score >= thresholds.get("High Confidence Match", 0.80):
             return "High Confidence Match"
-        elif score >= thresholds.get("Strong Match", 0.70):
+        elif score >= thresholds.get("Strong Match", 0.65):
             return "Strong Match"
-        elif score >= thresholds.get("Partial Match", 0.55):
+        elif score >= thresholds.get("Partial Match", 0.45):
             return "Partial Match"
-        elif score >= thresholds.get("Weak Match", 0.35):
+        elif score >= thresholds.get("Weak Match", 0.20):
             return "Weak Match"
         else:
             return "No Match"

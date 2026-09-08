@@ -1,0 +1,1 @@
+ablation_name,video_name,precision,recall,f1_score,roc_auc,latency_ms,fps,frame_reduction_pct,ram_mb,signature_score

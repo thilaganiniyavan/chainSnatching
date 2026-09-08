@@ -66,6 +66,7 @@ class PatternEvaluator:
         spatial_stats = self._extract_spatial_stats(interaction)
 
         detectors = [
+            self._eval_reach_grab_retract_pattern,
             self._eval_approach_pattern,
             self._eval_follow_pattern,
             self._eval_co_travel_pattern,
@@ -93,6 +94,56 @@ class PatternEvaluator:
     # ------------------------------------------------------------------
     # Individual Pattern Detectors
     # ------------------------------------------------------------------
+
+    def _eval_reach_grab_retract_pattern(
+        self,
+        interaction: Interaction,
+        prim_types: set[str],
+        timeline_prims: list[str],
+        motion: dict[str, Any],
+        spatial: dict[str, Any],
+        frame_number: int,
+    ) -> Optional[PatternNode]:
+        """REACH_GRAB_RETRACT_PATTERN: Directed reach/grab attack in close proximity with immediate withdrawal/escape."""
+        # 1. Check for reach/grab action primitives or metadata
+        has_reach_prim = bool(
+            {"REACHING", "GRABBING", "PULLING", "SNATCH_ATTEMPT"} & (prim_types | set(timeline_prims))
+        )
+        meta = getattr(interaction, "metadata", {}) or {}
+        has_reach_meta = bool(
+            meta.get("target_action_detected")
+            or meta.get("is_reach_retract_impulse")
+        )
+
+        # 2. Check spatial proximity: must have reached close contact
+        min_dist = spatial.get("min_distance", 999.0)
+        is_close = (min_dist <= self.config.proximity_distance_threshold or interaction.min_distance <= 160.0)
+
+        # 3. Check for temporal sequence: Approach/Closing followed by Retraction/Escape/Separation
+        has_escape_retract = bool(
+            {"ESCAPING", "ACCELERATING", "SEPARATING", "DIVERGING"} & (prim_types | set(timeline_prims))
+        ) or interaction.relative_velocity > 1.5 or abs(interaction.relative_acceleration) > 2.0
+
+        if (has_reach_prim or has_reach_meta) and is_close:
+            conf = min(
+                self.config.base_confidence + 0.30 + (0.08 if has_escape_retract else 0.0),
+                1.0,
+            )
+            matched_prims = [
+                p for p in ("REACHING", "GRABBING", "PULLING", "APPROACHING", "ESCAPING")
+                if p in prim_types or p in timeline_prims
+            ] or ["DIRECTED_REACH_RETRACT"]
+            return self._build_node(
+                pattern_type="REACH_GRAB_RETRACT_PATTERN",
+                interaction=interaction,
+                frame_number=frame_number,
+                confidence=conf,
+                priority=11,  # Highest priority for forensic snatch impulse
+                primitives=matched_prims,
+                motion=motion,
+                spatial=spatial,
+            )
+        return None
 
     def _eval_approach_pattern(
         self,

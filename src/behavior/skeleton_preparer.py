@@ -31,7 +31,7 @@ class SkeletonPreparer:
         Returns:
             List of :class:`PreparedSkeletonSample` instances.
         """
-        if not roi.is_accepted or not roi.frame_index_mapping:
+        if not roi.frame_index_mapping:
             return []
 
         samples: list[PreparedSkeletonSample] = []

@@ -97,7 +97,8 @@ class SnatchSignatureStage(Stage):
             ),
         )
 
-        signature_frame = self.visualizer.draw(base_frame, all_signatures)
+        active_sigs = current_frame_signatures if current_frame_signatures else (all_signatures[-1:] if all_signatures else [])
+        signature_frame = self.visualizer.draw(base_frame, active_sigs)
         context.metadata["signature_frame"] = signature_frame
 
         return context

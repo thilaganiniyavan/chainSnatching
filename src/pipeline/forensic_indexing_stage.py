@@ -65,27 +65,22 @@ class ForensicIndexingStage(Stage):
         snatch_signatures = context.metadata.get("snatch_signatures", [])
         current_frame_events = []
 
-        for sig_result in snatch_signatures:
-            if sig_result.signature_id not in self._indexed_signature_ids:
-                event = self.query_engine.create_event_from_signature(
-                    sig_result=sig_result,
-                    video_id=self.video_id,
-                    location=self.location,
-                )
+        unindexed_sigs = [s for s in snatch_signatures if s.signature_id not in self._indexed_signature_ids]
+        for sig_result in unindexed_sigs:
+            event = self.query_engine.create_event_from_signature(
+                sig_result=sig_result,
+                video_id=self.video_id,
+                location=self.location,
+            )
 
-                # Export thumbnail image if thumbnail directory is set
-                if self.export_thumbnails_dir:
-                    thumb_path = f"{self.export_thumbnails_dir}/thumb_{event.event_id}.jpg"
-                    ForensicThumbnailExporter.export_thumbnail(event, context.frame, thumb_path)
+            # Export thumbnail image if thumbnail directory is set
+            if self.export_thumbnails_dir:
+                thumb_path = f"{self.export_thumbnails_dir}/thumb_{event.event_id}.jpg"
+                ForensicThumbnailExporter.export_thumbnail(event, context.frame, thumb_path)
 
-                self.logger.log_event(event)
-                self._indexed_signature_ids.add(sig_result.signature_id)
-                current_frame_events.append(event)
-            else:
-                event_id = f"EVT-{sig_result.signature_id}"
-                event = self.query_engine.get_event(event_id)
-                if event:
-                    current_frame_events.append(event)
+            self.logger.log_event(event)
+            self._indexed_signature_ids.add(sig_result.signature_id)
+            current_frame_events.append(event)
 
         all_events = self.query_engine.get_all_events()
 
@@ -126,7 +121,8 @@ class ForensicIndexingStage(Stage):
             ),
         )
 
-        forensic_frame = self.visualizer.draw(base_frame, all_events)
+        active_evts = current_frame_events if current_frame_events else (all_events[-1:] if all_events else [])
+        forensic_frame = self.visualizer.draw(base_frame, active_evts)
         context.metadata["forensic_frame"] = forensic_frame
 
         return context

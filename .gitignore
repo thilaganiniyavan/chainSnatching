@@ -1,11 +1,41 @@
+# Environments
 venv/
 .venv/
+env/
+.env
+
+# Python Bytecode & Cache
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# OS Files
 .DS_Store
-outputs/temp/
+Thumbs.db
+
+# Video Datasets (do not commit large media files to git)
+Snatch 1.0/
+snatch_dataset/
 *.avi
 *.mp4
+*.mkv
+*.mov
+*.webm
+*.3gp
 *.zip
+*.tar.gz
+
+# Auto-downloaded Weights & Heavy Model Artifacts
+*.pt
+yolo11n.pt
+yolo11n-pose.pt
+weights/
+
+# Temporary & Database Outputs
+outputs/temp/
+*.sqlite
+*.db
+*.log
 Depth-Anything-V2-main/
 Depth-Anything-V2/

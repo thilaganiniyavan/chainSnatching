@@ -22,9 +22,10 @@ from src.snatch.signature_matcher import SignatureMatcher
 # Helpers
 # ======================================================================
 
-def _make_fusion(patterns=None, actions=None, speed: float = 0.10, dist: float = 50.0) -> FusedInteraction:
-    pats = patterns if patterns is not None else ["APPROACH_PATTERN", "INTERACTION_PATTERN", "ESCAPE_PATTERN"]
+def _make_fusion(patterns=None, actions=None, speed: float = 5.0, dist: float = 50.0) -> FusedInteraction:
+    pats = patterns if patterns is not None else ["APPROACH_PATTERN", "INTERACTION_PATTERN", "REACH_GRAB_RETRACT_PATTERN", "ESCAPE_PATTERN"]
     acts = actions if actions is not None else [{"action_label": "Reaching", "action_confidence": 0.90}]
+    acc = 3.0 if speed > 0 else 0.0
 
     return FusedInteraction(
         fusion_id="FUSED-INT-001",
@@ -33,7 +34,7 @@ def _make_fusion(patterns=None, actions=None, speed: float = 0.10, dist: float =
         vehicle_track_id=2,
         behaviour_patterns=pats,
         action_timeline=acts,
-        motion_evidence={"average_speed_px": speed},
+        motion_evidence={"average_speed_px": speed, "peak_relative_acceleration": acc},
         spatial_evidence={"min_distance_px": dist},
         fusion_confidence=0.90,
     )
