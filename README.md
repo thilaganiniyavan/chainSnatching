@@ -127,7 +127,31 @@ Night IR without any pose (boxes only) is CONFIRMED through the chase and approa
 The playful tap, friends chatting, handover, hug, walking alongside, phone call and passing bikes are dismissed.
 
 ### Real CCTV (Snatch 1.0, pretrained YOLO26n, laptop CPU)
-RESULTS_PLACEHOLDER
+All numbers are with the **pretrained** YOLO26n (before the Colab fine-tuning), 512 px, 8 fps analysis,
+on this laptop's CPU (about 2–5 fps achieved on crowded scenes).
+
+**False alarms on real footage** (`python -m snatchguard.evaluation.benchmark --only normal --max-seconds 600`, plus `analyse s_9.avi`):
+
+| footage | length | close encounters judged | false CONFIRMED | false SUSPECT |
+|---|---|---|---|---|
+| busy Hyderabad junction, day (`s_2`, `s_3`) | 20 min | ~65 | **0** | 1 (≈3 / h) |
+| crowded night market, shop lighting (`s_9`) | 8.3 min | 77 | **0** | 2 (≈14 / h) |
+
+Every false alarm found during development was traced to a cause and fixed with a general rule (riders whose
+bike was missed, riders queued at a signal, a rider's own scooter detected as a second object, tracks lost at
+the frame edge in slow crowds), each with a regression test.
+
+**Recall on the 13 hand-labelled motorcycle-snatch clips** (`data/labels/snatch1.0.csv`): **0 / 13** so far.
+`python -m snatchguard.evaluation.funnel` shows why: the pretrained detector never finds the motorcycle in a
+large share of these small, blurry, re-encoded clips (even YOLO26x at 1280 px missed a clearly visible
+two-rider bike), and most clips are cut 1–3 s around the grab, so there's no context before it and no getaway
+after it. This is the perception gap the Colab training targets (VisDrone elevated views, CCTV
+degradation, night variants, pseudo-labels from real Hyderabad CCTV). **Re-run the benchmark after
+installing the fine-tuned models: that before/after comparison is the key result.**
+
+Of the 35 Snatch 1.0 clips, 13 are motorcycle snatches (the system's target), 12 are on-foot snatches (a
+possible future "loiter then lunge" rule, e.g. `10_0`), and 9 are staged videos, a movie scene or screen
+recordings (out of scope).
 
 ## Training (Google Colab)
 
