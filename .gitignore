@@ -1,0 +1,17 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+
+# data, weights and runtime state never go into git
+data/raw/
+data/samples/
+data/datasets/
+models/
+runtime/
+*.pt
+*.onnx
+*_openvino_model/
+*.engine
+*.zip

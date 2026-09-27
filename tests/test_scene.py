@@ -1,0 +1,72 @@
+"""Scene model details that matter on real CCTV: class flips, seated riders, model smoke test."""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+import numpy as np
+import pytest
+
+from snatchguard.core.config import REPO_ROOT, RuleConfig
+from snatchguard.core.types import Detection, FrameObservation, Lighting, ObjClass
+from snatchguard.rules.scene import Scene
+
+P = RuleConfig.load().for_lighting(Lighting.DAY)
+
+
+def _frame(t, dets):
+    return FrameObservation(t, (1280, 720), dets, {}, Lighting.DAY)
+
+
+def test_track_keeps_majority_class_when_detector_flips():
+    sc = Scene()
+    box = np.array([100, 100, 180, 260.0])
+    for i in range(10):
+        cls = ObjClass.MOTORCYCLE if i % 4 == 3 else ObjClass.PERSON   # occasional flip
+        sc.update(_frame(i * 0.125, [Detection(7, cls, box, 0.5)]), P)
+    assert sc.tracks[7].cls is ObjClass.PERSON
+    assert len(sc.tracks[7].obs) == 10                                  # history kept across flips
+
+
+def test_seated_person_is_not_established_as_pedestrian():
+    """A rider whose scooter the detector missed: squat box -> never a possible victim."""
+    sc = Scene()
+    for i in range(20):
+        x = 100 + i * 5
+        sc.update(_frame(i * 0.125, [Detection(3, ObjClass.PERSON, np.array([x, 300, x + 70, 400.0]), 0.6)]), P)
+    assert 3 not in sc.established
+
+
+def test_fast_moving_person_is_not_established():
+    """Moving at traffic speed (bike not detected) -> not a pedestrian."""
+    sc = Scene()
+    for i in range(20):
+        x = 100 + i * 60                                  # ~480 px/s for a 170 px person = 2.8 H/s
+        sc.update(_frame(i * 0.125, [Detection(4, ObjClass.PERSON, np.array([x, 300, x + 60, 470.0]), 0.6)]), P)
+    assert 4 not in sc.established
+
+
+def test_walking_person_is_established():
+    sc = Scene()
+    for i in range(20):
+        x = 100 + i * 12                                  # ~0.6 H/s walk
+        sc.update(_frame(i * 0.125, [Detection(5, ObjClass.PERSON, np.array([x, 300, x + 60, 470.0]), 0.6)]), P)
+    assert 5 in sc.established
+
+
+MODEL = REPO_ROOT / "models" / "yolo26n_512_openvino_model"
+
+
+@pytest.mark.skipif(not MODEL.exists(), reason="run scripts/fetch_models.py first")
+def test_frame_pipeline_smoke():
+    from snatchguard.edge.pipeline import FramePipeline
+    import ultralytics
+    import cv2
+    img = cv2.imread(str(Path(ultralytics.__file__).parent / "assets" / "bus.jpg"))
+    models = {"detector": str(MODEL), "pose": str(REPO_ROOT / "models" / "yolo26n-pose_openvino_model"),
+              "imgsz": 512, "pose_imgsz": 384, "conf": {"day": 0.1}}
+    pipe = FramePipeline(models, str(REPO_ROOT / "configs" / "tracker.yaml"), RuleConfig.load())
+    for i in range(3):
+        res = pipe.process(img, i * 0.125)
+    assert any(d.cls is ObjClass.PERSON for d in res.detections)
+    assert res.mode is Lighting.DAY

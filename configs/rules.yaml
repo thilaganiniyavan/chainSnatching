@@ -1,0 +1,124 @@
+# SnatchGuard rule thresholds.
+#
+# Units (all scale-free, so the same numbers work on any camera):
+#   H    = the victim's median bounding-box height over the last second
+#   H/s  = body-heights per second (speeds)
+#   s    = seconds (all windows use timestamps, never frame counts)
+#
+# The `base` block holds defaults. Each lighting profile only overrides what
+# changes at night. The active profile is picked per frame by the lighting
+# analyser (day | lowlight | ir).
+
+base:
+  # --- candidate pairing ---------------------------------------------------
+  pair_open_gap: 4.0            # victim <-> bike gap (H) that opens a pair
+  pair_close_gap: 6.0           # gap (H) beyond which an idle pair is dropped
+  pair_idle_timeout: 3.0        # s far apart before an idle pair is dropped
+  min_victim_height_px: 40      # smaller people are too far away to judge
+  same_depth_tol: 0.25          # |foot_y(victim) - foot_y(bike)| / H: rejects 2D overlaps at different depths
+  scale_ratio_range: [0.6, 1.6] # rider_height / victim_height must be plausible
+
+  # --- rider association ---------------------------------------------------
+  rider_score_on: 0.55          # EMA score to become a rider
+  rider_score_off: 0.3          # EMA score to go back to pedestrian
+  rider_ema: 0.35
+  rider_min_overlap: 0.15       # intersection / person-area with the bike box
+  pedestrian_min_free_s: 1.0    # seen clear of every bike this long => established pedestrian (possible victim)
+  pedestrian_board_s: 3.0       # an established pedestrian must ride along this long to count as a new rider
+  pedestrian_min_aspect: 1.9    # box height/width: standing people ~2-3.5, seated riders ~1.2-1.7
+  pedestrian_max_speed: 2.5     # H/s: faster than running = on a vehicle
+
+  # --- CONTACT -------------------------------------------------------------
+  neck_radius: 0.22             # H, rider wrist within this of victim neck => pose contact
+  kpt_min_conf: 0.30
+  min_pose_height_px: 60        # pose cues (hand at neck, waving) only for people at least this tall
+  box_contact_upper_frac: 0.45  # upper part of the victim box used for box-only contact
+  box_contact_min_overlap: 0.10 # fraction of that upper region covered by the rider/bike box
+  contact_gap_tolerance_s: 0.6  # missing time allowed inside one contact episode
+
+  # --- REACTION (victim, measured after contact starts) --------------------
+  reaction_window_s: 3.0
+  hands_to_neck_radius: 0.20    # H
+  hands_to_neck_min_s: 0.25
+  hands_to_neck_baseline_s: 2.0 # hands already at the neck before contact (phone call) do not count
+  fall_height_ratio: 0.70       # box height drops below 70% of baseline
+  fall_aspect: 0.75             # and width / height rises above this
+  jerk_dv: 1.2                  # H/s sudden change of victim velocity around contact
+  chase_speed: 1.3              # H/s victim running after the bike
+  chase_cos: 0.5
+  chase_min_s: 0.5
+  pre_contact_walk_speed: 1.0   # victim must have been slower than this before chasing counts
+
+  # --- ESCAPE (bike, measured after contact ends) --------------------------
+  escape_window_s: 4.0
+  escape_speedup_ratio: 1.4     # bike speed after / at contact
+  escape_speedup_abs: 0.5       # and at least this much faster (H/s)
+  escape_gap_rate: 0.8          # H/s the gap grows
+  escape_slow_contact_speed: 0.8  # if the bike had slowed below this at contact...
+  escape_fast_departure: 1.0      # ...then leaving faster than this counts as escape
+  escape_border_px: 25          # track lost within this many px of the frame edge = left the scene
+
+  # --- APPROACH (before contact) -------------------------------------------
+  approach_window_s: 6.0
+  approach_closing_speed: 0.3   # H/s
+  approach_min_start_gap: 1.5   # H
+  decel_ratio: 0.75             # min speed near contact < 75% of earlier speed
+  from_behind_cos: 0.6
+
+  # --- BENIGN / PLAYFUL indicators -----------------------------------------
+  history_window_s: 20.0
+  dwell_gap: 1.2                # H
+  dwell_bike_speed: 0.4         # H/s
+  dwell_min_s: 5.0              # standing together this long before contact = familiar
+  cotravel_gap: 1.5
+  cotravel_dv: 0.4              # H/s velocity difference
+  cotravel_min_s: 5.0
+  long_contact_s: 2.0           # a snatch grab is short; hugs / handovers last longer
+  repeated_contacts: 3          # this many separate contact encounters within history window = play
+  repeat_min_separation_s: 1.5  # contacts closer together than this are one encounter
+  linger_s: 3.0                 # bike stays near the victim after contact
+  linger_gap: 2.0
+  wave_above_nose: 0.10         # victim wrist this far (H) above the nose = waving
+
+  # --- SCORING -------------------------------------------------------------
+  weights:
+    contact: 0.30
+    escape: 0.25
+    reaction: 0.25
+    approach: 0.20
+  contact_box_factor: 0.6       # box-only contact counts 60% of a pose contact
+  reaction_strength:
+    hands_to_neck: 1.0
+    fall: 0.9
+    chase: 0.9
+    jerk: 0.6
+  approach_strength:
+    closing: 0.6
+    decel: 0.25
+    from_behind: 0.15
+  penalties:
+    dwell: 0.35
+    cotravel: 0.35
+    long_contact: 0.25
+    repeated_contact: 0.25
+    linger: 0.40
+    wave: 0.15
+    calm: 0.10
+
+  confirm_threshold: 0.70
+  suspect_threshold: 0.45
+  decision_hold_s: 0.8          # after escape, wait this long for late reactions
+  decision_timeout_s: 4.0       # decide at the latest this long after contact ends
+  cooldown_s: 20.0
+
+profiles:
+  day: {}
+  lowlight:
+    kpt_min_conf: 0.25
+    neck_radius: 0.26
+    contact_box_factor: 0.7
+  ir:
+    kpt_min_conf: 0.22
+    neck_radius: 0.26
+    contact_box_factor: 0.7
+    same_depth_tol: 0.30

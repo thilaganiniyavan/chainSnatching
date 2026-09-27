@@ -1,0 +1,48 @@
+# Edge node configuration (one node = one small box next to 1-4 cameras).
+node_id: edge-sim-01
+site: demo-junction
+
+central:
+  url: http://127.0.0.1:8000
+  api_key: dev-edge-key          # must match central's SNATCHGUARD_API_KEYS
+  heartbeat_s: 10
+
+models:
+  detector: models/yolo26n_512_openvino_model   # scripts/fetch_models.py; fine-tuned night model after Colab
+  pose: models/yolo26n-pose_openvino_model
+  imgsz: 512
+  pose_imgsz: 384
+  device: cpu
+  # Detections down to this confidence are passed to the tracker; OC-SORT's two-stage matching
+  # (track_high/low_thresh in tracker.yaml) decides which become tracks. Keeps small, far bikes.
+  conf: {day: 0.10, lowlight: 0.08, ir: 0.08}
+  max_pose_crops: 2                            # pose passes per frame (closest pairs first)
+
+processing:
+  target_fps: 8          # frames/s actually analysed; the source can run faster (extra frames are dropped)
+  min_fps_warning: 5     # below this the rules lose reliability -> reported as degraded
+
+rules: configs/rules.yaml
+tracker: configs/tracker.yaml
+
+evidence:
+  dir: runtime/edge/evidence
+  pre_s: 8               # seconds of video kept before the contact
+  post_s: 4              # seconds recorded after the decision
+  clip_width: 960
+
+outbox: runtime/edge/outbox.db
+
+# Cameras. `source` is an RTSP/HTTP URL, a webcam index, a video file, or
+# `synthetic:<scenario>` (scripted scene, no models needed).
+# For laptop simulation: `realtime: true` plays files at real speed, `loop` repeats,
+# `simulate_night: ir | lowlight` turns daytime video into night video.
+cameras:
+  - id: cam-01
+    name: Demo junction (synthetic snatch)
+    source: synthetic:snatch
+    loop: true
+    realtime: true
+    lighting: auto        # auto | day | lowlight | ir
+    simulate_night: none
+    # detect_zone: [0.0, 0.0, 0.7, 0.7]   # optional: walkway area (frame fractions) -> zoom for distant cameras

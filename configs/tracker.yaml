@@ -1,0 +1,16 @@
+# Multi-object tracker (Ultralytics OC-SORT).
+# OC-SORT copes better than plain ByteTrack with the non-linear motion of a bike
+# braking and then accelerating away, and with short occlusions. The ByteTrack
+# style low-confidence second pass (use_byte) keeps dim night-time / distant
+# detections attached to their tracks. Thresholds chosen on Snatch 1.0 clips:
+# this setting kept the most boxes with the fewest identity switches.
+tracker_type: ocsort
+track_high_thresh: 0.20
+track_low_thresh: 0.08
+new_track_thresh: 0.20
+track_buffer: 40          # frames (~5 s at 8 fps) a lost track can be recovered
+match_thresh: 0.9
+fuse_score: True
+delta_t: 3
+inertia: 0.2
+use_byte: True
