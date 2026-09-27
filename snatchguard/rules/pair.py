@@ -101,7 +101,11 @@ def build_sample(scene: Scene, victim: Track, bike: Track, p: RuleParams) -> Pai
     # ---- CONTACT -----------------------------------------------------------
     contact = CONTACT_NONE
     wrist_neck = None
-    if depth_ok and not bike_lost:
+    # Too close to the camera (cut by the bottom edge) or head cut off: depth, scale and the neck
+    # can't be judged. Objects cut at the sides are still usable (entering / leaving the view).
+    vc, bc = victim.last.clip, bike.last.clip
+    cut_off = vc[1] or vc[3] or bc[3] or any(r.last.clip[3] for r in riders)
+    if depth_ok and not bike_lost and not cut_off:
         for r in riders:
             rpose = r.latest_pose(t) if g.height(r.last.box) >= 0.6 * p.min_pose_height_px else None
             if rpose is None:

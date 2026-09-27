@@ -89,13 +89,13 @@ def eval_escape(pair: PairState, bike: Track, cs: float, ce: float, now: float, 
     fast_departure = sac < p.escape_slow_contact_speed and _sustained(
         after, lambda s: s.bike_speed >= p.escape_fast_departure and gap_rate_ok(s), 0.3)
     peak = max((s.bike_speed for s in after), default=0.0)
-    # Leaving the frame only counts if the bike had slowed for the grab or was speeding up on the way out;
-    # a bike that just keeps its cruising speed out of the frame is not escaping.
+    # Leaving the frame is only a getaway if the bike was fast on the way out; in slow, crowded
+    # traffic tracks drop out at the edges all the time.
     exit_speed = float(np.linalg.norm(bike.velocity(bike.last_t))) / during[-1].H
     left_scene = (
         bike.lost_at is not None and bike.lost_near_border and ce < bike.lost_at <= ce + p.escape_window_s
         and (not after or after[-1].gap >= during[-1].gap)
-        and (sac < p.escape_slow_contact_speed or max(exit_speed, peak) >= thr)
+        and max(exit_speed, peak) >= max(thr, p.escape_fast_departure)
     )
     ev.append(Evidence("bike_speedup", "escape", speedup,
                        f"bike speed {sac:.2f} -> {peak:.2f} H/s after contact (needs >= {thr:.2f})", peak))
