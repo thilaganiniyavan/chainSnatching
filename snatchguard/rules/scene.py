@@ -263,6 +263,9 @@ class Scene:
                     self.rider_of[pid] = best_bike
                     self.established.discard(pid)
 
+    def looks_on_foot(self, person: Track, t: float, p: RuleParams) -> bool:
+        return self._looks_on_foot(person, t, p)
+
     def _looks_on_foot(self, person: Track, t: float, p: RuleParams) -> bool:
         """Upright standing box and walking/running speed. A rider whose bike the detector
         missed is seated (squat box) and moves at traffic speed, so never becomes a 'pedestrian'."""
@@ -274,12 +277,13 @@ class Scene:
         return person.speed(t, span=1.0) / H <= p.pedestrian_max_speed
 
     # ---- queries -----------------------------------------------------------
-    def pedestrians(self) -> list[Track]:
-        """Established pedestrians: the only people who can be victims."""
+    def pedestrians(self, p: RuleParams | None = None) -> list[Track]:
+        """Established pedestrians who still look on foot now: the only people who can be victims."""
         return [
             tr for tr in self.tracks.values()
             if tr.cls is ObjClass.PERSON and tr.lost_at is None
             and tr.track_id in self.established and tr.track_id not in self.rider_of
+            and (p is None or self._looks_on_foot(tr, self.t, p))
         ]
 
     def vehicles(self, include_lost: bool = False) -> list[Track]:

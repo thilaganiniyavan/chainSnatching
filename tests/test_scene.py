@@ -70,3 +70,28 @@ def test_frame_pipeline_smoke():
         res = pipe.process(img, i * 0.125)
     assert any(d.cls is ObjClass.PERSON for d in res.detections)
     assert res.mode is Lighting.DAY
+
+
+def test_established_person_who_sits_down_on_a_scooter_is_no_longer_a_possible_victim():
+    """Seen standing earlier, later seated on a scooter at a signal: must drop out of pedestrians()."""
+    sc = Scene()
+    t = 0.0
+    for i in range(12):                                   # standing still, upright box
+        t = i * 0.125
+        sc.update(_frame(t, [Detection(8, ObjClass.PERSON, np.array([400, 200, 460, 370.0]), 0.6)]), P)
+    assert 8 in {tr.track_id for tr in sc.pedestrians(P)}
+    for i in range(12, 24):                               # now a squat, seated box
+        t = i * 0.125
+        sc.update(_frame(t, [Detection(8, ObjClass.PERSON, np.array([395, 260, 470, 370.0]), 0.6)]), P)
+    assert 8 not in {tr.track_id for tr in sc.pedestrians(P)}
+
+
+def test_person_box_coinciding_with_motorcycle_box_is_never_a_contact():
+    from snatchguard.rules.pair import CONTACT_NONE, build_sample
+    sc = Scene()
+    for i in range(12):
+        t = i * 0.125
+        sc.update(_frame(t, [Detection(1, ObjClass.PERSON, np.array([400, 200, 460, 370.0]), 0.6),
+                             Detection(2, ObjClass.MOTORCYCLE, np.array([402, 205, 462, 372.0]), 0.6)]), P)
+    s = build_sample(sc, sc.tracks[1], sc.tracks[2], P)
+    assert s.contact == CONTACT_NONE

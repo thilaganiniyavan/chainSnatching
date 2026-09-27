@@ -123,7 +123,7 @@ class RuleEngine:
     # ------------------------------------------------------------------
     def _open_pairs(self, p: RuleParams) -> None:
         scene = self.scene
-        for victim in scene.pedestrians():
+        for victim in scene.pedestrians(p):
             H = victim.ref_height(scene.t)
             if H < p.min_victim_height_px:
                 continue
@@ -165,7 +165,9 @@ class RuleEngine:
                 sample, new_ep = None, None
 
             if pair.phase == "WATCH":
-                if new_ep is not None and victim.track_id not in scene.rider_of:
+                # the victim must still look like someone on foot just before the contact
+                if new_ep is not None and victim.track_id not in scene.rider_of \
+                        and scene.looks_on_foot(victim, new_ep.start - 0.1, p):
                     pair.phase = "CONTACT"
                     pair.phase_contact_start = new_ep.start
                     scene.locked_pedestrians.add(victim.track_id)
@@ -204,7 +206,7 @@ class RuleEngine:
         return out
 
     def _decide(self, pair, victim, bike, t: float, p: RuleParams) -> Decision | None:
-        verdict = evaluate(pair, victim, bike, t, p)
+        verdict = evaluate(pair, victim, bike, t, p, self.scene.vehicles(include_lost=True))
         pair.phase = "COOLDOWN"
         pair.cooldown_until = t + p.cooldown_s
         self.scene.locked_pedestrians.discard(pair.victim_id)

@@ -105,6 +105,8 @@ def build_sample(scene: Scene, victim: Track, bike: Track, p: RuleParams) -> Pai
     # can't be judged. Objects cut at the sides are still usable (entering / leaving the view).
     vc, bc = victim.last.clip, bike.last.clip
     cut_off = vc[1] or vc[3] or bc[3] or any(r.last.clip[3] for r in riders)
+    # A person box and a motorcycle box that nearly coincide are one rider on their own bike.
+    cut_off = cut_off or g.iou(vbox, bike.last.box) > 0.5
     if depth_ok and not bike_lost and not cut_off:
         for r in riders:
             rpose = r.latest_pose(t) if g.height(r.last.box) >= 0.6 * p.min_pose_height_px else None

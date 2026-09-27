@@ -79,6 +79,8 @@ base:
   linger_s: 3.0                 # bike stays near the victim after contact
   linger_gap: 2.0
   wave_above_nose: 0.10         # victim wrist this far (H) above the nose = waving
+  in_traffic_window_s: 4.0      # look this far back before the contact...
+  in_traffic_frac: 0.5          # ...if the 'victim' overlapped vehicles this much, it's a rider in traffic
 
   # --- SCORING -------------------------------------------------------------
   weights:
@@ -104,6 +106,7 @@ base:
     linger: 0.40
     wave: 0.15
     calm: 0.10
+    in_traffic: 0.40
 
   confirm_threshold: 0.70
   suspect_threshold: 0.45

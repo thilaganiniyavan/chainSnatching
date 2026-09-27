@@ -219,7 +219,26 @@ def eval_approach(pair: PairState, victim: Track, bike: Track, cs: float, p: Rul
     return min(strength, 1.0), decel, ev
 
 
-def eval_benign(pair: PairState, cs: float, ce: float, now: float, p: RuleParams) -> tuple[dict[str, bool], list[Evidence]]:
+def _in_traffic_fraction(victim: Track, vehicles: list[Track], cs: float, p: RuleParams) -> float:
+    """Share of the seconds before contact the 'victim' spent overlapping vehicles.
+    Riders queued at a signal (their own scooter missed by the detector) sit among vehicles
+    all the time; a pedestrian who gets targeted does not."""
+    obs = victim.window(cs - p.in_traffic_window_s, cs - 0.3)
+    if len(obs) < 3:
+        return 0.0
+    hits = 0
+    for o in obs:
+        area = max(g.area(o.box), 1.0)
+        for veh in vehicles:
+            vo = veh.at(o.t)
+            if vo is not None and o.t - vo.t <= 0.3 and g.intersection(o.box, vo.box) / area >= 0.2:
+                hits += 1
+                break
+    return hits / len(obs)
+
+
+def eval_benign(pair: PairState, cs: float, ce: float, now: float, p: RuleParams,
+                victim: Track | None = None, vehicles: list[Track] | None = None) -> tuple[dict[str, bool], list[Evidence]]:
     hist = pair.between(cs - p.history_window_s, cs)
     dts = _dts(hist)
     dwell = sum(dt for s, dt in zip(hist, dts) if s.gap <= p.dwell_gap and s.bike_speed <= p.dwell_bike_speed)
@@ -246,6 +265,7 @@ def eval_benign(pair: PairState, cs: float, ce: float, now: float, p: RuleParams
     linger = sum(dt for s, dt in zip(after, _dts(after))
                  if not s.bike_lost and s.gap <= p.linger_gap and s.bike_speed <= p.dwell_bike_speed)
     wave = any(s.waving for s in pair.between(cs, now))
+    traffic = _in_traffic_fraction(victim, vehicles, cs, p) if victim is not None and vehicles else 0.0
 
     flags = {
         "dwell": dwell >= p.dwell_min_s,
@@ -254,6 +274,7 @@ def eval_benign(pair: PairState, cs: float, ce: float, now: float, p: RuleParams
         "repeated_contact": encounters >= p.repeated_contacts,
         "linger": linger >= p.linger_s,
         "wave": wave,
+        "in_traffic": traffic >= p.in_traffic_frac,
     }
     ev = [
         Evidence("dwell", "benign", flags["dwell"], f"stood together {dwell:.1f}s before contact (familiar)", dwell),
@@ -262,13 +283,16 @@ def eval_benign(pair: PairState, cs: float, ce: float, now: float, p: RuleParams
         Evidence("repeated_contact", "benign", flags["repeated_contact"], f"{encounters} separate contact encounters (play)", encounters),
         Evidence("linger", "benign", flags["linger"], f"bike stayed near victim {linger:.1f}s after contact", linger),
         Evidence("wave", "benign", flags["wave"], "victim waved"),
+        Evidence("in_traffic", "benign", flags["in_traffic"],
+                 f"'victim' was among vehicles {traffic:.0%} of the time before (likely a rider in traffic)", traffic),
     ]
     return flags, ev
 
 
 # ---------------------------------------------------------------------------
 
-def evaluate(pair: PairState, victim: Track, bike: Track, now: float, p: RuleParams) -> Verdict:
+def evaluate(pair: PairState, victim: Track, bike: Track, now: float, p: RuleParams,
+             vehicles: list[Track] | None = None) -> Verdict:
     eps = [e for e in pair.episodes if pair.phase_contact_start is not None and e.start >= pair.phase_contact_start - 0.01]
     cs = eps[0].start
     ce = eps[-1].end
@@ -289,7 +313,7 @@ def evaluate(pair: PairState, victim: Track, bike: Track, now: float, p: RulePar
     evidence += ev
     approach, decel, ev = eval_approach(pair, victim, bike, cs, p)
     evidence += ev
-    benign, ev = eval_benign(pair, cs, ce, now, p)
+    benign, ev = eval_benign(pair, cs, ce, now, p, victim, [v for v in (vehicles or []) if v.track_id != bike.track_id])
     evidence += ev
     evidence.append(Evidence("calm", "benign", calm, "victim carried on calmly, no reaction"))
 
@@ -305,7 +329,7 @@ def evaluate(pair: PairState, victim: Track, bike: Track, now: float, p: RulePar
     score = max(0.0, min(1.0, sum(components.values()) - sum(penalties.values())))
 
     corroborated = contact_level == CONTACT_POSE or reaction > 0 or decel
-    if escaped and not benign["linger"] and corroborated and score >= p.confirm_threshold:
+    if escaped and not benign["linger"] and not benign["in_traffic"] and corroborated and score >= p.confirm_threshold:
         level = Level.CONFIRMED
     elif score >= p.suspect_threshold and (escaped or contact_level == CONTACT_POSE):
         # A snatcher always leaves: box-only contact without a getaway is a near miss in traffic.
