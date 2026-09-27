@@ -12,8 +12,8 @@ The snatch decision on the edge stays **rule-based**.
 
 **Before you start:** `Runtime → Change runtime type → T4 GPU` (or better).
 
-Everything important (datasets cache, checkpoints, exports) is written to Google Drive, so if Colab disconnects,
-just run all cells again: training **resumes** from the last epoch.
+Training checkpoints and exported models are written to Google Drive, so if Colab disconnects,
+just run all cells again: datasets are rebuilt and training **resumes** from the last epoch.
 
 | Step | Time on a T4 (approx.) |
 |---|---|
@@ -27,17 +27,24 @@ drive.mount('/content/drive')
 DRIVE = '/content/drive/MyDrive/snatchguard'
 !mkdir -p {DRIVE}"""),
     (MD, """## 1. Get the code
-The repository is private. Create a **fine-grained GitHub token** with *read-only Contents* access to the
-`snatchguard` repo (GitHub → Settings → Developer settings → Fine-grained tokens) and paste it when asked.
-The token is only used for this clone and is not saved in the notebook."""),
-    (CODE, """import getpass, os, subprocess
-REPO = 'thilaganiniyavan/snatchguard'   # change if your repo name differs
+**Option A (simplest):** upload `snatchguard_code.zip` to `My Drive/snatchguard/` before running this cell.
+
+**Option B:** if the zip isn't there, the cell clones the private GitHub repo. Create a fine-grained token with
+*read-only Contents* access to the `snatchguard` repo and paste it when asked (it isn't saved)."""),
+    (CODE, """import getpass, os, subprocess, zipfile
+ZIP = f'{DRIVE}/snatchguard_code.zip'
+REPO = 'thilaganiniyavan/snatchguard'   # only used for option B
 if not os.path.exists('/content/snatchguard'):
-    token = getpass.getpass('GitHub token (read-only): ')
-    subprocess.run(['git', 'clone', '--depth', '1', f'https://{token}@github.com/{REPO}.git', '/content/snatchguard'], check=True)
-    del token
+    if os.path.exists(ZIP):
+        zipfile.ZipFile(ZIP).extractall('/content/snatchguard')
+        print('code from', ZIP)
+    else:
+        token = getpass.getpass('GitHub token (read-only): ')
+        subprocess.run(['git', 'clone', '--depth', '1', f'https://{token}@github.com/{REPO}.git',
+                        '/content/snatchguard'], check=True)
+        del token
 %cd /content/snatchguard
-!git log --oneline -1"""),
+!ls"""),
     (CODE, """!pip -q install -e ".[edge]" huggingface_hub
 import ultralytics; print('ultralytics', ultralytics.__version__)"""),
     (MD, """## 2. Build the datasets
@@ -46,8 +53,9 @@ import ultralytics; print('ultralytics', ultralytics.__version__)"""),
 * Daytime images get synthetic **IR / low-light** variants and **CCTV degradation** (blur, heavy JPEG, low resolution).
 * Separate `val_day` / `val_night` sets so night accuracy is reported on its own.
 
-Datasets are built on the fast local disk; the download cache lives on Drive so a restart doesn't re-download."""),
-    (CODE, """!python training/prepare_dataset.py --out /content/datasets --cache {DRIVE}/cache \\
+Datasets and downloads live on Colab's local disk (fast, large). If the runtime is reset this step is simply
+re-run (about 30-60 min); training checkpoints are on Drive and are never lost."""),
+    (CODE, """!python training/prepare_dataset.py --out /content/datasets --cache /content/cache \\
     --coco-images 12000 --visdrone-images 6000 --llvip-images 6000 --pose-images 15000"""),
     (MD, """## 3. (Recommended) Teach the model your cameras: teacher → student pseudo-labels
 A large YOLO26x labels frames from real CCTV recordings; the small edge model then trains on them.
@@ -55,7 +63,7 @@ Below we use the **Snatch 1.0** normal videos (real Hyderabad CCTV). `s_2.avi` a
 false-alarm benchmark uses them. Replace with footage from **your own cameras** as soon as you have it: that is the
 single biggest accuracy gain."""),
     (CODE, """!python scripts/snatch_dataset.py get-all --category Normal --max 8 --max-mb 300
-!python training/pseudo_label.py --videos data/samples/snatch1.0 --out /content/datasets/sg_det \\
+!python training/pseudo_label.py --videos "data/samples/snatch1.0/Chain Snatching Videos/Normal" --out /content/datasets/sg_det \\
     --every 2.0 --max-per-video 300 --exclude s_2.avi s_3.avi --night-aug"""),
     (MD, "## 4. Train the detector (resumes automatically after a disconnect)"),
     (CODE, """!python training/train.py det --data /content/datasets/sg_det --epochs 40 --imgsz 640 --batch 32 \\

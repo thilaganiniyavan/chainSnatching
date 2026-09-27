@@ -188,9 +188,10 @@ VISDRONE = "https://github.com/ultralytics/assets/releases/download/v0.0.0/VisDr
 VISDRONE_TO_SG = {1: 0, 2: 0, 3: 1, 10: 2}          # pedestrian, people(riders/sitting), bicycle, motor
 
 
-def add_visdrone(w: Writer, cache: Path, rng: random.Random, max_images: int, val_frac: float) -> None:
+def add_visdrone(w: Writer, cache: Path, rng: random.Random, max_images: int, val_frac: float,
+                 splits: tuple[str, ...] = ("train", "val")) -> None:
     n = 0
-    for split in ("train", "val"):
+    for split in splits:
         z = download(VISDRONE.format(split=split), cache / f"visdrone_{split}.zip")
         root = cache / f"visdrone_{split}"
         if not root.exists():
@@ -354,14 +355,25 @@ def main() -> None:
     if det.exists():
         shutil.rmtree(det)
     wd = Writer(det)
+    # One source failing (moved file, network hiccup) must not waste a whole Colab session.
+    sources = []
     if not args.no_exdark:
-        add_exdark(wd, cache, rng, args.val_frac)
+        sources.append(("ExDark", lambda: add_exdark(wd, cache, rng, args.val_frac)))
     if not args.no_llvip:
-        add_llvip(wd, cache, rng, args.val_frac, args.llvip_images)
+        sources.append(("LLVIP", lambda: add_llvip(wd, cache, rng, args.val_frac, args.llvip_images)))
     if args.visdrone_images:
-        add_visdrone(wd, cache, rng, args.visdrone_images, args.val_frac)
+        sources.append(("VisDrone", lambda: add_visdrone(wd, cache, rng, args.visdrone_images, args.val_frac)))
     if args.coco_images:
-        add_coco_det(wd, cache, rng, args.coco_images, args.val_frac)
+        sources.append(("COCO", lambda: add_coco_det(wd, cache, rng, args.coco_images, args.val_frac)))
+    failed = []
+    for name, fn in sources:
+        try:
+            fn()
+        except Exception as exc:  # noqa: BLE001 - report and carry on with the other sources
+            failed.append(name)
+            log(f"WARNING: {name} failed ({type(exc).__name__}: {exc}); continuing without it")
+    if failed:
+        log(f"WARNING: detector set built WITHOUT {failed}")
     write_det_yaml(det)
     log(f"detector set: {wd.counts} -> {det}/data.yaml")
 
