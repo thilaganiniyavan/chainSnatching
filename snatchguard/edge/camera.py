@@ -165,6 +165,10 @@ class CameraWorker:
                 self._process(frame, truth)
                 self._report_status()
         finally:
+            if self.source.ended and self._last_img is not None:
+                for d in self.engine.flush():      # stream ended mid-encounter: judge what was seen
+                    self._handle_decision(d, Frame(self._last_img, self.engine.scene.t, time.time(), -1),
+                                          self._last_img)
             self.recorder.flush()
             self._drain_clips(wait=True)
             self.source.stop()
@@ -190,7 +194,7 @@ class CameraWorker:
         for d in decisions:
             self._handle_decision(d, frame, enhanced)
 
-        raised, cleared = self.tamper.update(img, frame.t, mode.value)
+        raised, cleared = (set(), set()) if truth is not None else self.tamper.update(img, frame.t, mode.value)
         for cond in raised:
             self._queue_tamper(cond, frame, active=True)
         for cond in cleared:

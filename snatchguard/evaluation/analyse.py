@@ -102,6 +102,11 @@ def analyse_video(path: str, edge_cfg: dict, fps: float = 8.0, night: str | None
             print(f"  {path.split('/')[-1]}: {t:7.1f}s video, {result.frames / el:4.1f} fps, "
                   f"{len(result.alerts())} alerts", flush=True)
         result.duration_s = t - start_s
+    for d in pipe.engine.flush():          # the clip ended while a contact was still being judged
+        payload = d.to_payload()
+        payload["video_time_s"] = round(result.duration_s + start_s, 2)
+        payload["flushed_at_end"] = True
+        result.decisions.append(payload)
     if writer is not None:
         writer.release()
     result.proc_fps = result.frames / max(time.perf_counter() - t_start, 1e-6)

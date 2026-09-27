@@ -121,11 +121,16 @@ def eval_reaction(pair: PairState, victim: Track, cs: float, ce: float, p: RuleP
                        "victim's hands went to the neck after contact"
                        + (" (ignored: hands were already there before)" if already else ""), dur))
 
-    # fall / stumble: box collapses relative to the pre-contact height
-    base = [s.victim_h for s in pair.between(cs - 2.0, cs)]
-    base_h = float(np.median(base)) if base else None
+    # fall / stumble: the box collapses from the top while the feet stay on the ground.
+    # (A vehicle hiding the legs shrinks the box from the bottom instead: not a fall.)
+    base_obs = victim.window(cs - 2.0, cs)
+    base_h = float(np.median([g.height(o.box) for o in base_obs])) if base_obs else None
+    base_foot = float(np.median([o.box[3] for o in base_obs])) if base_obs else None
     fell = base_h is not None and any(
-        s.victim_h < p.fall_height_ratio * base_h and s.victim_aspect > p.fall_aspect for s in window)
+        g.height(o.box) < p.fall_height_ratio * base_h
+        and g.width(o.box) / max(g.height(o.box), 1.0) > p.fall_aspect
+        and o.box[3] >= base_foot - 0.15 * base_h
+        for o in victim.window(cs, cs + p.reaction_window_s))
     found["fall"] = fell
     ev.append(Evidence("fall", "reaction", fell, "victim fell or crouched after contact"))
 
@@ -186,13 +191,22 @@ def eval_approach(pair: PairState, victim: Track, bike: Track, cs: float, p: Rul
     if closing:
         strength += parts["closing"]
 
-    def speeds(t0: float, t1: float) -> list[float]:
-        return [float(np.linalg.norm(bike.velocity(o.t))) / H for o in bike.obs if t0 <= o.t <= t1]
+    first_t = bike.obs[0].t if bike.obs else cs
 
-    near, earlier = speeds(cs - 1.5, cs + 0.3), speeds(cs - 5.0, cs - 1.5)
-    decel = bool(near and earlier) and max(earlier) > 0.5 and min(near) < p.decel_ratio * max(earlier)
-    ev.append(Evidence("decelerated", "approach", decel,
-                       f"bike slowed from {max(earlier, default=0):.2f} to {min(near, default=0):.2f} H/s next to the victim"))
+    def speeds(t0: float, t1: float) -> list[float]:
+        # velocity is undefined for a track's first few observations: skip them
+        return [float(np.linalg.norm(bike.velocity(o.t))) / H for o in bike.obs
+                if t0 <= o.t <= t1 and o.t - first_t >= 0.3]
+
+    near = speeds(cs - 1.0, cs + 0.3)
+    earlier = speeds(max(cs - 5.0, first_t), cs - 1.0)
+    if near and earlier:
+        decel = max(earlier) > 0.5 and min(near) < p.decel_ratio * max(earlier)
+        detail = f"bike slowed from {max(earlier):.2f} to {min(near):.2f} H/s next to the victim"
+    else:
+        decel = False
+        detail = "bike speed before contact unknown (entered the view just before)"
+    ev.append(Evidence("decelerated", "approach", decel, detail))
     if decel:
         strength += parts["decel"]
 
@@ -293,7 +307,8 @@ def evaluate(pair: PairState, victim: Track, bike: Track, now: float, p: RulePar
     corroborated = contact_level == CONTACT_POSE or reaction > 0 or decel
     if escaped and not benign["linger"] and corroborated and score >= p.confirm_threshold:
         level = Level.CONFIRMED
-    elif score >= p.suspect_threshold:
+    elif score >= p.suspect_threshold and (escaped or contact_level == CONTACT_POSE):
+        # A snatcher always leaves: box-only contact without a getaway is a near miss in traffic.
         level = Level.SUSPECT
     else:
         level = Level.DISMISSED

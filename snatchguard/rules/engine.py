@@ -188,6 +188,21 @@ class RuleEngine:
                         decisions.append(decision)
         return decisions
 
+    def flush(self) -> list[Decision]:
+        """End of stream: judge every pair still in CONTACT with what has been observed so far."""
+        p = self.params
+        out = []
+        for pair in list(self.pairs.values()):
+            if pair.phase != "CONTACT":
+                continue
+            victim, bike = self.scene.tracks.get(pair.victim_id), self.scene.tracks.get(pair.bike_id)
+            if victim is None or bike is None:
+                continue
+            d = self._decide(pair, victim, bike, self.scene.t, p)
+            if d is not None:
+                out.append(d)
+        return out
+
     def _decide(self, pair, victim, bike, t: float, p: RuleParams) -> Decision | None:
         verdict = evaluate(pair, victim, bike, t, p)
         pair.phase = "COOLDOWN"

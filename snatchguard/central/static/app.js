@@ -344,4 +344,5 @@ document.addEventListener("click", () => {
   if ("Notification" in window && Notification.permission === "default") Notification.requestPermission();
 }, { once: true });
 setInterval(renderFeed, 30000);   // keep "x min ago" fresh
+loadInitial().catch(() => {});    // show stored alerts even if the live stream is blocked
 connect();

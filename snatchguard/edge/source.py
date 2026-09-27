@@ -69,6 +69,9 @@ class LiveSource:
                 f = self._latest
                 if f is not None and f.seq != self._taken_seq:
                     self._taken_seq = f.seq
+                    # transform only the frames that are actually analysed, not every source frame
+                    if self.transform is not None:
+                        f = Frame(self.transform(self._resize(f.image)), f.t, f.wall, f.seq)
                     return f
             if self.status == "ended":
                 return None
@@ -134,8 +137,6 @@ class LiveSource:
                             self._stop.wait(delay)
                 else:
                     t = now
-                if self.transform is not None:
-                    img = self.transform(img)
                 frame = Frame(self._resize(img), t, now, seq)
                 seq += 1
                 with self._lock:

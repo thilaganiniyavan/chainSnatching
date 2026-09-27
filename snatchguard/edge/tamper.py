@@ -72,7 +72,9 @@ class TamperDetector:
             self._reference[mode] = edges if ref is None else (1 - k) * ref + k * edges
         base = self._sharp_baseline.get(mode)
 
-        h = cv2.resize(gray, (32, 18)).tobytes()
+        # A frozen stream repeats byte-identical frames; a live camera always has pixel noise.
+        # Sample raw pixels (no averaging, which would hide the noise of a quiet night scene).
+        h = img[::7, ::7].tobytes()
         if h == self._last_hash:
             self._same_since = self._same_since if self._same_since is not None else t
         else:
