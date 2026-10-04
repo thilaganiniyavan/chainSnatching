@@ -70,7 +70,7 @@ def main() -> None:
     ap.add_argument("--category", default="snatch_bike")
     ap.add_argument("--all", action="store_true", help="also re-label clips that already have times")
     args = ap.parse_args()
-    with open(args.labels, newline="") as f:
+    with open(args.labels, newline="", encoding="utf-8") as f:
         rows = list(csv.DictReader(f))
     fields = list(rows[0].keys())
     for row in rows:
@@ -79,7 +79,7 @@ def main() -> None:
         start, end, quit_ = label(DATA / row["video"])
         if start is not None:
             row["event_start_s"], row["event_end_s"] = start, end if end is not None else ""
-            with open(args.labels, "w", newline="") as f:
+            with open(args.labels, "w", newline="", encoding="utf-8") as f:
                 w = csv.DictWriter(f, fieldnames=fields)
                 w.writeheader()
                 w.writerows(rows)

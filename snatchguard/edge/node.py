@@ -148,7 +148,7 @@ class EdgeNode:
             "version": VERSION,
             "sent_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "uptime_s": round(time.time() - self.started),
-            "load_avg": round(os.getloadavg()[0], 2),
+            "load_avg": round(os.getloadavg()[0], 2) if hasattr(os, "getloadavg") else None,   # not on Windows
             "outbox_pending": self.outbox.pending(),
             "cameras": cams,
         }

@@ -23,7 +23,7 @@ from snatchguard.core.types import Detection
 
 log = logging.getLogger(__name__)
 
-ROLE_COLORS = {"victim": (60, 200, 255), "vehicle": (40, 40, 230), "rider": (40, 120, 255)}
+ROLE_COLORS = {"victim": (60, 200, 255), "vehicle": (40, 40, 230), "rider": (40, 120, 255), "attacker": (40, 40, 230)}
 
 
 @dataclass

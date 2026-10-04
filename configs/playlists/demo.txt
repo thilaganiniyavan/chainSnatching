@@ -1,0 +1,14 @@
+# Demo camera: normal Hyderabad CCTV between real snatch clips (Snatch 1.0).
+# Format: path [start_s] [end_s]   (paths relative to data/samples/snatch1.0/Chain Snatching Videos)
+# Normal footage comes from the held-out evaluation fold; snatch clips have >= 1.5 s before the grab.
+Normal/s_5.avi 0 60
+Snatch Theft/17.mp4
+Normal/s_7.avi 0 45
+Snatch Theft/5_0.mp4
+Snatch Theft/27_0.mp4
+Normal/s_11.avi 0 45
+Snatch Theft/16_0.mp4
+Snatch Theft/2_0.mp4
+Normal/s_13.avi 0 45
+Snatch Theft/7_0.mp4
+Snatch Theft/26_0.mp4

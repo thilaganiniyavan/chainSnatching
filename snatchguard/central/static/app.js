@@ -28,6 +28,9 @@ const TAMPER_TEXT = {
   frozen: "Video frozen (stream stalled)",
 };
 const LIGHT_ICON = { day: "☀ Day", lowlight: "🌙 Low light", ir: "🌙 IR night" };
+const MODE_TEXT = { motorcycle: "by motorcycle", bicycle: "by bicycle", on_foot: "on foot" };
+const modeOf = (ev) => (ev.payload && MODE_TEXT[ev.payload.mode]) || "";
+const titleOf = (ev) => (LEVEL_LABEL[ev.level] || ev.level) + (ev.type === "snatch" && modeOf(ev) ? ` (${modeOf(ev)})` : "");
 const STATUS_TEXT = { new: "Needs review", acknowledged: "Acknowledged", confirmed: "Confirmed", false_alarm: "False alarm" };
 
 // ---------------------------------------------------------------------------
@@ -84,7 +87,7 @@ function cardHtml(ev) {
     <div class="bar"></div>
     ${thumb}
     <div class="body">
-      <div class="title"><strong>${esc(LEVEL_LABEL[ev.level] || ev.level)}</strong>
+      <div class="title"><strong>${esc(titleOf(ev))}</strong>
         <span class="pill ${esc(ev.level)}">${esc(ev.level)}</span>${light}${conf}</div>
       <div class="meta">${esc(ev.camera_name || ev.camera_id || "")} · ${esc(ev.site || "")} · ${clock(ev.occurred_at)} (${timeAgo(ev.received_at)})</div>
       <div class="why">${esc(summary(ev))}</div>
@@ -193,7 +196,7 @@ function detailHtml(ev) {
   const lat = p.latency_s != null ? `${Number(p.latency_s).toFixed(1)} s after contact` : "–";
   return `
     <div class="detail-head">
-      <h3>${esc(LEVEL_LABEL[ev.level] || ev.level)}</h3>
+      <h3>${esc(titleOf(ev))}</h3>
       <span class="pill ${esc(ev.level)}">${esc(ev.level)}</span>
       ${ev.lighting ? `<span class="pill">${esc(LIGHT_ICON[ev.lighting] || ev.lighting)}</span>` : ""}
       <span class="pill status-${esc(ev.status)}">${esc(STATUS_TEXT[ev.status] || ev.status)}</span>
@@ -206,7 +209,7 @@ function detailHtml(ev) {
           <dt>Happened</dt><dd>${esc(ev.occurred_at ? new Date(ev.occurred_at).toLocaleString() : "–")}</dd>
           <dt>Alert raised</dt><dd>${esc(lat)}</dd>
           ${ev.type === "snatch" ? `<dt>Visibility</dt><dd>${esc(p.confidence)} (${p.confidence === "high" ? "hand-to-neck seen by pose model" : "boxes/motion only"})</dd>
-          <dt>Tracks</dt><dd>victim #${esc(p.victim_id)}, vehicle #${esc(p.vehicle_id)}, riders ${esc((p.rider_ids || []).map((r) => "#" + r).join(", ") || "–")}</dd>` : ""}
+          <dt>Tracks</dt><dd>victim #${esc(p.victim_id)}, ${p.mode === "on_foot" ? "attacker" : "vehicle"} #${esc(p.vehicle_id)}${p.mode === "on_foot" ? "" : `, riders ${esc((p.rider_ids || []).map((r) => "#" + r).join(", ") || "–")}`}</dd>` : ""}
           <dt>Event id</dt><dd style="font-family:var(--mono);font-size:12px">${esc(ev.id)}</dd>
           ${ev.review_note ? `<dt>Review note</dt><dd>${esc(ev.review_note)}</dd>` : ""}
         </dl>
@@ -264,7 +267,7 @@ function beep(level) {
 }
 
 function notify(ev) {
-  const label = LEVEL_LABEL[ev.level] || ev.level;
+  const label = titleOf(ev);
   const where = ev.camera_name || ev.camera_id || ev.node_id || "";
   const t = document.createElement("div");
   t.className = `toast ${ev.level}`;

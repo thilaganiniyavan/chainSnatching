@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import os
 
 from snatchguard.core.config import REPO_ROOT, load_yaml
 from snatchguard.edge.node import EdgeNode
@@ -27,6 +28,8 @@ def main() -> None:
     ap.add_argument("--lighting", choices=["auto", "day", "lowlight", "ir"], default="auto")
     ap.add_argument("--loop", action="store_true", help="loop a video file forever")
     ap.add_argument("--central", help="central server URL (overrides config)")
+    ap.add_argument("--api-key", default=os.environ.get("SNATCHGUARD_API_KEY"),
+                    help="API key for the central server (overrides config; env SNATCHGUARD_API_KEY)")
     ap.add_argument("--until-done", action="store_true", help="exit when all sources ended and alerts are delivered")
     ap.add_argument("-v", "--verbose", action="store_true")
     args = ap.parse_args()
@@ -36,6 +39,8 @@ def main() -> None:
     cfg = load_yaml(args.config)
     if args.central:
         cfg.setdefault("central", {})["url"] = args.central
+    if args.api_key:
+        cfg.setdefault("central", {})["api_key"] = args.api_key
     if args.source:
         cfg["cameras"] = [{
             "id": args.camera_id, "name": args.name or args.source.split("/")[-1],

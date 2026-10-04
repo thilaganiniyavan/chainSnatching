@@ -126,10 +126,17 @@ class CameraWorker:
             self.pipeline = None
             self.engine = RuleEngine(rules)
         else:
-            if not src.isdigit() and "://" not in src:
-                src = _path(src)
-            self.source = LiveSource(src, realtime=cam.get("realtime", True), loop=cam.get("loop", False),
-                                     transform=make_transform(cam.get("simulate_night")))
+            if src.startswith("playlist:"):
+                from snatchguard.edge.source import PlaylistSource, resolve_playlist
+                items = resolve_playlist(src, [REPO_ROOT, REPO_ROOT / "data" / "samples" / "snatch1.0" /
+                                               "Chain Snatching Videos"])
+                self.source = PlaylistSource(items, realtime=cam.get("realtime", True), loop=cam.get("loop", True),
+                                             transform=make_transform(cam.get("simulate_night")))
+            else:
+                if not src.isdigit() and "://" not in src:
+                    src = _path(src)
+                self.source = LiveSource(src, realtime=cam.get("realtime", True), loop=cam.get("loop", False),
+                                         transform=make_transform(cam.get("simulate_night")))
             from snatchguard.edge.pipeline import FramePipeline
             models = {**self.models, "detector": _path(self.models["detector"]),
                       "pose": _path(self.models["pose"]) if self.models.get("pose") else None}
@@ -150,6 +157,7 @@ class CameraWorker:
         log.info("[%s] started (%s)", self.id, self.cam["source"])
         min_dt = 1.0 / self.target_fps
         last_proc = -1e9
+        segment = 0
         try:
             while stop_event is None or not stop_event.is_set():
                 got = self.source.read(timeout=1.0)
@@ -159,6 +167,11 @@ class CameraWorker:
                     self._report_status(force=False)
                     continue
                 frame, truth = got if isinstance(got, tuple) else (got, None)
+                if frame.segment != segment and self.pipeline is not None:
+                    segment = frame.segment          # next playlist item: a different scene
+                    self.pipeline.reset()
+                    self.engine = self.pipeline.engine
+                    self.tamper = TamperDetector()
                 if truth is None and frame.t - last_proc < min_dt * 0.95:
                     continue                      # faster than the target rate: skip this frame
                 last_proc = frame.t
@@ -220,7 +233,7 @@ class CameraWorker:
         wall_now = frame.wall
         contact_wall = wall_now - (frame.t - d.verdict.contact_start)
         title = f"{d.level.value}  score {d.verdict.score:.2f}  {self.name}"
-        roles = {d.victim_id: "victim", d.bike_id: "vehicle"}
+        roles = {d.victim_id: "victim", d.bike_id: "attacker" if d.mode == "on_foot" else "vehicle"}
         roles.update({rid: f"rider{i + 1}" for i, rid in enumerate(d.rider_ids)})
         mid_contact = (d.verdict.contact_start + d.verdict.contact_end) / 2
         snap = self.recorder.snapshot(event_id, mid_contact, roles, title, fallback=img)

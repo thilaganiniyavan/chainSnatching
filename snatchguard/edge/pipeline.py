@@ -34,11 +34,21 @@ class FramePipeline:
         from snatchguard.edge.perception import Perception  # needs ultralytics
         self.models = models
         self.zone = detect_zone
+        self.rules = rules
+        self.lighting_setting = lighting
         self.perception = Perception(models, tracker_cfg)
         self.engine = RuleEngine(rules)
         self.lighting = LightingAnalyzer(forced=None if lighting == "auto" else Lighting(lighting))
         self.enhancer = Enhancer()
         self.max_crops = int(models.get("max_pose_crops", 2))
+
+    def reset(self) -> None:
+        """New scene (e.g. the next playlist item): forget tracks, pairs and the lighting history."""
+        self.engine = RuleEngine(self.rules)
+        self.lighting = LightingAnalyzer(forced=None if self.lighting_setting == "auto" else Lighting(self.lighting_setting))
+        predictor = getattr(self.perception.det, "predictor", None)
+        for tr in getattr(predictor, "trackers", None) or []:
+            tr.reset()
 
     def process(self, img: np.ndarray, t: float) -> FrameResult:
         mode = self.lighting.update(img, t)

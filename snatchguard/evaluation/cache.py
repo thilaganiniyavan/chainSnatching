@@ -179,6 +179,7 @@ def main() -> None:
     ap.add_argument("--folds", default="A,B", help="folds to cache (default: the evaluation folds)")
     ap.add_argument("--fps", type=float, default=8.0)
     ap.add_argument("--rebuild", action="store_true")
+    ap.add_argument("--max-seconds", type=float, help="cap each video (smoke tests only)")
     args = ap.parse_args()
 
     cfg = load_yaml(args.config)
@@ -197,7 +198,7 @@ def main() -> None:
             print(f"  cached  {r['video']}")
             continue
         t0 = time.time()
-        cv = build(str(path), cfg, args.fps, progress=True)
+        cv = build(str(path), cfg, args.fps, progress=True, max_seconds=args.max_seconds)
         save(cv, out)
         print(f"  built   {r['video']}: {len(cv.frames)} frames, {cv.duration_s:.0f}s video "
               f"in {time.time() - t0:.0f}s ({cv.build_fps:.1f} fps)", flush=True)

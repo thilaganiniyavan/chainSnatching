@@ -18,13 +18,14 @@ dependencies = [
 edge = ["ultralytics>=8.4", "openvino>=2024.0", "lap>=0.5"]
 central = ["fastapi>=0.115", "uvicorn[standard]>=0.30", "python-multipart>=0.0.9", "pydantic>=2.7"]
 dev = ["pytest>=8"]
+train = ["huggingface_hub>=0.24"]
 
 [project.scripts]
 snatchguard-edge = "snatchguard.edge.__main__:main"
 snatchguard-central = "snatchguard.central.__main__:main"
 
 [tool.setuptools.packages.find]
-include = ["snatchguard*"]
+include = ["snatchguard*", "training*"]
 
 [tool.setuptools.package-data]
 "snatchguard.central" = ["static/*"]

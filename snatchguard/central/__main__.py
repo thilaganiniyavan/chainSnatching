@@ -2,6 +2,10 @@
 
     python -m snatchguard.central                  # http://127.0.0.1:8000
     python -m snatchguard.central --host 0.0.0.0   # reachable from edge boxes on the network
+
+Environment: SNATCHGUARD_API_KEYS (comma-separated edge keys, default dev-edge-key),
+SNATCHGUARD_DASHBOARD_PASSWORD (+ optional SNATCHGUARD_DASHBOARD_USER, default "operator")
+to put the dashboard behind a login when it is reachable from the network.
 """
 
 from __future__ import annotations

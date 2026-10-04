@@ -25,7 +25,8 @@ AUG = dict(hsv_h=0.01, hsv_s=0.5, hsv_v=0.5, degrees=0.0, translate=0.1, scale=0
            mosaic=1.0, mixup=0.05, close_mosaic=10)
 
 
-def train(kind: str, data: Path, epochs: int, imgsz: int, batch: int, size: str, project: Path, patience: int) -> Path:
+def train(kind: str, data: Path, epochs: int, imgsz: int, batch: int, size: str, project: Path, patience: int,
+          workers: int = 4, device: str | None = None) -> Path:
     """Trains, or resumes automatically if a previous (disconnected) run left last.pt behind."""
     last = project.resolve() / kind / "weights" / "last.pt"
     if last.exists():
@@ -38,8 +39,9 @@ def train(kind: str, data: Path, epochs: int, imgsz: int, batch: int, size: str,
         return last.parent / "best.pt"
     base = f"yolo26{size}.pt" if kind == "det" else f"yolo26{size}-pose.pt"
     model = YOLO(base)
+    extra = {"device": device} if device is not None else {}
     model.train(data=str(data / "data.yaml"), epochs=epochs, imgsz=imgsz, batch=batch, project=str(project.resolve()),
-                name=kind, exist_ok=True, patience=patience, cos_lr=True, plots=True, **AUG)
+                name=kind, exist_ok=True, patience=patience, cos_lr=True, plots=True, workers=workers, **extra, **AUG)
     best = Path(model.trainer.save_dir) / "weights" / "best.pt"
     print(f"best weights: {best}")
     return best
@@ -108,10 +110,12 @@ def main() -> None:
     ap.add_argument("--data", required=True, type=Path)
     ap.add_argument("--epochs", type=int, default=60)
     ap.add_argument("--imgsz", type=int, default=640)
-    ap.add_argument("--batch", type=int, default=32)
+    ap.add_argument("--batch", type=int, default=-1, help="-1 = AutoBatch (fits the GPU's memory, e.g. an 8 GB RTX 4060)")
     ap.add_argument("--size", default="n", choices=["n", "s", "m"])
     ap.add_argument("--project", type=Path, default=Path("runs"))
     ap.add_argument("--patience", type=int, default=15)
+    ap.add_argument("--workers", type=int, default=4, help="dataloader workers (Windows: keep 2-4)")
+    ap.add_argument("--device", default=None, help="e.g. 0 for the first GPU (default: Ultralytics picks)")
     ap.add_argument("--export-to", type=Path, default=Path("export"))
     ap.add_argument("--weights", help="for compare: fine-tuned weights")
     ap.add_argument("--kind", choices=["det", "pose"], default="det", help="for compare")
@@ -127,7 +131,8 @@ def main() -> None:
         (args.project / f"compare_{args.kind}.json").write_text(json.dumps(report, indent=2))
         return
 
-    best = train(args.task, args.data, args.epochs, args.imgsz, args.batch, args.size, args.project, args.patience)
+    best = train(args.task, args.data, args.epochs, args.imgsz, args.batch, args.size, args.project, args.patience,
+                 args.workers, args.device)
     export(best, 512 if args.task == "det" else 384, args.export_to / args.task)
 
 

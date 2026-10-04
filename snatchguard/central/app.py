@@ -47,7 +47,8 @@ class Review(BaseModel):
     note: str | None = None
 
 
-def create_app(data_dir: str | Path | None = None, api_keys: set[str] | None = None) -> FastAPI:
+def create_app(data_dir: str | Path | None = None, api_keys: set[str] | None = None,
+               dashboard_password: str | None = None) -> FastAPI:
     data_dir = Path(data_dir or os.environ.get("SNATCHGUARD_DATA", "runtime/central"))
     media = data_dir / "media"
     media.mkdir(parents=True, exist_ok=True)
@@ -82,6 +83,28 @@ def create_app(data_dir: str | Path | None = None, api_keys: set[str] | None = N
 
     app = FastAPI(title="SnatchGuard Central", version="0.1.0", lifespan=lifespan)
     app.state.store = store
+
+    # Optional password for the dashboard and its read/review APIs (edge nodes use their API key instead).
+    password = dashboard_password if dashboard_password is not None else os.environ.get("SNATCHGUARD_DASHBOARD_PASSWORD")
+    user = os.environ.get("SNATCHGUARD_DASHBOARD_USER", "operator")
+    if password:
+        import secrets
+
+        @app.middleware("http")
+        async def dashboard_auth(request: Request, call_next):
+            if request.url.path == "/healthz" or request.headers.get("x-api-key") in keys:
+                return await call_next(request)
+            auth = request.headers.get("authorization", "")
+            if auth.lower().startswith("basic "):
+                try:
+                    u, _, pw = base64.b64decode(auth[6:]).decode("utf-8").partition(":")
+                except (ValueError, UnicodeDecodeError):
+                    u, pw = "", ""
+                if secrets.compare_digest(u, user) and secrets.compare_digest(pw, password):
+                    return await call_next(request)
+            from fastapi.responses import Response
+            return Response("authentication required", status_code=401,
+                            headers={"WWW-Authenticate": 'Basic realm="SnatchGuard"'})
 
     def require_key(x_api_key: str | None = Header(default=None)) -> None:
         if x_api_key not in keys:

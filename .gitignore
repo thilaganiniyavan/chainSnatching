@@ -15,3 +15,8 @@ runtime/
 *_openvino_model/
 *.engine
 *.zip
+
+# generated per machine by training/run_all.py
+configs/edge.gpu.yaml
+configs/edge.baseline.yaml
+configs/rules.tuned.yaml

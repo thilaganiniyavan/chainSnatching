@@ -1,15 +1,15 @@
 """Teacher -> student distillation on your own camera footage (the domain the edge model must work in).
 
 A large model (YOLO26x at 1280 px with test-time augmentation) is too slow for the edge but
-far more accurate. On a Colab GPU it labels frames sampled from real CCTV recordings; those
+far more accurate. On the training GPU it labels frames sampled from real CCTV recordings; those
 labels are added to the detector training set so the small edge model learns the real
 cameras' angle, compression, lighting and the local two-wheelers.
 
-    python training/pseudo_label.py --videos /content/cctv --out /content/datasets/sg_det \\
-        --every 2.0 --exclude s_2.avi s_3.avi
+    python training/pseudo_label.py --out data/datasets/sg_det                     # Snatch 1.0 'pseudo' fold
+    python training/pseudo_label.py --videos D:/my_cctv --out data/datasets/sg_det  # any folder of recordings
 
-Hold out the videos you measure false alarms on (--exclude), otherwise the false-alarm
-numbers are optimistic.
+With the Snatch 1.0 labels, only the normal videos in the `pseudo` fold are used: the videos the
+false-alarm and acceptance numbers are measured on are never seen by the detector.
 """
 
 from __future__ import annotations
@@ -30,7 +30,11 @@ TEACHER_TO_SG = {0: 0, 1: 1, 3: 2}      # COCO person, bicycle, motorcycle
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--videos", required=True, type=Path, help="folder with CCTV recordings (searched recursively)")
+    ap.add_argument("--videos", type=Path, help="folder with CCTV recordings (searched recursively); "
+                    "default: Snatch 1.0 videos in the labels' pseudo fold")
+    ap.add_argument("--labels", type=Path, default=Path(__file__).resolve().parents[1] / "data" / "labels" / "snatch1.0.csv")
+    ap.add_argument("--data", type=Path, default=Path(__file__).resolve().parents[1] / "data" / "samples" / "snatch1.0"
+                    / "Chain Snatching Videos")
     ap.add_argument("--out", required=True, type=Path, help="detector dataset root (…/sg_det)")
     ap.add_argument("--teacher", default="yolo26x.pt")
     ap.add_argument("--imgsz", type=int, default=1280)
@@ -48,8 +52,17 @@ def main() -> None:
     img_dir.mkdir(parents=True, exist_ok=True)
     lbl_dir.mkdir(parents=True, exist_ok=True)
 
-    videos = [p for p in sorted(args.videos.rglob("*")) if p.suffix.lower() in (".mp4", ".avi", ".mkv", ".mov")
-              and p.name not in args.exclude]
+    if args.videos:
+        videos = [p for p in sorted(args.videos.rglob("*")) if p.suffix.lower() in (".mp4", ".avi", ".mkv", ".mov")
+                  and p.name not in args.exclude]
+    else:
+        import csv
+        with open(args.labels, newline="", encoding="utf-8") as f:
+            videos = [args.data / r["video"] for r in csv.DictReader(f) if r.get("fold") == "pseudo"]
+        missing = [v for v in videos if not v.exists()]
+        if missing:
+            print(f"WARNING: {len(missing)} pseudo-fold videos not found (download/extract Snatch 1.0 first)")
+        videos = [v for v in videos if v.exists()]
     total = 0
     for v in videos:
         cap = cv2.VideoCapture(str(v))

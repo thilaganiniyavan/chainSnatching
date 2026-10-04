@@ -32,7 +32,7 @@ DATA = REPO_ROOT / "data" / "samples" / "snatch1.0" / "Chain Snatching Videos"
 
 
 def load_labels(path: Path) -> list[dict]:
-    with open(path, newline="") as f:
+    with open(path, newline="", encoding="utf-8") as f:
         return list(csv.DictReader(f))
 
 

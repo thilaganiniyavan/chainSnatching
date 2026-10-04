@@ -15,6 +15,7 @@ import os
 import threading
 import time
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Callable
 
 import cv2
@@ -31,6 +32,7 @@ class Frame:
     t: float        # seconds on the camera clock (video position for files, wall clock for streams)
     wall: float     # wall-clock time the frame was read
     seq: int
+    segment: int = 0  # playlist item index (a new item = a different scene)
 
 
 class LiveSource:
@@ -71,7 +73,7 @@ class LiveSource:
                     self._taken_seq = f.seq
                     # transform only the frames that are actually analysed, not every source frame
                     if self.transform is not None:
-                        f = Frame(self.transform(self._resize(f.image)), f.t, f.wall, f.seq)
+                        f = Frame(self.transform(self._resize(f.image)), f.t, f.wall, f.seq, f.segment)
                     return f
             if self.status == "ended":
                 return None
@@ -156,3 +158,94 @@ class LiveSource:
             self.status = "reconnecting"
             log.warning("stream %s dropped, reconnecting", self.uri)
             self._stop.wait(backoff)
+
+
+# ---------------------------------------------------------------------------------------------------
+# Playlists: several recordings (or parts of them) played back to back as one camera, for demos.
+# ---------------------------------------------------------------------------------------------------
+
+def resolve_playlist(spec: str, roots: list[Path]) -> list[tuple[str, float, float | None]]:
+    """`playlist:<name>` reads configs/playlists/<name>.txt; `playlist:a.mp4|b.mp4` lists files inline.
+    File lines: `path [start_s] [end_s]`; paths are looked up as given, then under each root."""
+    body = spec.split(":", 1)[1]
+    if "|" in body or Path(body).suffix:
+        lines = body.split("|")
+    else:
+        lines = (roots[0] / "configs" / "playlists" / f"{body}.txt").read_text(encoding="utf-8").splitlines()
+    out = []
+    for line in lines:
+        line = line.split("#", 1)[0].strip()
+        if not line:
+            continue
+        parts = line.rsplit(None, 2)
+        nums = []
+        while len(parts) > 1 and _is_number(parts[-1]):
+            nums.insert(0, float(parts.pop()))
+        path = " ".join(parts) if len(parts) > 1 else parts[0]
+        found = next((str(c) for c in [Path(path)] + [r / path for r in roots] if Path(c).exists()), None)
+        if found is None:
+            log.warning("playlist item not found, skipped: %s", path)
+            continue
+        out.append((found, nums[0] if nums else 0.0, nums[1] if len(nums) > 1 else None))
+    if not out:
+        raise FileNotFoundError(f"no playable items in {spec}")
+    return out
+
+
+def _is_number(s: str) -> bool:
+    try:
+        float(s)
+        return True
+    except ValueError:
+        return False
+
+
+class PlaylistSource(LiveSource):
+    """Plays the items one after another (in real time) on one continuous camera clock."""
+
+    def __init__(self, items: list[tuple[str, float, float | None]], *, realtime: bool = True, loop: bool = True,
+                 transform=None, max_width: int = 1280) -> None:
+        super().__init__("playlist", realtime=realtime, loop=loop, transform=transform, max_width=max_width)
+        self.items = items
+        self.is_file = True
+
+    def _run(self) -> None:
+        seq, segment, offset = 0, 0, 0.0
+        self.status = "online"
+        while not self._stop.is_set():
+            for path, start, end in self.items:
+                cap = cv2.VideoCapture(path, cv2.CAP_FFMPEG)
+                if not cap.isOpened():
+                    log.warning("cannot open %s, skipping", path)
+                    continue
+                fps = cap.get(cv2.CAP_PROP_FPS)
+                self.src_fps = fps if 1.0 <= fps <= 120.0 else 25.0
+                if start:
+                    cap.set(cv2.CAP_PROP_POS_MSEC, start * 1000)
+                start_wall = time.monotonic()
+                n = 0
+                while not self._stop.is_set():
+                    ok, img = cap.read()
+                    if not ok:
+                        break
+                    rel = n / self.src_fps
+                    n += 1
+                    if end is not None and start + rel > end:
+                        break
+                    if self.realtime:
+                        delay = start_wall + rel - time.monotonic()
+                        if delay > 0:
+                            self._stop.wait(delay)
+                    frame = Frame(self._resize(img), offset + rel, time.time(), seq, segment)
+                    seq += 1
+                    with self._lock:
+                        self._latest = frame
+                    self.fps_in = self.src_fps
+                cap.release()
+                offset += n / self.src_fps + 1.0
+                segment += 1
+                if self._stop.is_set():
+                    return
+            if not self.loop:
+                self.status = "ended"
+                return

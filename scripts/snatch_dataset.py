@@ -4,9 +4,12 @@ The dataset is 7 zip parts (12.5 GB). Zip files keep their table of contents at
 the end, so with HTTP range requests we can list every part and pull out single
 videos.
 
+    python scripts/snatch_dataset.py download --to D:/downloads        # all 7 parts, resumable
+    python scripts/snatch_dataset.py extract --zips D:/downloads        # unpack into data/samples/snatch1.0
+    python scripts/snatch_dataset.py verify                              # every labelled video present?
     python scripts/snatch_dataset.py list
-    python scripts/snatch_dataset.py get "Snatch 1.0/Chain Snatching Videos/Snatch/s_10.avi"
-    python scripts/snatch_dataset.py get-all --category Snatch --max 10
+    python scripts/snatch_dataset.py get "Snatch 1.0/Chain Snatching Videos/Snatch Theft/17_0.mp4"
+    python scripts/snatch_dataset.py get-all --category "Snatch Theft" --max 10
 
 Dataset: Roy et al., "Snatch theft detection in unconstrained surveillance videos
 using action attribute modelling", Pattern Recognition Letters 2018. CC-BY-SA 4.0.
@@ -111,9 +114,72 @@ def fetch(name: str, index: dict, client: httpx.Client) -> Path:
     return dest
 
 
+def download_all(dest: Path) -> None:
+    """All 7 archive parts, resuming partial files after connection drops."""
+    dest.mkdir(parents=True, exist_ok=True)
+    with httpx.Client(timeout=httpx.Timeout(60.0, connect=20.0), follow_redirects=True) as client:
+        for n in PARTS:
+            url = RECORD.format(n=n)
+            out = dest / f"Snatch 1.0-20201231T071009Z-00{n}.zip"
+            total = int(client.head(url).headers["content-length"])
+            for attempt in range(200):
+                have = out.stat().st_size if out.exists() else 0
+                if have >= total:
+                    break
+                print(f"part {n}: {have / 1e9:.2f} / {total / 1e9:.2f} GB (attempt {attempt + 1})", flush=True)
+                try:
+                    with client.stream("GET", url, headers={"Range": f"bytes={have}-"}) as r, open(out, "ab") as f:
+                        for chunk in r.iter_bytes(8 << 20):
+                            f.write(chunk)
+                except httpx.HTTPError as exc:
+                    print(f"  interrupted ({exc}); resuming", flush=True)
+                    time.sleep(5)
+            print(f"part {n}: complete", flush=True)
+
+
+def extract(zips: Path) -> None:
+    """Unpack the downloaded parts into data/samples/snatch1.0 (skips files already there)."""
+    parts = sorted(zips.glob("Snatch 1.0-*.zip")) or sorted(zips.glob("*.zip"))
+    if not parts:
+        raise SystemExit(f"no Snatch 1.0 zip files in {zips}")
+    for z in parts:
+        with zipfile.ZipFile(z) as zf:
+            for info in zf.infolist():
+                if info.is_dir():
+                    continue
+                rel = Path(info.filename)
+                rel = rel.relative_to(rel.parts[0]) if rel.parts[0].startswith("Snatch") else rel
+                dest = OUT / rel
+                if dest.exists() and dest.stat().st_size == info.file_size:
+                    continue
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                with zf.open(info) as src, open(dest, "wb") as out:
+                    while chunk := src.read(8 << 20):
+                        out.write(chunk)
+                print(f"extracted {rel}", flush=True)
+    print(f"done -> {OUT}")
+
+
+def verify(labels: Path) -> bool:
+    import csv
+    with open(labels, newline="", encoding="utf-8") as f:
+        rows = list(csv.DictReader(f))
+    missing = [r["video"] for r in rows if not (OUT / "Chain Snatching Videos" / r["video"]).exists()]
+    for m in missing:
+        print(f"missing: {m}")
+    print(f"{len(rows) - len(missing)}/{len(rows)} labelled videos present in {OUT}")
+    return not missing
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
+    dl = sub.add_parser("download")
+    dl.add_argument("--to", type=Path, required=True)
+    ex = sub.add_parser("extract")
+    ex.add_argument("--zips", type=Path, required=True)
+    ve = sub.add_parser("verify")
+    ve.add_argument("--labels", type=Path, default=ROOT / "data" / "labels" / "snatch1.0.csv")
     sub.add_parser("list")
     g = sub.add_parser("get")
     g.add_argument("names", nargs="+")
@@ -122,6 +188,12 @@ def main() -> None:
     ga.add_argument("--max", type=int, default=5)
     ga.add_argument("--max-mb", type=float, default=400, help="skip files bigger than this")
     args = ap.parse_args()
+    if args.cmd == "download":
+        return download_all(args.to)
+    if args.cmd == "extract":
+        return extract(args.zips)
+    if args.cmd == "verify":
+        raise SystemExit(0 if verify(args.labels) else 1)
 
     with httpx.Client(timeout=httpx.Timeout(120.0, connect=20.0)) as client:
         index = build_index(client)

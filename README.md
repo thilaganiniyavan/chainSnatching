@@ -4,9 +4,13 @@
 
 An edge node sits next to existing CCTV cameras, watches the streams continuously, and when a
 chain snatching happens it sends an alert (annotated snapshot, video clip and the evidence
-behind the decision) to a central dashboard within a few seconds. It works at night (IR and
-colour low-light cameras) and is built to tell a snatch apart from friends playing,
-chatting, hugging or handing something over.
+behind the decision) to a central dashboard within a few seconds. It covers snatchers on a
+motorcycle and on foot, works at night (IR and colour low-light cameras) and is built to tell a
+snatch apart from friends playing, chatting, hugging or handing something over.
+
+**Target:** event-level **recall ≥ 90 % and precision ≥ 90 %**, measured with cross-validation on the
+labelled Snatch 1.0 dataset. The whole path from raw data to that measurement is one command on an
+NVIDIA GPU: see [docs/WINDOWS_GPU_GUIDE.md](docs/WINDOWS_GPU_GUIDE.md).
 
 The decision is **rule-based and explainable**: a small state machine over physical
 measurements (distances, speeds, hand-to-neck contact, victim reaction, getaway). Machine
@@ -17,8 +21,8 @@ body keypoints), where it is unavoidable.
  ┌──────────────────────────── EDGE NODE (laptop simulation / Jetson) ───────────────────────────┐
  │ camera (RTSP / file / webcam)                                                                  │
  │   └─► latest-frame reader ─► lighting mode (day / low-light / IR) ─► enhancement               │
- │         └─► YOLO26 detect + OC-SORT track ─► scene: riders vs pedestrians ─► (victim, bike) pairs│
- │               └─► YOLO26-pose on the closest pairs only ─► RULE ENGINE (per-pair state machine) │
+ │         └─► YOLO26 detect + OC-SORT track ─► riders vs pedestrians ─► (victim, attacker) pairs │
+ │               └─► YOLO26-pose (GPU: whole frame, CPU: closest pairs) ─► RULE ENGINE  │
  │                     └─► CONFIRMED / SUSPECT ─► snapshot + clip ─► SQLite outbox ─┐             │
  │   tamper checks (blackout, blur, moved, frozen) ────────────────────────────────┤             │
  │   supervisor: one process per camera, auto-restart, heartbeat + thumbnails ─────┤             │
@@ -70,7 +74,8 @@ with an upright standing box (seated riders are squat), at walking or running sp
 never become victims, and a victim is never re-labelled as a rider while the bike is
 beside them.
 
-**Per (victim, bike) pair state machine:** `WATCH → CONTACT → decide → COOLDOWN`
+**Per (victim, attacker) pair state machine:** `WATCH → CONTACT → decide → COOLDOWN`. The attacker
+is a motorcycle/bicycle with its riders, or a person on foot.
 
 | Evidence | Rule (all from geometry over time) | Weight |
 |---|---|---|
@@ -90,11 +95,21 @@ beside them.
 | bike stays near the victim afterwards | a snatcher never stays |
 | victim waves / carries on calmly | no distress |
 
+| 'victim' was among vehicles most of the 4 s before | a rider waiting in traffic, not a pedestrian |
+
 **Decision.** **CONFIRMED** needs contact **and** escape **and** a corroborating cue (pose contact,
 a victim reaction or the bike slowing for the grab), score ≥ 0.70, and no lingering.
 **SUSPECT** (score ≥ 0.45) still needs an escape or a pose-level hand-at-neck contact, because
 a snatcher always leaves. Everything else is dismissed and only logged locally. Every alert
 carries the full evidence list, so the operator can see why it fired.
+
+**On foot.** People brush past each other all the time in crowds, so an on-foot alert is stricter:
+CONFIRMED needs the attacker's hand at the victim's neck (pose), a real run away (≥ 1.8 H/s) and a
+victim reaction or approach; SUSPECT needs the run plus a hand-at-neck or a reaction. Box overlap
+between two pedestrians never alerts on its own.
+
+All thresholds in `configs/rules.yaml` are starting values: `evaluation.tune` fits them to labelled
+footage with cross-validation and writes `configs/rules.tuned.yaml`.
 
 **Night.** The lighting analyser switches between `day`, `lowlight` and `ir` (with hysteresis).
 Each mode has its own enhancement (CLAHE / gamma) and rule profile (looser keypoint confidence,
@@ -116,18 +131,21 @@ the mode and a visibility level (`high` = hand-at-neck seen, `medium`/`low` = bo
 ## Results so far
 
 ### Rules on scripted scenes (`python -m snatchguard.sim.run_scenarios`, `pytest`)
-15 scenes × 5 noise conditions (tracker jitter up to 4 px, 8–30% dropped frames):
+23 scenes (motorcycle and on-foot snatches, and their look-alikes) × 5 noise conditions (tracker jitter
+up to 4 px, 8–30 % dropped frames):
 
 | processing rate | wrong verdicts |
 |---|---|
-| 12 / 8 / 6 / 5 fps | **0** (no missed snatch, no false alarm) |
-| ~2.8 fps effective (4 fps, 30% dropped) | ~10%, **all towards weaker alerts** (CONFIRMED → SUSPECT), never a false CONFIRMED |
+| 12 / 8 / 6 fps | **0** (no missed snatch, no false alarm) |
+| 5 fps | 1 / 92 |
+| ~2.8 fps effective (4 fps, 30 % dropped) | 4 / 92, **all towards weaker alerts**, never a false CONFIRMED |
 
-Night IR without any pose (boxes only) is CONFIRMED through the chase and approach evidence.
-The playful tap, friends chatting, handover, hug, walking alongside, phone call and passing bikes are dismissed.
+Night IR without any pose (boxes only) is CONFIRMED for motorcycle snatches through the chase and approach
+evidence (SUSPECT on foot, where pose is required). The playful tap, friends chatting or hugging, handover,
+walking alongside, phone call, jogger, crowd brush and passing bikes are dismissed.
 
-### Real CCTV (Snatch 1.0, pretrained YOLO26n, laptop CPU)
-All numbers are with the **pretrained** YOLO26n (before the Colab fine-tuning), 512 px, 8 fps analysis,
+### Real CCTV (Snatch 1.0, pretrained YOLO26n, laptop CPU, before training and tuning)
+All numbers are with the **pretrained** YOLO26n (before fine-tuning), 512 px, 8 fps analysis,
 on this laptop's CPU (about 2–5 fps achieved on crowded scenes).
 
 **False alarms on real footage** (`python -m snatchguard.evaluation.benchmark --only normal --max-seconds 600`, plus `analyse s_9.avi`):
@@ -145,29 +163,43 @@ the frame edge in slow crowds), each with a regression test.
 `python -m snatchguard.evaluation.funnel` shows why: the pretrained detector never finds the motorcycle in a
 large share of these small, blurry, re-encoded clips (even YOLO26x at 1280 px missed a clearly visible
 two-rider bike), and most clips are cut 1–3 s around the grab, so there's no context before it and no getaway
-after it. This is the perception gap the Colab training targets (VisDrone elevated views, CCTV
-degradation, night variants, pseudo-labels from real Hyderabad CCTV). **Re-run the benchmark after
-installing the fine-tuned models: that before/after comparison is the key result.**
+after it. This is the perception gap the GPU training targets (VisDrone elevated views, CCTV
+degradation, night variants, pseudo-labels from real Hyderabad CCTV). The acceptance report produced by
+`training.run_all` (with `--baseline`) gives the before/after comparison on the full dataset.
 
-Of the 35 Snatch 1.0 clips, 13 are motorcycle snatches (the system's target), 12 are on-foot snatches (a
-possible future "loiter then lunge" rule, e.g. `10_0`), and 9 are staged videos, a movie scene or screen
-recordings (out of scope).
+Of the 35 Snatch 1.0 clips, 13 are motorcycle snatches and 12 on-foot snatches (both in scope), and 9 are
+staged videos, a movie scene or screen recordings (out of scope).
 
-## Training (Google Colab)
+## Training and the 90 % acceptance test (NVIDIA GPU)
 
-Open `training/colab/SnatchGuard_Train.ipynb` in Colab (T4 GPU) and run all cells. It:
-1. builds a night-robust set: **ExDark** (real low-light), **LLVIP** (real infrared), **VisDrone**
-   (elevated street views with riders and motorcycles) and **COCO**, with synthetic IR / low-light
-   variants and CCTV degradation (blur, heavy JPEG, low resolution);
-2. optionally **pseudo-labels your own CCTV** with a large teacher (YOLO26x, 1280 px) so the small
-   edge model learns your cameras (the biggest single gain);
-3. fine-tunes YOLO26n detect + pose, **auto-resuming** from Google Drive after disconnects;
-4. reports day vs night mAP, pretrained vs fine-tuned;
-5. exports OpenVINO / ONNX. Then locally: `python scripts/fetch_models.py --from-colab det.pt pose.pt`.
+Step-by-step for Windows 11 + RTX 4060: **[docs/WINDOWS_GPU_GUIDE.md](docs/WINDOWS_GPU_GUIDE.md)**. In short:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\setup.ps1
+.\.venv\Scripts\python.exe scripts\snatch_dataset.py download --to D:\snatch_zips
+powershell -ExecutionPolicy Bypass -File scripts\windows\train_all.ps1 -Zips D:\snatch_zips -Baseline
+```
+(Linux: `python -m training.run_all --zips /path/to/zips --baseline`.)
+
+`training.run_all` builds the night/CCTV training sets (ExDark, LLVIP, VisDrone, COCO + synthetic IR,
+low-light and CCTV degradation), pseudo-labels the `pseudo` fold of real Hyderabad CCTV with a YOLO26x
+teacher, fine-tunes YOLO26s detect + pose, caches perception over every evaluation video, tunes the rule
+thresholds with 2-fold cross-validation and writes `runtime/tuning/acceptance_report.md`: recall,
+precision, 95 % confidence intervals, false alarms per hour and every clip's outcome, with PASS/NOT MET
+against 90 %/90 %. Every step is resumable. `--profile smoke` runs the whole chain on any CPU in
+minutes to check the plumbing.
+
+**Splits** (`data/labels/snatch1.0.csv`, column `fold`): 15 normal videos (`pseudo`) are only ever used to
+teach the detector; 14 normal videos (3.1 h) and the 25 in-scope snatch clips are split into folds A and B
+for rule tuning and scoring. Nothing is scored on data it was fitted to.
 
 ## Evaluation tools
 
 ```bash
+python -m snatchguard.evaluation.cache --config configs/edge.gpu.yaml  # perception once per video
+python -m snatchguard.evaluation.tune --config configs/edge.gpu.yaml   # cross-validated tuning
+python -m snatchguard.evaluation.acceptance                            # the 90 %/90 % report
+python -m snatchguard.evaluation.funnel                         # where each clip is lost (detection → alert)
 python -m snatchguard.sim.run_scenarios                        # rule verdicts on scripted scenes
 python -m snatchguard.evaluation.analyse VIDEO --debug out.mp4 # what the pipeline sees, frame by frame
 python -m snatchguard.evaluation.analyse VIDEO --zone 0 0 .7 .7  # detection zone = zoom for distant cameras
@@ -175,8 +207,22 @@ python -m snatchguard.evaluation.benchmark --only snatch_bike  # recall on label
 python -m snatchguard.evaluation.benchmark --only normal       # false alarms per hour on normal footage
 python -m snatchguard.evaluation.benchmark --night ir          # the same, with synthetic IR night
 ```
-Labels live in `data/labels/snatch1.0.csv` (category per clip; add `event_start_s` / `event_end_s`
-for time-accurate scoring).
+Labels live in `data/labels/snatch1.0.csv` (category, event start/end times, fold); every snatch clip
+was reviewed frame by frame. `scripts/label_events.py` adds or corrects times for new footage.
+
+## The two-machine demo (GPU edge box + laptop dashboard)
+
+```bash
+# laptop
+SNATCHGUARD_API_KEYS=my-edge-key SNATCHGUARD_DASHBOARD_PASSWORD=choose-one scripts/laptop/run_central.sh
+```
+```powershell
+# GPU box (Windows)
+powershell -ExecutionPolicy Bypass -File scripts\windows\run_edge.ps1 -Central http://<laptop-ip>:8000 -ApiKey my-edge-key
+```
+The GPU box's camera defaults to `configs/playlists/demo.txt`: held-out normal Hyderabad CCTV with real
+snatch clips in between, played in real time as one live camera (`playlist:` sources reset tracking
+at every cut). Use `-Source rtsp://...` for a real camera.
 
 ## Moving to real edge hardware
 
@@ -196,11 +242,12 @@ snatchguard/
   edge/        source, lighting, perception, pipeline, evidence, tamper, outbox, publisher, camera worker, node
   central/     FastAPI app, storage, dashboard (static/)
   sim/         scripted scenes, night simulation, scenario runner
-  evaluation/  offline analyse + benchmark
-configs/       edge.yaml, rules.yaml, tracker.yaml
-training/      dataset builder, pseudo-labelling, training/export, Colab notebook
-scripts/       model fetch/export, Snatch 1.0 downloader, contact sheets
-tests/         rules, scene, edge parts, central API
+  evaluation/  analyse, benchmark, funnel, perception cache, metrics, cross-validated tuner, acceptance report
+configs/       edge.yaml (laptop), rules.yaml, tracker.yaml, playlists/ (generated: edge.gpu.yaml, rules.tuned.yaml)
+training/      run_all (one-command pipeline), dataset builder, pseudo-labelling, train/export, Colab notebook
+scripts/       windows/ (setup, train_all, run_edge), laptop/run_central.sh, Snatch 1.0 tool, model fetch
+docs/          WINDOWS_GPU_GUIDE.md
+tests/         rules (scripted scenes), scene, edge parts, central API, tuning pipeline
 ```
 
 ## Data and licences

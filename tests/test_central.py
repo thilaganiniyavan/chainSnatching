@@ -95,3 +95,17 @@ def test_silent_node_raises_offline_alert(tmp_path, monkeypatch):
         # heartbeat again -> back online event
         c.post("/api/v1/heartbeat", json={"node_id": "n9", "cameras": [{"id": "c1", "status": "online"}]}, headers=KEY)
         assert any(e["level"] == "ONLINE" for e in c.get("/api/v1/events").json())
+
+
+def test_dashboard_password(tmp_path):
+    import base64 as b64
+    with TestClient(create_app(tmp_path, {"test-key"}, dashboard_password="s3cret")) as c:
+        assert c.get("/").status_code == 401
+        assert c.get("/api/v1/events").status_code == 401
+        good = {"Authorization": "Basic " + b64.b64encode(b"operator:s3cret").decode()}
+        bad = {"Authorization": "Basic " + b64.b64encode(b"operator:nope").decode()}
+        assert c.get("/api/v1/events", headers=good).status_code == 200
+        assert c.get("/api/v1/events", headers=bad).status_code == 401
+        # edge nodes keep working with their API key
+        assert c.post("/api/v1/heartbeat", json={"node_id": "n1", "cameras": []}, headers=KEY).status_code == 200
+        assert c.get("/healthz").status_code == 200
