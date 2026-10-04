@@ -162,6 +162,12 @@ Every false alarm found during development was traced to a cause and fixed with 
 bike was missed, riders queued at a signal, a rider's own scooter detected as a second object, tracks lost at
 the frame edge in slow crowds), each with a regression test.
 
+**False alarms on all 14 held-out normal videos** (first 10 min of each = 2.0 h: day junctions, colour-night
+streets and real IR night markets; laptop perception, default rules, `evaluation.replay --only normal`):
+**0 CONFIRMED, 4 SUSPECT (2.0 / h)**, down from 20 in the first 1.2 h before the crowd-aware rules. With about 25
+real events, 90 % precision needs under ~1 false alarm per hour, so the GPU run's tuning has to trim the
+remaining SUSPECT margin (it optimises exactly that).
+
 **Cross-validated acceptance run on this laptop** (pretrained YOLO26n, 512 px, CPU; 25 snatch events, 20 min of
 held-out normal footage, `evaluation.tune --trials 60`): recall **0 / 25**, no false alarms. On-foot clips reach
 contact in 5 of 12 but never show the getaway; motorcycle clips mostly fail at detection. This is the "before"
