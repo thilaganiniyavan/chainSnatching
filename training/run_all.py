@@ -116,8 +116,9 @@ def step_check(a, prof) -> None:
     gpu = torch.cuda.get_device_properties(0)
     free = shutil.disk_usage(ROOT).free / 1e9
     log(f"GPU {gpu.name}, {gpu.total_memory / 1e9:.1f} GB; torch {torch.__version__}; free disk {free:.0f} GB")
-    if free < 120:
-        log("WARNING: under 120 GB free. Snatch 1.0 (12.5 GB) + datasets (~40 GB) + caches need room.")
+    if free < 60:
+        log("WARNING: under 60 GB free. The full run needs about 50 GB more (training sets ~25 GB, videos 12 GB, "
+            "models and caches); free some space or it may stop with 'No space left on device'.")
     import ultralytics
     log(f"ultralytics {ultralytics.__version__}")
 

@@ -10,7 +10,9 @@ Everything heavy runs on the GPU box; the laptop only runs the dashboard.
 | full pipeline (`train_all.ps1`) | GPU box | about 12–18 h (`-Profile quick`: about 4–6 h) |
 | demo | GPU box + laptop | live |
 
-Disk: keep **150 GB free** (dataset zips + videos ≈ 25 GB, training sets ≈ 40 GB, perception caches, runs).
+Disk: keep **80 GB free**. The run uses about 60 GB: Snatch 1.0 videos 12 GB (+12.5 GB if the original zips
+stay on the same disk), downloaded and prepared training sets ~25 GB, Python + CUDA libraries ~7 GB,
+models / caches / reports a few GB.
 
 ## 1. Setup (once)
 

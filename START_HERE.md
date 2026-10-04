@@ -13,7 +13,7 @@ One script does everything. It runs for about **12–18 hours**; you mostly just
 | | |
 |---|---|
 | Computer | Windows 10/11 laptop or PC with an **NVIDIA GPU** (RTX 3060/4060 or better, 8 GB+ VRAM) |
-| Disk | **150 GB free** (videos 25 GB, training data ~40 GB, results) |
+| Disk | **80 GB free** (uses ~60 GB: videos 12 GB, training data ~25 GB, Python/GPU libraries ~7 GB, results; ~12 GB less with `--move` in step 3) |
 | Internet | to install packages and download training datasets (~10 GB) |
 | Time | 15 min setup + 12–18 h unattended run |
 | Files | `snatchguard_code.zip` (from your friend) and the **Snatch 1.0 videos** you already have |
