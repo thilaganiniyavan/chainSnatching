@@ -4,7 +4,7 @@
 #   ... -ApiKey my-edge-key                            # must match SNATCHGUARD_API_KEYS on the laptop
 param([Parameter(Mandatory = $true)][string]$Central, [string]$Config = "configs\edge.gpu.yaml",
       [string]$Source = "", [string]$ApiKey = "")
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Continue"   # native tools log to stderr; python exit codes are passed through
 Set-Location (Resolve-Path "$PSScriptRoot\..\..")
 if (-not (Test-Path $Config)) { throw "$Config not found: run train_all.ps1 first (its 'install' step writes it)." }
 $py = ".\.venv\Scripts\python.exe"

@@ -6,7 +6,7 @@
 #   ... -Extra "--from","cache"  # any extra arguments for training.run_all
 param([string]$Zips = "", [ValidateSet("full", "quick")][string]$Profile = "full", [switch]$Baseline,
       [string[]]$Extra = @())
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Continue"   # native tools log to stderr; python exit codes are passed through
 Set-Location (Resolve-Path "$PSScriptRoot\..\..")
 $py = ".\.venv\Scripts\python.exe"
 $argsList = @("-m", "training.run_all", "--profile", $Profile)
@@ -18,3 +18,4 @@ $sig = '[DllImport("kernel32.dll")] public static extern uint SetThreadExecution
 $k32 = Add-Type -MemberDefinition $sig -Name "Power" -Namespace "Win32" -PassThru
 [void]$k32::SetThreadExecutionState([uint32]"0x80000001")
 try { & $py @argsList } finally { [void]$k32::SetThreadExecutionState([uint32]"0x80000000") }
+exit $LASTEXITCODE
