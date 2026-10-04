@@ -18,6 +18,8 @@ from snatchguard.core.types import Detection, FrameObservation, ObjClass, Pose
 
 TRACK_MEMORY_S = 30.0     # how much history each track keeps
 LOST_FORGET_S = 8.0       # lost tracks are forgotten after this long
+STITCH_MAX_GAP_S = 1.2    # a new tracker id this soon after a loss, where the lost track was heading,
+STITCH_DIST_H = 0.6       # ...within this many body-heights of the predicted spot = the same object
 
 
 @dataclass(slots=True)
@@ -173,6 +175,8 @@ class Scene:
         self.established: set[int] = set()          # people seen walking on their own
         self._match_since: dict[tuple[int, int], float] = {}  # (person, bike) -> t continuously riding along
         self.locked_pedestrians: set[int] = set()   # set by the rule engine during contacts
+        self._alias: dict[int, int] = {}            # tracker id -> stitched (canonical) track id
+        self._seen_raw: set[int] = set()
 
     # ---- update ------------------------------------------------------------
     def update(self, frame: FrameObservation, p: RuleParams) -> None:
@@ -180,16 +184,48 @@ class Scene:
         self.frame_size = frame.frame_size
         seen: set[int] = set()
         for det in frame.detections:
-            self._add(det, frame.t, frame.poses.get(det.track_id))
-            seen.add(det.track_id)
+            tid = self._canonical_for(det, frame.t, seen)
+            self._add(det, frame.t, frame.poses.get(det.track_id), tid)
+            seen.add(tid)
         self._mark_lost(seen, frame.t, p)
         self._update_roles(frame.t, p)
 
-    def _add(self, det: Detection, t: float, pose: Pose | None) -> None:
-        tr = self.tracks.get(det.track_id)
+    def canonical(self, raw_id: int) -> int:
+        return self._alias.get(raw_id, raw_id)
+
+    def _canonical_for(self, det: Detection, t: float, taken: set[int]) -> int:
+        """Track stitching: the tracker often restarts an object under a new id after an occlusion or in
+        compressed footage. A brand-new id that appears where a just-lost track of the same kind was heading
+        continues that track, so speeds, contacts and getaways stay measurable across the switch."""
+        if det.track_id in self._alias or det.track_id in self._seen_raw:
+            return self._alias.get(det.track_id, det.track_id)
+        self._seen_raw.add(det.track_id)
+        box = np.asarray(det.box, dtype=float)
+        best, best_d = None, None
+        for tr in self.tracks.values():
+            if tr.lost_at is None or tr.track_id in taken or tr.cls.is_vehicle != det.cls.is_vehicle:
+                continue
+            gap = t - tr.last_t
+            if gap > STITCH_MAX_GAP_S:
+                continue
+            h = g.height(tr.last.box)
+            if not 0.7 <= g.height(box) / max(h, 1.0) <= 1.4:
+                continue
+            predicted = g.foot(tr.last.box) + tr.velocity(tr.last_t) * gap
+            d = float(np.linalg.norm(g.foot(box) - predicted))
+            if d <= max(STITCH_DIST_H * h, 25.0) and (best_d is None or d < best_d):
+                best, best_d = tr.track_id, d
+        if best is not None:
+            self._alias[det.track_id] = best
+            return best
+        return det.track_id
+
+    def _add(self, det: Detection, t: float, pose: Pose | None, tid: int | None = None) -> None:
+        tid = det.track_id if tid is None else tid
+        tr = self.tracks.get(tid)
         if tr is None:
-            tr = Track(det.track_id, det.cls)
-            self.tracks[det.track_id] = tr
+            tr = Track(tid, det.cls)
+            self.tracks[tid] = tr
         tr.vote(det.cls)
         box = np.asarray(det.box, dtype=float)
         w, h = self.frame_size
@@ -200,7 +236,7 @@ class Scene:
             tr.obs.popleft()
 
     def attach_pose(self, track_id: int, pose: Pose) -> None:
-        tr = self.tracks.get(track_id)
+        tr = self.tracks.get(self.canonical(track_id))
         if tr is not None and tr.obs:
             tr.obs[-1].pose = pose
             tr._memo.clear()
@@ -227,6 +263,7 @@ class Scene:
                 self.established.discard(tid)
                 self._rider_score = {k: v for k, v in self._rider_score.items() if tid not in k}
                 self._match_since = {k: v for k, v in self._match_since.items() if tid not in k}
+                self._alias = {raw: c for raw, c in self._alias.items() if c != tid}
 
     # ---- roles -------------------------------------------------------------
     def _rider_match(self, person: Track, bike: Track, t: float, p: RuleParams) -> float:

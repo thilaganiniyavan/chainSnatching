@@ -95,3 +95,27 @@ def test_person_box_coinciding_with_motorcycle_box_is_never_a_contact():
                              Detection(2, ObjClass.MOTORCYCLE, np.array([402, 205, 462, 372.0]), 0.6)]), P)
     s = build_sample(sc, sc.tracks[1], sc.tracks[2], P)
     assert s.contact == CONTACT_NONE
+
+
+def test_track_stitching_continues_a_switched_id():
+    """Tracker restarts the same moving bike under a new id after a short gap: history continues."""
+    sc = Scene()
+    for i in range(10):                                   # bike 5 moving right at 160 px/s
+        x = 100 + i * 20
+        sc.update(_frame(i * 0.125, [Detection(5, ObjClass.MOTORCYCLE, np.array([x, 300, x + 120, 380.0]), 0.6)]), P)
+    for i in range(10, 14):                               # missed for 0.5 s
+        sc.update(_frame(i * 0.125, []), P)
+    x = 100 + 14 * 20                                     # reappears where it should be, new tracker id 77
+    sc.update(_frame(14 * 0.125, [Detection(77, ObjClass.MOTORCYCLE, np.array([x, 300, x + 120, 380.0]), 0.6)]), P)
+    assert sc.canonical(77) == 5 and 77 not in sc.tracks
+    assert sc.tracks[5].lost_at is None and sc.tracks[5].speed(14 * 0.125) > 100
+
+
+def test_no_stitching_far_away_or_different_kind():
+    sc = Scene()
+    for i in range(10):
+        sc.update(_frame(i * 0.125, [Detection(5, ObjClass.MOTORCYCLE, np.array([100, 300, 220, 380.0]), 0.6)]), P)
+    sc.update(_frame(1.3, []), P)
+    sc.update(_frame(1.4, [Detection(8, ObjClass.MOTORCYCLE, np.array([900, 300, 1020, 380.0]), 0.6),
+                           Detection(9, ObjClass.PERSON, np.array([100, 230, 150, 380.0]), 0.6)]), P)
+    assert sc.canonical(8) == 8 and sc.canonical(9) == 9

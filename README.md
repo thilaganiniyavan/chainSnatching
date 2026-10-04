@@ -128,7 +128,8 @@ the mode and a visibility level (`high` = hand-at-neck seen, `medium`/`low` = bo
 | camera process crashes | the supervisor restarts it with backoff; the restart count is shown |
 | whole edge node dies | central raises **"NOT MONITORED"** after 35 s without a heartbeat |
 | too slow to analyse reliably | the camera is flagged `low fps` below 5 fps (the tested operating envelope) |
-| the same snatch seen by two pairs | one alert per bike per cooldown |
+| the same snatch seen by two pairs | one alert per attacker and per victim per cooldown |
+| tracker restarts an object under a new id (occlusion, compression) | track stitching: a new id where a just-lost track was heading continues that track |
 
 ## Results so far
 
@@ -160,6 +161,11 @@ on this laptop's CPU (about 2–5 fps achieved on crowded scenes).
 Every false alarm found during development was traced to a cause and fixed with a general rule (riders whose
 bike was missed, riders queued at a signal, a rider's own scooter detected as a second object, tracks lost at
 the frame edge in slow crowds), each with a regression test.
+
+**Cross-validated acceptance run on this laptop** (pretrained YOLO26n, 512 px, CPU; 25 snatch events, 20 min of
+held-out normal footage, `evaluation.tune --trials 60`): recall **0 / 25**, no false alarms. On-foot clips reach
+contact in 5 of 12 but never show the getaway; motorcycle clips mostly fail at detection. This is the "before"
+column; the GPU pipeline produces the "after".
 
 **Recall on the 13 hand-labelled motorcycle-snatch clips** (`data/labels/snatch1.0.csv`): **0 / 13** so far.
 `python -m snatchguard.evaluation.funnel` shows why: the pretrained detector never finds the motorcycle in a

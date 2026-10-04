@@ -20,7 +20,7 @@ import cv2
 import numpy as np
 
 from snatchguard.core.config import REPO_ROOT, RuleConfig
-from snatchguard.core.types import FrameObservation, Level, Lighting
+from snatchguard.core.types import Detection, FrameObservation, Level, Lighting
 from snatchguard.edge.evidence import EvidenceRecorder
 from snatchguard.edge.outbox import Outbox
 from snatchguard.edge.source import Frame, LiveSource
@@ -202,6 +202,9 @@ class CameraWorker:
             self.stats["pose_ms"] = self.pipeline.perception.pose_ms
         self._mode = mode
 
+        # clips are labelled with the rule engine's (stitched) track ids
+        canon = self.engine.scene.canonical
+        dets = [Detection(canon(d.track_id), d.cls, d.box, d.conf) for d in dets]
         self.recorder.push(enhanced, frame.t, dets)
         self._last_img = enhanced
         for d in decisions:
