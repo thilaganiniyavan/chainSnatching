@@ -34,6 +34,14 @@ SnatchGuard, prints your GPU, and runs the tests. All tests should pass.
 (or download the 7 zips yourself from https://zenodo.org/records/10812645 into one folder).
 The pipeline unpacks them in the next step.
 
+Already have the videos on another computer or a USB drive (zips, the extracted *Snatch 1.0* folder, or
+loose files)? Point the importer at it; it recognises every labelled video by name:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\snatch_dataset.py import --from E:\snatch   # add --move to save disk space
+```
+It ends with `64/64 labelled videos present`. Then run step 3 without `-Zips`.
+
 ## 3. Everything: training → evaluation → acceptance report
 
 ```powershell
@@ -63,6 +71,7 @@ What the steps do, in order:
 | install | copy weights, write `configs\edge.gpu.yaml` | `models\*_finetuned.pt` |
 | cache | perception once over all evaluation videos | `runtime\cache\` |
 | tune | cross-validated rule tuning against 90 % / 90 % | `runtime\tuning\` |
+| night | the same held-out footage as simulated IR and low-light night, scored with the tuned rules | `runtime\tuning\night.json` |
 | report | **acceptance report**, deploys the tuned rules | `runtime\tuning\acceptance_report.md` |
 
 ### How the 90 % is measured (so the number holds up in front of a panel)

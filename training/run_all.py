@@ -20,6 +20,7 @@ Steps (each writes runtime/pipeline/<step>.done and is skipped next time unless 
   install    copy the trained weights into models/ and write configs/edge.gpu.yaml
   cache      run perception once over every evaluation video
   tune       cross-validated rule tuning against the 90 % targets
+  night      the same held-out footage as simulated IR / low-light night, scored with the tuned rules
   report     acceptance report (runtime/tuning/acceptance_report.md)
 """
 
@@ -46,11 +47,11 @@ PROFILES = {
     "full": dict(det_size="s", det_imgsz=960, det_epochs=50, pose_size="s", pose_imgsz=640, pose_epochs=30,
                  coco=12000, visdrone=6000, llvip=6000, exdark=True, pose_images=15000, pseudo_every=2.0,
                  pseudo_max=400, teacher="yolo26x.pt", edge_imgsz=960, pose_infer_imgsz=960, trials=150,
-                 device="0", cpu_ok=False),
+                 device="0", cpu_ok=False, night_max_seconds=600),
     "quick": dict(det_size="n", det_imgsz=640, det_epochs=25, pose_size="n", pose_imgsz=640, pose_epochs=15,
                   coco=4000, visdrone=2000, llvip=2000, exdark=True, pose_images=5000, pseudo_every=4.0,
                   pseudo_max=150, teacher="yolo26x.pt", edge_imgsz=768, pose_infer_imgsz=768, trials=80,
-                  device="0", cpu_ok=False),
+                  device="0", cpu_ok=False, night_max_seconds=600),
     # Plumbing test only (any machine, CPU is fine): tiny data, 1 epoch. Proves every step runs.
     "smoke": dict(det_size="n", det_imgsz=320, det_epochs=1, pose_size="n", pose_imgsz=320, pose_epochs=1,
                   coco=40, visdrone=0, llvip=0, exdark=False, pose_images=30, pseudo_every=30.0, pseudo_max=2,
@@ -58,7 +59,7 @@ PROFILES = {
                   cpu_ok=True, cache_max_seconds=60),
 }
 STEPS = ["check", "data", "models", "baseline", "datasets", "pseudo", "train_det", "compare", "train_pose",
-         "install", "cache", "tune", "report"]
+         "install", "cache", "tune", "night", "report"]
 
 
 def log(msg: str) -> None:
@@ -210,6 +211,15 @@ def step_cache(a, prof) -> None:
 def step_tune(a, prof) -> None:
     run("tune", ["-m", "snatchguard.evaluation.tune", "--config", "configs/edge.gpu.yaml",
                  "--trials", str(a.trials or prof["trials"]), "--target", str(a.target)])
+
+
+def step_night(a, prof) -> None:
+    cap = str(prof.get("cache_max_seconds") or prof["night_max_seconds"])
+    for mode in ("ir", "lowlight"):
+        run("night", ["-m", "snatchguard.evaluation.cache", "--config", "configs/edge.gpu.yaml", "--night", mode,
+                      "--max-seconds", cap])
+    run("night", ["-m", "snatchguard.evaluation.night", "--config", "configs/edge.gpu.yaml",
+                  "--rules", str(ROOT / "runtime" / "tuning" / "rules.tuned.yaml")])
 
 
 def step_report(a, prof) -> None:

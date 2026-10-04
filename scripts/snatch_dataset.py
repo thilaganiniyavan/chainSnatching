@@ -6,6 +6,7 @@ videos.
 
     python scripts/snatch_dataset.py download --to D:/downloads        # all 7 parts, resumable
     python scripts/snatch_dataset.py extract --zips D:/downloads        # unpack into data/samples/snatch1.0
+    python scripts/snatch_dataset.py import --from /media/usb/snatch      # zips, folders or loose videos
     python scripts/snatch_dataset.py verify                              # every labelled video present?
     python scripts/snatch_dataset.py list
     python scripts/snatch_dataset.py get "Snatch 1.0/Chain Snatching Videos/Snatch Theft/17_0.mp4"
@@ -160,6 +161,30 @@ def extract(zips: Path) -> None:
     print(f"done -> {OUT}")
 
 
+def import_videos(src: Path, labels: Path, move: bool = False) -> None:
+    """Bring Snatch 1.0 videos in from anywhere: zip parts, an extracted folder or loose files.
+    Videos are recognised by file name (every labelled name is unique) and placed in the expected layout."""
+    import csv
+    import shutil
+    for folder in sorted({z.parent for z in src.rglob("*.zip")}):
+        extract(folder)
+    with open(labels, newline="", encoding="utf-8") as f:
+        wanted = {Path(r["video"]).name: r["video"] for r in csv.DictReader(f)}
+    placed = skipped = 0
+    for path in src.rglob("*"):
+        if path.suffix.lower() not in (".avi", ".mp4", ".mkv", ".mov") or path.name not in wanted:
+            continue
+        dest = OUT / "Chain Snatching Videos" / wanted[path.name]
+        if dest.exists() and dest.stat().st_size == path.stat().st_size:
+            skipped += 1
+            continue
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        (shutil.move if move else shutil.copy2)(str(path), dest)
+        placed += 1
+        print(f"{'moved' if move else 'copied'} {wanted[path.name]}", flush=True)
+    print(f"{placed} placed, {skipped} already present")
+
+
 def verify(labels: Path) -> bool:
     import csv
     with open(labels, newline="", encoding="utf-8") as f:
@@ -178,6 +203,10 @@ def main() -> None:
     dl.add_argument("--to", type=Path, required=True)
     ex = sub.add_parser("extract")
     ex.add_argument("--zips", type=Path, required=True)
+    im = sub.add_parser("import")
+    im.add_argument("--from", dest="src", type=Path, required=True)
+    im.add_argument("--move", action="store_true", help="move instead of copy (saves disk space)")
+    im.add_argument("--labels", type=Path, default=ROOT / "data" / "labels" / "snatch1.0.csv")
     ve = sub.add_parser("verify")
     ve.add_argument("--labels", type=Path, default=ROOT / "data" / "labels" / "snatch1.0.csv")
     sub.add_parser("list")
@@ -192,6 +221,9 @@ def main() -> None:
         return download_all(args.to)
     if args.cmd == "extract":
         return extract(args.zips)
+    if args.cmd == "import":
+        import_videos(args.src, args.labels, args.move)
+        raise SystemExit(0 if verify(args.labels) else 1)
     if args.cmd == "verify":
         raise SystemExit(0 if verify(args.labels) else 1)
 

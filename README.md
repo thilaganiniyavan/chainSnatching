@@ -56,11 +56,13 @@ python3 -m venv .venv            # if ensurepip is missing: python3 -m venv --wi
 Scripted scenes: `snatch`, `snatch_chase`, `snatch_night_ir`, `snatch_head_on`, `passing_bike`,
 `friends_chat`, `playful_tap`, `handover`, `hug`, `walking_alongside`, `phone_call`.
 
-Get the Snatch 1.0 test videos (only the files you need, via HTTP range requests):
+Get the Snatch 1.0 videos:
 
 ```bash
-.venv/bin/python scripts/snatch_dataset.py list
-.venv/bin/python scripts/snatch_dataset.py get-all --category "Snatch Theft" --max 60 --max-mb 20
+.venv/bin/python scripts/snatch_dataset.py download --to ~/snatch_zips      # all 7 parts, resumable
+.venv/bin/python scripts/snatch_dataset.py import --from /media/usb/snatch  # or: copied from another machine
+.venv/bin/python scripts/snatch_dataset.py verify                           # 64/64 labelled videos present?
+.venv/bin/python scripts/snatch_dataset.py get-all --category "Snatch Theft" --max-mb 20  # just the clips
 ```
 
 ## How a snatch is recognised
@@ -184,9 +186,10 @@ powershell -ExecutionPolicy Bypass -File scripts\windows\train_all.ps1 -Zips D:\
 `training.run_all` builds the night/CCTV training sets (ExDark, LLVIP, VisDrone, COCO + synthetic IR,
 low-light and CCTV degradation), pseudo-labels the `pseudo` fold of real Hyderabad CCTV with a YOLO26x
 teacher, fine-tunes YOLO26s detect + pose, caches perception over every evaluation video, tunes the rule
-thresholds with 2-fold cross-validation and writes `runtime/tuning/acceptance_report.md`: recall,
-precision, 95 % confidence intervals, false alarms per hour and every clip's outcome, with PASS/NOT MET
-against 90 %/90 %. Every step is resumable. `--profile smoke` runs the whole chain on any CPU in
+thresholds with 2-fold cross-validation, checks the same held-out footage as simulated IR and low-light
+night video, and writes `runtime/tuning/acceptance_report.md`: recall, precision, 95 % confidence
+intervals, false alarms per hour, night results and every clip's outcome, with PASS/NOT MET against
+90 %/90 %. Every step is resumable. `--profile smoke` runs the whole chain on any CPU in
 minutes to check the plumbing.
 
 **Splits** (`data/labels/snatch1.0.csv`, column `fold`): 15 normal videos (`pseudo`) are only ever used to

@@ -79,6 +79,20 @@ def render(res: dict) -> str:
             lo, hi = wilson(caught, len(os_))
             lines.append(f"| {cat} | {len(os_)} | {caught} | {pct(caught / len(os_))} ({100 * lo:.0f}–{100 * hi:.0f}%) | "
                          f"{sum(o['false_alarms'] for o in os_)} |")
+    night = res.get("night") or {}
+    if night.get("modes"):
+        lines += ["", "## Night (simulated IR and low-light versions of the same held-out footage)", "",
+                  "Scored with the deployed thresholds, nothing tuned on it. Simulated night models IR fall-off, "
+                  "low light, colour cast, noise and blur; it is a robustness check, not a substitute for real "
+                  "night recordings.", "",
+                  "| condition | recall | precision | false alarms / hour | motorcycle caught | on foot caught |",
+                  "|---|---|---|---|---|---|"]
+        for mode, r in night["modes"].items():
+            bc = r.get("by_category", {})
+            cell = lambda c: f"{bc[c]['caught']}/{bc[c]['events']}" if c in bc else "–"  # noqa: E731
+            lines.append(f"| {'IR (infrared camera)' if mode == 'ir' else 'colour low-light'} | {pct(r['recall'])} "
+                         f"({ci(r['recall_ci95'])}) | {prec(r)} | {r['false_alarms_per_hour']:.2f} | "
+                         f"{cell('snatch_bike')} | {cell('snatch_foot')} |")
     lines += ["", "## Every clip (scored on the fold it was not tuned on)", "",
               "| video | category | fold | caught | true alerts | false alarms | latency after grab |",
               "|---|---|---|---|---|---|---|"]
@@ -107,7 +121,10 @@ def main() -> None:
     ap.add_argument("--result", default=str(OUT_DIR / "result.json"))
     ap.add_argument("--out", default=str(OUT_DIR / "acceptance_report.md"))
     args = ap.parse_args()
-    res = json.loads(Path(args.result).read_text())
+    res = json.loads(Path(args.result).read_text(encoding="utf-8"))
+    night_path = Path(args.result).with_name("night.json")
+    if night_path.exists():
+        res["night"] = json.loads(night_path.read_text(encoding="utf-8"))
     Path(args.out).write_text(render(res), encoding="utf-8")
     print(f"wrote {args.out}  ->  {'PASS' if res['passes'] else 'NOT MET'}")
 

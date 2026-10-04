@@ -76,3 +76,10 @@ def test_cross_validated_tuning_and_report(entries, tmp_path):
     assert "cross-validated" in report.lower() and "Every clip" in report
     # the scripted snatches are easy: the defaults already catch them without false alarms
     assert res["default_rules"]["recall"] == 1.0 and res["default_rules"]["false_alarms"] == 0
+
+
+def test_report_includes_night_section(entries, tmp_path):
+    res = run_tuning(entries, RuleConfig.load(), trials=2, workers=1, target=0.9, out_dir=tmp_path / "t")
+    res["night"] = {"modes": {"ir": {**res["cross_validated"], "by_category": {"snatch_bike": {"events": 2, "caught": 1}}}}}
+    text = render(res)
+    assert "## Night" in text and "IR (infrared camera)" in text and "1/2" in text

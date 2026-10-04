@@ -44,7 +44,7 @@ class CachedVideo:
     build_fps: float = 0.0
 
 
-def perception_tag(edge_cfg: dict, fps: float) -> str:
+def perception_tag(edge_cfg: dict, fps: float, night: str | None = None) -> str:
     m = edge_cfg["models"]
     tracker = Path(edge_cfg.get("tracker", "configs/tracker.yaml"))
     tracker = tracker if tracker.is_absolute() else REPO_ROOT / tracker
@@ -52,8 +52,11 @@ def perception_tag(edge_cfg: dict, fps: float) -> str:
         "v": CACHE_VERSION, "det": str(m["detector"]), "pose": str(m.get("pose")), "imgsz": m.get("imgsz"),
         "pose_imgsz": m.get("pose_imgsz"), "pose_mode": m.get("pose_mode"), "conf": m.get("conf"),
         "fps": fps, "tracker": tracker.read_text() if tracker.exists() else "",
+        **({"night": night} if night and night != "none" else {}),
     }, sort_keys=True)
-    return Path(str(m["detector"])).name.replace(".", "_")[:24] + "-" + hashlib.md5(key.encode()).hexdigest()[:8]
+    suffix = f"-{night}" if night and night != "none" else ""
+    return (Path(str(m["detector"])).name.replace(".", "_")[:24] + "-" + hashlib.md5(key.encode()).hexdigest()[:8]
+            + suffix)
 
 
 def cache_path(video: str, tag: str) -> Path:
@@ -112,7 +115,7 @@ def build(video: str, edge_cfg: dict, fps: float = 8.0, night: str | None = None
     cap = cv2.VideoCapture(video)
     src_fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
     step = max(1, round(src_fps / fps))
-    cv = CachedVideo(video, perception_tag(edge_cfg, fps), src_fps, src_fps / step, 0.0)
+    cv = CachedVideo(video, perception_tag(edge_cfg, fps, night), src_fps, src_fps / step, 0.0)
     idx, t0 = 0, time.perf_counter()
     while True:
         if not cap.grab():
@@ -179,14 +182,16 @@ def main() -> None:
     ap.add_argument("--folds", default="A,B", help="folds to cache (default: the evaluation folds)")
     ap.add_argument("--fps", type=float, default=8.0)
     ap.add_argument("--rebuild", action="store_true")
-    ap.add_argument("--max-seconds", type=float, help="cap each video (smoke tests only)")
+    ap.add_argument("--max-seconds", type=float, help="cap each video (smoke tests, night evaluation)")
+    ap.add_argument("--night", choices=["none", "ir", "lowlight"], default="none",
+                    help="turn the footage into simulated night first (night evaluation)")
     args = ap.parse_args()
 
     cfg = load_yaml(args.config)
     folds = set(args.folds.split(","))
     rows = [r for r in load_labels(Path(args.labels))
             if r.get("fold") in folds and (not args.only or r["category"] == args.only)]
-    tag = perception_tag(cfg, args.fps)
+    tag = perception_tag(cfg, args.fps, args.night)
     print(f"perception tag {tag}: {len(rows)} videos -> {CACHE_DIR / tag}")
     for r in rows:
         path = Path(args.data) / r["video"]
@@ -198,7 +203,7 @@ def main() -> None:
             print(f"  cached  {r['video']}")
             continue
         t0 = time.time()
-        cv = build(str(path), cfg, args.fps, progress=True, max_seconds=args.max_seconds)
+        cv = build(str(path), cfg, args.fps, night=args.night, progress=True, max_seconds=args.max_seconds)
         save(cv, out)
         print(f"  built   {r['video']}: {len(cv.frames)} frames, {cv.duration_s:.0f}s video "
               f"in {time.time() - t0:.0f}s ({cv.build_fps:.1f} fps)", flush=True)
