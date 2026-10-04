@@ -79,6 +79,9 @@ base:
   linger_s: 3.0                 # bike stays near the victim after contact
   linger_gap: 2.0
   wave_above_nose: 0.10         # victim wrist this far (H) above the nose = waving
+  crowd_radius: 1.5             # H: people this close to the victim count as "around" them
+  crowd_people: 4               # this many others around = crowded: approach and leaving the frame stop counting
+  left_scene_is_escape: true    # leaving the frame counts only at getaway speed (on foot: a run), never in a crowd
   in_traffic_window_s: 4.0      # look this far back before the contact...
   in_traffic_frac: 0.5          # ...if the 'victim' overlapped vehicles this much, it's a rider in traffic
 
@@ -92,6 +95,7 @@ base:
   # --- decision gates (tightened for on-foot attackers in the `foot` block) --
   require_pose_contact_for_confirm: false
   suspect_requires_pose_or_reaction: false
+  calm_vetoes: false            # (true on foot: victim visible and showing no reaction at all -> no alert)
 
   # --- SCORING -------------------------------------------------------------
   weights:
@@ -136,15 +140,16 @@ foot:
   escape_gap_rate: 1.0
   require_pose_contact_for_confirm: true
   suspect_requires_pose_or_reaction: true
+  calm_vetoes: true
 
 profiles:
   day: {}
+  # Night: keypoints are less confident, so accept them at lower confidence with a slightly larger neck
+  # radius. Box-only contact is NOT weighted up: on real IR night footage that caused false alarms.
   lowlight:
     kpt_min_conf: 0.25
     neck_radius: 0.26
-    contact_box_factor: 0.7
   ir:
     kpt_min_conf: 0.22
     neck_radius: 0.26
-    contact_box_factor: 0.7
     same_depth_tol: 0.30

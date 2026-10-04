@@ -71,13 +71,22 @@ def _sustained(samples: list[PairSample], cond, min_s: float) -> bool:
 # Evidence groups
 # ---------------------------------------------------------------------------
 
+def is_crowded(pair: PairState, cs: float, ce: float, p: RuleParams) -> tuple[bool, float]:
+    counts = sorted(s.crowd for s in pair.between(cs - 1.0, ce))
+    med = counts[len(counts) // 2] if counts else 0
+    return med >= p.crowd_people, med
+
+
 def eval_escape(pair: PairState, bike: Track, cs: float, ce: float, now: float, p: RuleParams) -> tuple[bool, list[Evidence]]:
     during = pair.between(cs - 0.3, ce)
     after = [s for s in pair.between(ce, ce + p.escape_window_s) if s.t > ce and not s.bike_lost]
     ev: list[Evidence] = []
     if not during:
         return False, ev
-    sac = float(np.mean([s.bike_speed for s in during]))
+    # speed at the grab itself (start of contact), not averaged over a long overlap that may already
+    # include the getaway (an attacker on foot passing right through the victim)
+    at_grab = pair.between(cs - 0.3, min(ce, cs + 0.5)) or during
+    sac = float(np.mean([s.bike_speed for s in at_grab]))
     thr = max(p.escape_speedup_ratio * sac, sac + p.escape_speedup_abs)
 
     def gap_rate_ok(s: PairSample) -> bool:
@@ -101,6 +110,11 @@ def eval_escape(pair: PairState, bike: Track, cs: float, ce: float, now: float, 
                        f"bike speed {sac:.2f} -> {peak:.2f} H/s after contact (needs >= {thr:.2f})", peak))
     ev.append(Evidence("fast_departure", "escape", fast_departure,
                        f"bike slowed to {sac:.2f} H/s at contact, then left fast"))
+    # Walking out of the view is not a getaway on foot, nor in a crowd (with a close-up camera everyone leaves
+    # the frame within seconds): there the attacker must visibly accelerate away.
+    crowded, _ = is_crowded(pair, cs, ce, p)
+    if not p.left_scene_is_escape or crowded:
+        left_scene = False
     ev.append(Evidence("left_scene", "escape", left_scene, "bike left the frame right after contact"))
     return speedup or fast_departure or left_scene, ev
 
@@ -156,7 +170,9 @@ def eval_reaction(pair: PairState, victim: Track, cs: float, ce: float, p: RuleP
 
     strength = max((strengths[k] for k, v in found.items() if v), default=0.0)
     calm = strength == 0.0 and dv < 0.3 and any(s.victim_pose for s in window)
-    return strength, calm, ev
+    # strong reactions are specific to being robbed; a 'jolt' alone is too often tracking noise in crowds
+    strong = found["hands_to_neck"] or found["fall"] or found["chase"]
+    return strength, calm, ev, strong
 
 
 def _gap_at(victim: Track, bike: Track, t: float) -> float | None:
@@ -309,9 +325,10 @@ def evaluate(pair: PairState, victim: Track, bike: Track, now: float, p: RulePar
 
     escaped, ev = eval_escape(pair, bike, cs, ce, now, p)
     evidence += ev
-    reaction, calm, ev = eval_reaction(pair, victim, cs, ce, p)
+    reaction, calm, ev, strong_reaction = eval_reaction(pair, victim, cs, ce, p)
     evidence += ev
     approach, decel, ev = eval_approach(pair, victim, bike, cs, p)
+    closing = any(e.key == "closing" and e.passed for e in ev)
     evidence += ev
     benign, ev = eval_benign(pair, cs, ce, now, p, victim, [v for v in (vehicles or []) if v.track_id != bike.track_id])
     evidence += ev
@@ -328,13 +345,27 @@ def evaluate(pair: PairState, victim: Track, bike: Track, now: float, p: RulePar
         penalties["calm"] = p.penalties["calm"]
     score = max(0.0, min(1.0, sum(components.values()) - sum(penalties.values())))
 
-    corroborated = contact_level == CONTACT_POSE or reaction > 0 or decel
+    # Contact + getaway is not enough on its own: in crowds, boxes overlap and people leave the frame all the
+    # time. Every alert needs one strong, independent cue: the hand at the neck seen by pose, a specific victim
+    # reaction (hands to neck, fall, chase), or the attacker clearly closing in and slowing beside the victim.
+    crowded, crowd_n = is_crowded(pair, cs, ce, p)
+    evidence.append(Evidence("crowded", "benign", crowded,
+                             f"{crowd_n:.0f} other people within reach of the victim: busy scene, stricter evidence",
+                             crowd_n))
+    if crowded:
+        # slowing down and passing close to people is normal in a crowd: approach no longer corroborates,
+        # and the hand at the neck alone isn't enough (people overlap in the image): a reaction is needed too
+        strong = strong_reaction
+    else:
+        strong = contact_level == CONTACT_POSE or strong_reaction or (closing and decel)
+    corroborated = strong
     if p.require_pose_contact_for_confirm:
-        corroborated = contact_level == CONTACT_POSE and (reaction > 0 or approach > 0)
-    # A snatcher always leaves: box-only contact without a getaway is a near miss in traffic.
-    suspect_ok = escaped or contact_level == CONTACT_POSE
+        corroborated = contact_level == CONTACT_POSE and (strong_reaction or approach > 0)
+    suspect_ok = escaped and strong
     if p.suspect_requires_pose_or_reaction:
-        suspect_ok = escaped and (contact_level == CONTACT_POSE or reaction > 0)
+        suspect_ok = escaped and (contact_level == CONTACT_POSE or strong_reaction)
+    if calm and p.calm_vetoes:
+        suspect_ok = corroborated = False   # on foot: a visibly calm 'victim' means nothing was taken
     if escaped and not benign["linger"] and not benign["in_traffic"] and corroborated and score >= p.confirm_threshold:
         level = Level.CONFIRMED
     elif score >= p.suspect_threshold and suspect_ok:

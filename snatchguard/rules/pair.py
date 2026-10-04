@@ -37,6 +37,7 @@ class PairSample:
     victim_aspect: float         # width / height
     victim_pose: bool
     bike_lost: bool
+    crowd: int = 0               # other people within reach of the victim
 
 
 @dataclass
@@ -144,6 +145,14 @@ def build_sample(scene: Scene, victim: Track, bike: Track, p: RuleParams) -> Pai
             if nose is not None and (nose[1] - pt[1]) / H >= p.wave_above_nose:
                 waving = True
 
+    crowd = 0
+    for tr in scene.tracks.values():
+        if (tr.cls is not ObjClass.PERSON or tr.lost_at is not None or tr.track_id in (victim.track_id, bike.track_id)
+                or scene.rider_of.get(tr.track_id) == bike.track_id):
+            continue
+        if g.box_gap(vbox, tr.last.box) / H <= p.crowd_radius:
+            crowd += 1
+
     return PairSample(
         t=t,
         H=H,
@@ -162,6 +171,7 @@ def build_sample(scene: Scene, victim: Track, bike: Track, p: RuleParams) -> Pai
         victim_aspect=g.width(vbox) / max(g.height(vbox), 1.0),
         victim_pose=vpose is not None,
         bike_lost=bike_lost,
+        crowd=crowd,
     )
 
 
