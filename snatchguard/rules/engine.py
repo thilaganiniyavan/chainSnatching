@@ -20,7 +20,7 @@ import numpy as np
 
 from snatchguard.core import geometry as g
 from snatchguard.core.config import RuleConfig, RuleParams
-from snatchguard.core.types import FrameObservation, Level, Lighting, Pose
+from snatchguard.core.types import FrameObservation, Level, Lighting, ObjClass, Pose
 from snatchguard.rules.evaluate import Verdict, eval_escape, evaluate
 from snatchguard.rules.pair import PairState, attacker_boxes, build_sample
 from snatchguard.rules.scene import Scene
@@ -40,6 +40,7 @@ class Decision:
     rider_ids: list[int]
     lighting: Lighting
     boxes: dict[str, list] = field(default_factory=dict)   # role -> [x1, y1, x2, y2] (for snapshots)
+    mode: str = "motorcycle"                                # motorcycle | bicycle | on_foot
 
     @property
     def level(self) -> Level:
@@ -49,6 +50,7 @@ class Decision:
         v = self.verdict
         return {
             "level": v.level.value,
+            "mode": self.mode,
             "score": v.score,
             "confidence": v.confidence,
             "lighting": self.lighting.value,
@@ -72,11 +74,15 @@ class RuleEngine:
         self.scene = Scene()
         self.pairs: dict[tuple[int, int], PairState] = {}
         self._bike_cooldown: dict[int, float] = {}
+        self._victim_cooldown: dict[int, float] = {}
         self._lighting = Lighting.DAY
 
     @property
     def params(self) -> RuleParams:
         return self.rules.for_lighting(self._lighting)
+
+    def params_for(self, pair: PairState) -> RuleParams:
+        return self.rules.for_lighting(self._lighting, foot=pair.on_foot)
 
     # ------------------------------------------------------------------
     def step(self, frame: FrameObservation) -> list[Decision]:
@@ -138,18 +144,48 @@ class RuleEngine:
                 gap = min(g.box_gap(victim.last.box, b) for b in boxes) / H
                 if gap <= p.pair_open_gap:
                     self.pairs[key] = PairState(victim.track_id, bike.track_id)
+            if p.foot_enabled:
+                self._open_foot_pairs(victim, H, p)
+
+    def _open_foot_pairs(self, victim, H: float, p: RuleParams) -> None:
+        """Someone on foot closing in on (or already right next to) an established pedestrian."""
+        scene = self.scene
+        cv = g.center(victim.last.box)
+        vv = victim.velocity(scene.t)
+        candidates = []
+        for other in scene.tracks.values():
+            if (other.cls is not ObjClass.PERSON or other.track_id == victim.track_id or other.lost_at is not None
+                    or other.track_id in scene.rider_of):
+                continue
+            key = (victim.track_id, other.track_id)
+            if key in self.pairs:
+                continue
+            gap = g.box_gap(victim.last.box, other.last.box) / H
+            if gap > p.foot_pair_open_gap:
+                continue
+            u = g.center(other.last.box) - cv
+            u = u / (np.linalg.norm(u) + 1e-9)
+            closing = -float(np.dot(other.velocity(scene.t) - vv, u)) / H
+            if closing >= p.foot_min_closing or gap <= p.foot_close_gap:
+                candidates.append((gap, key))
+        open_now = sum(1 for k, pr in self.pairs.items() if k[0] == victim.track_id and pr.on_foot)
+        for _, key in sorted(candidates)[: max(0, p.foot_max_pairs_per_victim - open_now)]:
+            self.pairs[key] = PairState(key[0], key[1], on_foot=True)
 
     def evaluate_frame(self) -> list[Decision]:
-        p = self.params
         scene = self.scene
         t = scene.t
-        keep_s = p.history_window_s + p.approach_window_s
         decisions: list[Decision] = []
 
         for key, pair in list(self.pairs.items()):
+            p = self.params_for(pair)
+            keep_s = p.history_window_s + p.approach_window_s
             victim, bike = scene.tracks.get(pair.victim_id), scene.tracks.get(pair.bike_id)
             if victim is None or bike is None:
                 self._drop(key)
+                continue
+            if pair.on_foot and pair.phase == "WATCH" and (bike.track_id in scene.rider_of or bike.cls is not ObjClass.PERSON):
+                self._drop(key)          # the "pedestrian" attacker turned out to be riding / not a person
                 continue
             if scene.rider_of.get(pair.victim_id) == pair.bike_id and pair.phase != "CONTACT":
                 self._drop(key)          # turned out to be this bike's rider
@@ -192,11 +228,11 @@ class RuleEngine:
 
     def flush(self) -> list[Decision]:
         """End of stream: judge every pair still in CONTACT with what has been observed so far."""
-        p = self.params
         out = []
         for pair in list(self.pairs.values()):
             if pair.phase != "CONTACT":
                 continue
+            p = self.params_for(pair)
             victim, bike = self.scene.tracks.get(pair.victim_id), self.scene.tracks.get(pair.bike_id)
             if victim is None or bike is None:
                 continue
@@ -213,15 +249,20 @@ class RuleEngine:
         log.info("pair %s -> %s score=%.2f", pair.key, verdict.level.value, verdict.score)
 
         if verdict.level is not Level.DISMISSED:
-            if self._bike_cooldown.get(pair.bike_id, -1.0) > t:
-                return None          # this bike already produced an alert (another bystander pair)
+            # one alert per attacker and per victim: bystander pairs and the mirrored on-foot pair stay quiet
+            if self._bike_cooldown.get(pair.bike_id, -1.0) > t or self._victim_cooldown.get(pair.victim_id, -1.0) > t \
+                    or (pair.on_foot and self._bike_cooldown.get(pair.victim_id, -1.0) > t):
+                return None
             self._bike_cooldown[pair.bike_id] = t + p.cooldown_s
-        riders = self.scene.riders(pair.bike_id)
+            self._victim_cooldown[pair.victim_id] = t + p.cooldown_s
+        riders = [] if pair.on_foot else self.scene.riders(pair.bike_id)
         boxes = {"victim": [round(float(x), 1) for x in victim.last.box],
-                 "vehicle": [round(float(x), 1) for x in bike.last.box]}
+                 ("attacker" if pair.on_foot else "vehicle"): [round(float(x), 1) for x in bike.last.box]}
         for i, r in enumerate(riders):
             boxes[f"rider{i + 1}"] = [round(float(x), 1) for x in r.last.box]
-        return Decision(verdict, t, pair.victim_id, pair.bike_id, [r.track_id for r in riders], self._lighting, boxes)
+        mode = "on_foot" if pair.on_foot else bike.cls.value
+        return Decision(verdict, t, pair.victim_id, pair.bike_id, [r.track_id for r in riders], self._lighting, boxes,
+                        mode)
 
     def _idle_expired(self, pair: PairState, sample, bike, t: float, p: RuleParams) -> bool:
         if bike.lost_at is not None:

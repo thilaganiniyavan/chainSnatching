@@ -12,7 +12,7 @@ import numpy as np
 
 from snatchguard.core import geometry as g
 from snatchguard.core.config import RuleParams
-from snatchguard.core.types import L_SHOULDER, NOSE, R_SHOULDER, WRISTS, Pose
+from snatchguard.core.types import L_SHOULDER, NOSE, R_SHOULDER, WRISTS, ObjClass, Pose
 from snatchguard.rules.scene import Scene, Track
 
 CONTACT_NONE, CONTACT_BOX, CONTACT_POSE = 0, 1, 2
@@ -67,7 +67,10 @@ def neck_point(victim_box: np.ndarray, pose: Pose | None, H: float, min_conf: fl
 
 
 def attacker_boxes(scene: Scene, bike: Track) -> tuple[list[np.ndarray], list[Track]]:
-    """Rider boxes if riders are known; otherwise the bike box stretched up to where a rider sits."""
+    """Rider boxes if riders are known; otherwise the bike box stretched up to where a rider sits.
+    For an attacker on foot, the person themself (their wrists are checked like a rider's)."""
+    if bike.cls is ObjClass.PERSON:
+        return [bike.last.box], [bike] if bike.lost_at is None else []
     riders = [r for r in scene.riders(bike.track_id) if r.lost_at is None]
     if riders:
         return [r.last.box for r in riders], riders
@@ -165,7 +168,8 @@ def build_sample(scene: Scene, victim: Track, bike: Track, p: RuleParams) -> Pai
 @dataclass
 class PairState:
     victim_id: int
-    bike_id: int
+    bike_id: int                    # the attacker: a vehicle, or a person when on_foot
+    on_foot: bool = False
     samples: list[PairSample] = field(default_factory=list)
     episodes: list[ContactEpisode] = field(default_factory=list)
     phase: str = "WATCH"            # WATCH | CONTACT | COOLDOWN

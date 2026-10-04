@@ -12,7 +12,8 @@ models:
   pose: models/yolo26n-pose_openvino_model
   imgsz: 512
   pose_imgsz: 384
-  device: cpu
+  device: auto            # auto = CUDA GPU if available, else CPU (OpenVINO models always CPU)
+  pose_mode: crops        # crops (CPU: pose only near bike/person pairs) | full (GPU: whole frame)
   # Detections down to this confidence are passed to the tracker; OC-SORT's two-stage matching
   # (track_high/low_thresh in tracker.yaml) decides which become tracks. Keeps small, far bikes.
   conf: {day: 0.10, lowlight: 0.08, ir: 0.08}

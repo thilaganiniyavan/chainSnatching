@@ -23,6 +23,7 @@ class FrameResult:
     enhanced: np.ndarray
     detections: list[Detection]
     decisions: list[Decision]
+    poses: dict = None          # track_id -> Pose computed this frame
 
 
 class FramePipeline:
@@ -54,11 +55,18 @@ class FramePipeline:
         else:
             dets = self.perception.detect_track(enhanced, conf)
         self.engine.ingest(FrameObservation(t, (w, h), dets, {}, mode))
-        crops = self.engine.pose_requests(self.max_crops)
-        if crops:
-            persons = {d.track_id: d.box for d in dets if d.cls is ObjClass.PERSON}
-            self.engine.attach_poses(self.perception.estimate_poses(enhanced, crops, persons))
-        return FrameResult(t, mode, enhanced, dets, self.engine.evaluate_frame())
+        persons = {d.track_id: d.box for d in dets if d.cls is ObjClass.PERSON}
+        poses = {}
+        if self.perception.pose_mode == "full":
+            min_h = self.engine.params.min_pose_height_px * 0.6
+            poses = self.perception.estimate_poses_full(
+                enhanced, {tid: b for tid, b in persons.items() if b[3] - b[1] >= min_h})
+        else:
+            crops = self.engine.pose_requests(self.max_crops)
+            if crops:
+                poses = self.perception.estimate_poses(enhanced, crops, persons)
+        self.engine.attach_poses(poses)
+        return FrameResult(t, mode, enhanced, dets, self.engine.evaluate_frame(), poses)
 
 
 _SKELETON = [(5, 7), (7, 9), (6, 8), (8, 10), (5, 6), (5, 11), (6, 12), (11, 12)]

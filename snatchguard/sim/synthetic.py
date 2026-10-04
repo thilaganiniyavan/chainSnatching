@@ -327,6 +327,103 @@ def snatch_with_bystander() -> Scenario:
 
 
 
+# ---------------------------------------------------------------------------
+# On-foot scenarios (attacker is a pedestrian)
+# ---------------------------------------------------------------------------
+
+def _foot_encounter(profile_hs: list[tuple[float, float]], t_contact: float, victim_speed_hs: float,
+                    duration: float, *, attacker_x0: float, dy: float = 12.0, victim_pose: bool = True,
+                    attacker_pose: bool = True, side: float = -1.0) -> tuple[Actor, Actor]:
+    """Attacker (id 20) follows `profile_hs`; the victim (id 1) is placed so they meet at t_contact.
+    side=-1: attacker ends up just behind/left of the victim at contact."""
+    keys = integrate_path(0.0, attacker_x0, VY + dy, [(t, v * H) for t, v in profile_hs], duration)
+    attacker = Actor(20, ObjClass.PERSON, keys, box_h=H, box_w=0.36 * H, has_pose=attacker_pose)
+    x_contact = attacker.foot(t_contact)[0] - side * 0.30 * H
+    x0 = x_contact - victim_speed_hs * H * t_contact
+    victim = _pedestrian(1, _walk(x0, victim_speed_hs, duration), has_pose=victim_pose)
+    return victim, attacker
+
+
+T_FOOT = LEAD + 3.0
+
+
+def foot_snatch_from_behind(lighting: Lighting = Lighting.DAY, pose: bool = True) -> Scenario:
+    """Walks up behind the victim a little faster, grabs the chain, sprints away past her."""
+    profile = [(0.0, 1.15), (T_FOOT, 1.15), (T_FOOT + 0.4, 1.15), (T_FOOT + 0.9, 3.2), (14.0, 3.2)]
+    victim, attacker = _foot_encounter(profile, T_FOOT, 0.7, 12.0, attacker_x0=-330.0, attacker_pose=pose,
+                                       victim_pose=pose)
+    attacker.arms = [ArmAction(T_FOOT - 0.1, T_FOOT + 0.5, "reach", target=1)]
+    victim.impulse = (T_FOOT + 0.1, 0.10 * H, 0.0)
+    if pose:
+        victim.arms = [ArmAction(T_FOOT + 0.4, T_FOOT + 2.5, "neck", side=1)]
+    else:
+        victim.path = _merge_paths(victim.path, T_FOOT + 0.7, 2.0 * H, 12.0)      # chases instead
+    return Scenario(f"foot_snatch_from_behind[{lighting.value},{'pose' if pose else 'nopose'}]",
+                    "On-foot snatcher catches up from behind, grabs the neck chain and sprints off.",
+                    [victim, attacker], 10.0,
+                    expect={Level.CONFIRMED} if pose else {Level.SUSPECT, Level.CONFIRMED}, lighting=lighting)
+
+
+def foot_snatch_head_on() -> Scenario:
+    """Walks towards the victim, grabs as they pass and runs off."""
+    profile = [(0.0, -1.0), (T_FOOT, -1.0), (T_FOOT + 0.4, -1.0), (T_FOOT + 0.9, -3.0), (14.0, -3.0)]
+    victim, attacker = _foot_encounter(profile, T_FOOT, 0.6, 12.0, attacker_x0=1200.0, side=1.0)
+    attacker.arms = [ArmAction(T_FOOT - 0.1, T_FOOT + 0.5, "reach", target=1)]
+    victim.arms = [ArmAction(T_FOOT + 0.4, T_FOOT + 2.5, "neck", side=1)]
+    victim.impulse = (T_FOOT + 0.1, -0.10 * H, 0.0)
+    return Scenario("foot_snatch_head_on", "Oncoming pedestrian grabs the chain while passing and runs.",
+                    [victim, attacker], 10.0, expect={Level.CONFIRMED})
+
+
+def jogger_passes_close() -> Scenario:
+    """A jogger overtakes at running speed, brushing past. No hand to the neck, nobody reacts."""
+    profile = [(0.0, 2.8), (14.0, 2.8)]
+    victim, attacker = _foot_encounter(profile, LEAD + 2.0, 0.7, 10.0, attacker_x0=-300.0)
+    return Scenario("jogger_passes_close", "Runner brushes past a pedestrian.", [victim, attacker], 8.0,
+                    expect={Level.DISMISSED})
+
+
+def friends_meet_and_hug() -> Scenario:
+    """Two people walk up to each other, hug for 3 s, then walk off together slowly."""
+    profile = [(0.0, -1.0), (LEAD + 2.5, -1.0), (LEAD + 2.8, 0.0), (LEAD + 6.0, 0.0), (LEAD + 6.5, 0.7), (16.0, 0.7)]
+    victim, attacker = _foot_encounter(profile, LEAD + 3.0, 0.0, 16.0, attacker_x0=1150.0, side=1.0)
+    victim.path = [(t, x, y) for t, x, y in victim.path]
+    victim.path = integrate_path(0.0, victim.path[0][1], VY, [(0.0, 0.0), (LEAD + 6.4, 0.0), (LEAD + 6.5, 0.7 * H),
+                                                            (16.0, 0.7 * H)], 16.0)
+    attacker.arms = [ArmAction(LEAD + 3.0, LEAD + 6.0, "reach", target=1)]
+    victim.arms = [ArmAction(LEAD + 3.0, LEAD + 6.0, "reach", target=20)]
+    return Scenario("friends_meet_and_hug", "Friends meet, hug for 3 s and walk off together.",
+                    [victim, attacker], 14.0, expect={Level.DISMISSED})
+
+
+def pat_on_shoulder_walk_together() -> Scenario:
+    """A friend catches up, pats the shoulder, and they walk on side by side."""
+    profile = [(0.0, 1.2), (LEAD + 3.0, 1.2), (LEAD + 3.3, 0.7), (16.0, 0.7)]
+    victim, attacker = _foot_encounter(profile, LEAD + 3.0, 0.7, 16.0, attacker_x0=60.0)
+    attacker.arms = [ArmAction(LEAD + 2.9, LEAD + 3.5, "reach", target=1, shoulder_level=True)]
+    return Scenario("pat_on_shoulder_walk_together", "Friendly pat, then walking together.",
+                    [victim, attacker], 14.0, expect={Level.DISMISSED})
+
+
+def playful_tag_and_run() -> Scenario:
+    """A friend taps the neck from behind and runs off laughing; the 'victim' waves."""
+    profile = [(0.0, 1.15), (T_FOOT, 1.15), (T_FOOT + 0.4, 1.15), (T_FOOT + 0.9, 3.0), (14.0, 3.0)]
+    victim, attacker = _foot_encounter(profile, T_FOOT, 0.7, 12.0, attacker_x0=-330.0)
+    attacker.arms = [ArmAction(T_FOOT - 0.1, T_FOOT + 0.3, "reach", target=1, shoulder_level=True)]
+    victim.arms = [ArmAction(T_FOOT + 0.8, T_FOOT + 2.5, "wave", side=1)]
+    return Scenario("playful_tag_and_run", "Playful tap and run; the other person waves back.",
+                    [victim, attacker], 10.0, expect={Level.DISMISSED, Level.SUSPECT})
+
+
+def crowd_brush() -> Scenario:
+    """Two pedestrians cross paths shoulder to shoulder at walking speed."""
+    profile = [(0.0, -0.9), (14.0, -0.9)]
+    victim, attacker = _foot_encounter(profile, LEAD + 3.0, 0.8, 10.0, attacker_x0=1100.0, side=1.0, dy=4.0)
+    return Scenario("crowd_brush", "Pedestrians pass each other closely.", [victim, attacker], 9.0,
+                    expect={Level.DISMISSED})
+
+
+
 def all_scenarios() -> list[Scenario]:
     return [
         snatch_from_behind(),
@@ -344,6 +441,14 @@ def all_scenarios() -> list[Scenario]:
         hug_goodbye(),
         walking_alongside(),
         phone_call_passing(),
+        foot_snatch_from_behind(),
+        foot_snatch_from_behind(Lighting.IR, pose=False),
+        foot_snatch_head_on(),
+        jogger_passes_close(),
+        friends_meet_and_hug(),
+        pat_on_shoulder_walk_together(),
+        playful_tag_and_run(),
+        crowd_brush(),
     ]
 
 
@@ -359,6 +464,11 @@ SCENARIOS: dict[str, Callable[[], Scenario]] = {
     "hug": hug_goodbye,
     "walking_alongside": walking_alongside,
     "phone_call": phone_call_passing,
+    "foot_snatch": foot_snatch_from_behind,
+    "foot_snatch_head_on": foot_snatch_head_on,
+    "jogger": jogger_passes_close,
+    "friends_hug": friends_meet_and_hug,
+    "playful_tag": playful_tag_and_run,
 }
 
 

@@ -37,6 +37,7 @@ class Track:
     lost_at: float | None = None
     lost_near_border: bool = False
     cls_votes: deque = field(default_factory=lambda: deque(maxlen=15))
+    _memo: dict = field(default_factory=dict, repr=False)   # per-observation cache of derived values
 
     def vote(self, cls: ObjClass) -> None:
         """Detectors flip a rider+bike blob between 'person' and 'motorcycle'; keep the majority."""
@@ -48,6 +49,10 @@ class Track:
         if counts[best] > counts.get(self.cls, 0):
             self.cls = best
 
+    def append(self, o: Obs) -> None:
+        self.obs.append(o)
+        self._memo.clear()
+
     # ---- raw access -------------------------------------------------------
     @property
     def last(self) -> Obs:
@@ -58,24 +63,36 @@ class Track:
         return self.obs[-1].t
 
     def window(self, t0: float, t1: float) -> list[Obs]:
-        return [o for o in self.obs if t0 <= o.t <= t1]
+        """Observations with t0 <= t <= t1 (scans back from the newest: windows are almost always recent)."""
+        out = []
+        for o in reversed(self.obs):
+            if o.t < t0:
+                break
+            if o.t <= t1:
+                out.append(o)
+        out.reverse()
+        return out
 
     def at(self, t: float) -> Obs | None:
         """Latest observation at or before t."""
-        best = None
-        for o in self.obs:
+        for o in reversed(self.obs):
             if o.t <= t:
-                best = o
-            else:
-                break
-        return best
+                return o
+        return None
 
     # ---- derived quantities ----------------------------------------------
     def ref_height(self, t: float, span: float = 1.0) -> float:
-        hs = [g.height(o.box) for o in self.window(t - span, t)]
+        key = ("h", t, span)
+        if key in self._memo:
+            return self._memo[key]
+        hs = sorted(float(o.box[3] - o.box[1]) for o in self.window(t - span, t))
         if not hs:
-            return g.height(self.last.box)
-        return float(np.median(hs))
+            val = g.height(self.last.box)
+        else:
+            n = len(hs)
+            val = hs[n // 2] if n % 2 else 0.5 * (hs[n // 2 - 1] + hs[n // 2])
+        self._memo[key] = val
+        return val
 
     def velocity(self, t: float, span: float = 0.6, point: str = "foot", min_points: int = 3,
                  max_span: float = 1.5) -> np.ndarray:
@@ -85,16 +102,23 @@ class Track:
         dropped frames never produce a zero or wild estimate. Boxes cut by the frame edge
         are tracked by their uncut edge, otherwise a bike leaving the frame looks slow.
         """
+        key = ("v", t, span, point, min_points, max_span)
+        hit = self._memo.get(key)
+        if hit is not None:
+            return hit.copy()
         pts = self.window(t - span, t)
         if len(pts) < min_points:
-            earlier = [o for o in self.obs if t - max_span <= o.t <= t]
+            earlier = self.window(t - max_span, t)
             pts = earlier[-min_points:] if len(earlier) >= min_points else earlier
         if len(pts) < 2:
-            return np.zeros(2)
+            val = np.zeros(2)
+            self._memo[key] = val
+            return val.copy()
         left = any(o.clip[0] for o in pts)
         right = any(o.clip[2] for o in pts)
         bottom = any(o.clip[3] for o in pts)
-        xs = []
+        n = len(pts)
+        ts, xs, ys = [], [], []
         for o in pts:
             b = o.box
             if right and not left:
@@ -102,22 +126,28 @@ class Track:
             elif left and not right:
                 x = b[2]
             else:
-                x = (b[0] + b[2]) / 2.0
+                x = (b[0] + b[2]) * 0.5
             if point == "foot":
                 y = b[1] if bottom else b[3]
             else:
-                y = (b[1] + b[3]) / 2.0
-            xs.append((x, y))
-        ts = np.array([o.t for o in pts])
-        xy = np.array(xs, dtype=float)
-        ts = ts - ts.mean()
-        denom = float((ts ** 2).sum())
+                y = (b[1] + b[3]) * 0.5
+            ts.append(o.t)
+            xs.append(float(x))
+            ys.append(float(y))
+        tm, xm, ym = sum(ts) / n, sum(xs) / n, sum(ys) / n
+        denom = sum((ti - tm) ** 2 for ti in ts)
         if denom < 1e-9:
-            return np.zeros(2)
-        return (ts[:, None] * (xy - xy.mean(axis=0))).sum(axis=0) / denom
+            val = np.zeros(2)
+        else:
+            vx = sum((ti - tm) * (xi - xm) for ti, xi in zip(ts, xs)) / denom
+            vy = sum((ti - tm) * (yi - ym) for ti, yi in zip(ts, ys)) / denom
+            val = np.array([vx, vy])
+        self._memo[key] = val
+        return val.copy()
 
     def speed(self, t: float, span: float = 0.6) -> float:
-        return float(np.linalg.norm(self.velocity(t, span)))
+        v = self.velocity(t, span)
+        return float((v[0] * v[0] + v[1] * v[1]) ** 0.5)
 
     def latest_pose(self, t: float, max_age: float = 0.4) -> Pose | None:
         for o in reversed(self.obs):
@@ -164,7 +194,7 @@ class Scene:
         box = np.asarray(det.box, dtype=float)
         w, h = self.frame_size
         clip = (box[0] <= 2, box[1] <= 2, box[2] >= w - 2, box[3] >= h - 2)
-        tr.obs.append(Obs(t, box, det.conf, pose, clip))
+        tr.append(Obs(t, box, det.conf, pose, clip))
         tr.lost_at = None
         while tr.obs and t - tr.obs[0].t > TRACK_MEMORY_S:
             tr.obs.popleft()
@@ -173,6 +203,7 @@ class Scene:
         tr = self.tracks.get(track_id)
         if tr is not None and tr.obs:
             tr.obs[-1].pose = pose
+            tr._memo.clear()
 
     def _mark_lost(self, seen: set[int], t: float, p: RuleParams) -> None:
         w, h = self.frame_size

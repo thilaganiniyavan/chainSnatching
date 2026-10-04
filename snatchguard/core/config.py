@@ -50,12 +50,16 @@ class RuleConfig:
     """Holds one RuleParams per lighting profile."""
 
     def __init__(self, raw: dict[str, Any]) -> None:
+        self.raw = copy.deepcopy(raw)
         base = raw.get("base", {})
         profiles = raw.get("profiles", {})
-        self.profiles = {
-            light: RuleParams(_deep_merge(base, profiles.get(light.value) or {}), light.value)
-            for light in Lighting
-        }
+        foot = raw.get("foot", {}) or {}
+        self.profiles = {}
+        self.foot_profiles = {}
+        for light in Lighting:
+            merged = _deep_merge(base, profiles.get(light.value) or {})
+            self.profiles[light] = RuleParams(merged, light.value)
+            self.foot_profiles[light] = RuleParams(_deep_merge(merged, foot), f"{light.value}+foot")
 
     @classmethod
     def load(cls, path: str | Path = DEFAULT_RULES, overrides: dict | None = None) -> "RuleConfig":
@@ -64,5 +68,18 @@ class RuleConfig:
             raw["base"] = _deep_merge(raw.get("base", {}), overrides)
         return cls(raw)
 
-    def for_lighting(self, lighting: Lighting) -> RuleParams:
-        return self.profiles[lighting]
+    def for_lighting(self, lighting: Lighting, foot: bool = False) -> RuleParams:
+        return (self.foot_profiles if foot else self.profiles)[lighting]
+
+    def with_overrides(self, base: dict | None = None, foot: dict | None = None) -> "RuleConfig":
+        """A copy with some parameters changed (used by the tuner)."""
+        raw = copy.deepcopy(self.raw)
+        if base:
+            raw["base"] = _deep_merge(raw.get("base", {}), base)
+        if foot:
+            raw["foot"] = _deep_merge(raw.get("foot", {}) or {}, foot)
+        return RuleConfig(raw)
+
+    def to_yaml(self, path: str | Path) -> None:
+        with open(path, "w", encoding="utf-8") as f:
+            yaml.safe_dump(self.raw, f, sort_keys=False)

@@ -1,38 +1,65 @@
-video,category,lighting,event_start_s,event_end_s,notes
-Snatch Theft/2_0.mp4,snatch_bike,day,1.5,3.0,two-up bike stops beside victim; grab ~1.5 s; victim dragged down 2.75 s
-Snatch Theft/3_0.mp4,snatch_bike,day,1.4,2.6,bike passes two women at a barrier gate
-Snatch Theft/5_0.mp4,snatch_bike,day,5.5,8.0,bike idles by the wall; pillion reaches ~5.5-6.5 s; clip ends before the getaway
-Snatch Theft/7_0.mp4,snatch_bike,day,2.0,3.75,far victim at top of frame; bike then rides towards camera
-Snatch Theft/13_0.mp4,snatch_bike,day,,,very far; figures too small to time
-Snatch Theft/17.mp4,snatch_bike,day,5.5,7.6,far background grab; parked bike + rider in foreground
-Snatch Theft/17_0.mp4,snatch_bike,day,1.2,2.2,textbook: overtakes from behind; pillion reaches neck ~1.35 s; victim hands to neck
-Snatch Theft/22_0.mp4,snatch_bike,day,0.3,1.95,clip starts mid-approach; pillion pulls victim along
-Snatch Theft/23_0.mp4,snatch_bike,day,0.8,2.6,wet road; victim falls; bike speeds towards camera
-Snatch Theft/24_0.mp4,snatch_bike,day,1.0,3.5,tilted view; struggle beside stopped bike; victim down
-Snatch Theft/25_0.mp4,snatch_bike,day,1.2,2.1,head-on bike vs woman with child; she clutches her neck after
-Snatch Theft/27_0.mp4,snatch_bike,day,2.0,3.5,two-up bike grabs from women at far end; heavy compression
-Snatch Theft/30_0.mp4,snatch_bike,day,,,clip starts after the contact; victim not identifiable
-Snatch Theft/1_0.mp4,snatch_foot,day,0.75,1.25,runner (yellow shirt) grabs from woman and runs
-Snatch Theft/9_0.mp4,snatch_foot,day,4.9,7.2,no motorcycle in view; chase on foot (uncertain)
-Snatch Theft/10_0.mp4,snatch_foot,lowlight,38.5,40.5,man loiters ~38 s beside woman then lunges; good case for an on-foot loiter+lunge rule
-Snatch Theft/11_0.mp4,snatch_foot,day,1.2,2.4,helmeted man at building entrance (bike out of view); victim clutches neck
-Snatch Theft/14_0.mp4,snatch_foot,day,4.5,6.3,far; runner past the gate; low confidence
-Snatch Theft/16_0.mp4,snatch_foot,day,7.7,10.5,man follows woman on walkway then grabs; struggle
-Snatch Theft/20_0.mp4,snatch_foot,day,13.2,16.8,crowded market pavement; person on ground ~14.4 s; low confidence
-Snatch Theft/21_0.mp4,snatch_foot,day,5.2,7.2,bikes only in background; man on foot approaches women; uncertain
-Snatch Theft/26_0.mp4,snatch_foot,day,4.2,5.6,man approaches on foot, grabs and runs towards camera
-Snatch Theft/1.mp4,snatch_foot,day,,,phone recording of a CCTV screen; on foot
-Snatch Theft/4_0.mp4,snatch_foot,day,,,doorstep; on foot
-Snatch Theft/18_0.mp4,snatch_foot,day,,,railway platform; on foot
-Snatch Theft/s_9.avi,snatch_unlocated,lowlight,,,8.3 min night market recording (shop lighting); snatch time not located yet
-Snatch Theft/7.mp4,other,ir,,,phone filming an IR monitor; view switches; event not identifiable
-Snatch Theft/14.mp4,other,day,,,staged awareness video with actors (not CCTV)
-Snatch Theft/6.mp4,other,day,,,movie scene (not CCTV)
-Snatch Theft/8.mp4,other,day,,,staged prank video (not CCTV)
-Snatch Theft/9.mp4,other,day,,,staged prank video (not CCTV)
-Snatch Theft/10.mp4,other,day,,,staged prank video (not CCTV)
-Snatch Theft/11.mp4,other,day,,,staged prank video (not CCTV)
-Snatch Theft/12.mp4,other,day,,,staged prank video (not CCTV)
-Snatch Theft/16.mp4,other,day,,,shop counter theft
-Normal/s_2.avi,normal,day,,,26 min busy Hyderabad junction; many bikes and pedestrians
-Normal/s_3.avi,normal,day,,,21 min busy Hyderabad junction
+video,category,lighting,event_start_s,event_end_s,fold,notes
+Snatch Theft/2_0.mp4,snatch_bike,day,1.5,3.0,A,two-up bike stops beside victim; grab ~1.5 s; victim dragged down 2.75 s
+Snatch Theft/3_0.mp4,snatch_bike,day,1.4,2.6,B,bike passes two women at a barrier gate
+Snatch Theft/5_0.mp4,snatch_bike,day,5.5,8.0,A,bike idles by the wall; pillion reaches ~5.5-6.5 s; clip ends before the getaway
+Snatch Theft/7_0.mp4,snatch_bike,day,2.0,3.75,B,far victim at top of frame; bike then rides towards camera
+Snatch Theft/13_0.mp4,snatch_bike,day,,,A,very far; figures too small to time
+Snatch Theft/17.mp4,snatch_bike,day,5.5,7.6,B,far background grab; parked bike + rider in foreground
+Snatch Theft/17_0.mp4,snatch_bike,day,1.2,2.2,A,textbook: overtakes from behind; pillion reaches neck ~1.35 s; victim hands to neck
+Snatch Theft/22_0.mp4,snatch_bike,day,0.3,1.95,B,clip starts mid-approach; pillion pulls victim along
+Snatch Theft/23_0.mp4,snatch_bike,day,0.8,2.6,A,wet road; victim falls; bike speeds towards camera
+Snatch Theft/24_0.mp4,snatch_bike,day,1.0,3.5,B,tilted view; struggle beside stopped bike; victim down
+Snatch Theft/25_0.mp4,snatch_bike,day,1.2,2.1,A,head-on bike vs woman with child; she clutches her neck after
+Snatch Theft/27_0.mp4,snatch_bike,day,2.0,3.5,B,two-up bike grabs from women at far end; heavy compression
+Snatch Theft/30_0.mp4,snatch_bike,day,,,A,clip starts after the contact; victim not identifiable
+Snatch Theft/1_0.mp4,snatch_foot,day,0.75,1.25,A,runner (yellow shirt) grabs from woman and runs
+Snatch Theft/9_0.mp4,snatch_foot,day,4.9,7.2,B,no motorcycle in view; chase on foot (uncertain)
+Snatch Theft/10_0.mp4,snatch_foot,lowlight,38.5,40.5,A,man loiters ~38 s beside woman then lunges; good case for an on-foot loiter+lunge rule
+Snatch Theft/11_0.mp4,snatch_foot,day,1.2,2.4,B,helmeted man at building entrance (bike out of view); victim clutches neck
+Snatch Theft/14_0.mp4,snatch_foot,day,4.5,6.3,A,far; runner past the gate; low confidence
+Snatch Theft/16_0.mp4,snatch_foot,day,7.7,10.5,B,man follows woman on walkway then grabs; struggle
+Snatch Theft/20_0.mp4,snatch_foot,day,13.2,16.8,A,crowded market pavement; person on ground ~14.4 s; low confidence
+Snatch Theft/21_0.mp4,snatch_foot,day,5.2,7.2,B,bikes only in background; man on foot approaches women; uncertain
+Snatch Theft/26_0.mp4,snatch_foot,day,4.2,5.6,A,man approaches on foot
+Snatch Theft/1.mp4,snatch_foot,day,,,B,phone recording of a CCTV screen; on foot
+Snatch Theft/4_0.mp4,snatch_foot,day,,,A,doorstep; on foot
+Snatch Theft/18_0.mp4,snatch_foot,day,,,B,railway platform; on foot
+Snatch Theft/s_9.avi,snatch_unlocated,lowlight,,,-,8.3 min night market recording (shop lighting); snatch time not located yet
+Snatch Theft/7.mp4,other,ir,,,-,phone filming an IR monitor; view switches; event not identifiable
+Snatch Theft/14.mp4,other,day,,,-,staged awareness video with actors (not CCTV)
+Snatch Theft/6.mp4,other,day,,,-,movie scene (not CCTV)
+Snatch Theft/8.mp4,other,day,,,-,staged prank video (not CCTV)
+Snatch Theft/9.mp4,other,day,,,-,staged prank video (not CCTV)
+Snatch Theft/10.mp4,other,day,,,-,staged prank video (not CCTV)
+Snatch Theft/11.mp4,other,day,,,-,staged prank video (not CCTV)
+Snatch Theft/12.mp4,other,day,,,-,staged prank video (not CCTV)
+Snatch Theft/16.mp4,other,day,,,-,shop counter theft
+Normal/s_2.avi,normal,day,,,A,held out: rule tuning and false-alarm test
+Normal/s_3.avi,normal,day,,,B,held out: rule tuning and false-alarm test
+Normal/s_27.avi,normal,day,,,A,held out: rule tuning and false-alarm test
+Normal/s_29.avi,normal,day,,,B,held out: rule tuning and false-alarm test
+Normal/s_5.avi,normal,day,,,A,held out: rule tuning and false-alarm test
+Normal/s_7.avi,normal,day,,,B,held out: rule tuning and false-alarm test
+Normal/s_11.avi,normal,day,,,A,held out: rule tuning and false-alarm test
+Normal/s_13.avi,normal,day,,,B,held out: rule tuning and false-alarm test
+Normal/s_15.avi,normal,day,,,A,held out: rule tuning and false-alarm test
+Normal/s_17.avi,normal,day,,,B,held out: rule tuning and false-alarm test
+Normal/s_19.avi,normal,day,,,A,held out: rule tuning and false-alarm test
+Normal/s_21.avi,normal,day,,,B,held out: rule tuning and false-alarm test
+Normal/s_23.avi,normal,day,,,A,held out: rule tuning and false-alarm test
+Normal/s_25.avi,normal,day,,,B,held out: rule tuning and false-alarm test
+Normal/s_1.avi,normal,day,,,pseudo,detector pseudo-labels only; never used to score rules
+Normal/s_26.avi,normal,day,,,pseudo,detector pseudo-labels only; never used to score rules
+Normal/s_28.avi,normal,day,,,pseudo,detector pseudo-labels only; never used to score rules
+Normal/s_30.avi,normal,day,,,pseudo,detector pseudo-labels only; never used to score rules
+Normal/s_4.avi,normal,day,,,pseudo,detector pseudo-labels only; never used to score rules
+Normal/s_6.avi,normal,day,,,pseudo,detector pseudo-labels only; never used to score rules
+Normal/s_8.avi,normal,day,,,pseudo,detector pseudo-labels only; never used to score rules
+Normal/s_10.avi,normal,day,,,pseudo,detector pseudo-labels only; never used to score rules
+Normal/s_12.avi,normal,day,,,pseudo,detector pseudo-labels only; never used to score rules
+Normal/s_14.avi,normal,day,,,pseudo,detector pseudo-labels only; never used to score rules
+Normal/s_16.avi,normal,day,,,pseudo,detector pseudo-labels only; never used to score rules
+Normal/s_18.avi,normal,day,,,pseudo,detector pseudo-labels only; never used to score rules
+Normal/s_20.avi,normal,day,,,pseudo,detector pseudo-labels only; never used to score rules
+Normal/s_22.avi,normal,day,,,pseudo,detector pseudo-labels only; never used to score rules
+Normal/s_24.avi,normal,day,,,pseudo,detector pseudo-labels only; never used to score rules

@@ -329,14 +329,23 @@ def evaluate(pair: PairState, victim: Track, bike: Track, now: float, p: RulePar
     score = max(0.0, min(1.0, sum(components.values()) - sum(penalties.values())))
 
     corroborated = contact_level == CONTACT_POSE or reaction > 0 or decel
+    if p.require_pose_contact_for_confirm:
+        corroborated = contact_level == CONTACT_POSE and (reaction > 0 or approach > 0)
+    # A snatcher always leaves: box-only contact without a getaway is a near miss in traffic.
+    suspect_ok = escaped or contact_level == CONTACT_POSE
+    if p.suspect_requires_pose_or_reaction:
+        suspect_ok = escaped and (contact_level == CONTACT_POSE or reaction > 0)
     if escaped and not benign["linger"] and not benign["in_traffic"] and corroborated and score >= p.confirm_threshold:
         level = Level.CONFIRMED
-    elif score >= p.suspect_threshold and (escaped or contact_level == CONTACT_POSE):
-        # A snatcher always leaves: box-only contact without a getaway is a near miss in traffic.
+    elif score >= p.suspect_threshold and suspect_ok:
         level = Level.SUSPECT
     else:
         level = Level.DISMISSED
 
+    if pair.on_foot:                      # same evidence, worded for a snatcher on foot
+        for e in evidence:
+            e.detail = e.detail.replace("rider's hand", "attacker's hand").replace("rider/bike", "attacker") \
+                .replace("bike", "attacker")
     pose_seen = sum(1 for s in pair.between(cs - 1.0, ce + 1.0) if s.victim_pose)
     confidence = "high" if contact_level == CONTACT_POSE else ("medium" if pose_seen else "low")
     return Verdict(level, round(score, 3), cs, ce, evidence, components, penalties, confidence)

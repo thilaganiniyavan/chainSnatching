@@ -82,6 +82,17 @@ base:
   in_traffic_window_s: 4.0      # look this far back before the contact...
   in_traffic_frac: 0.5          # ...if the 'victim' overlapped vehicles this much, it's a rider in traffic
 
+  # --- ON-FOOT snatching (attacker is a pedestrian) -------------------------
+  foot_enabled: true
+  foot_pair_open_gap: 1.5       # H: a person this close to a possible victim...
+  foot_min_closing: 0.3         # H/s: ...and approaching them (or already within foot_close_gap)
+  foot_close_gap: 0.6           # H
+  foot_max_pairs_per_victim: 3  # crowds: only the nearest approaching people
+
+  # --- decision gates (tightened for on-foot attackers in the `foot` block) --
+  require_pose_contact_for_confirm: false
+  suspect_requires_pose_or_reaction: false
+
   # --- SCORING -------------------------------------------------------------
   weights:
     contact: 0.30
@@ -113,6 +124,18 @@ base:
   decision_hold_s: 0.8          # after escape, wait this long for late reactions
   decision_timeout_s: 4.0       # decide at the latest this long after contact ends
   cooldown_s: 20.0
+
+# Applied on top of the lighting profile when the attacker is on foot. People brush past each other
+# all the time in crowds, so an on-foot alert needs the hand at the neck (pose) or a victim reaction,
+# and the getaway must be a real run.
+foot:
+  escape_fast_departure: 1.8    # H/s: running away
+  escape_speedup_ratio: 1.8
+  escape_speedup_abs: 1.0
+  escape_slow_contact_speed: 1.0
+  escape_gap_rate: 1.0
+  require_pose_contact_for_confirm: true
+  suspect_requires_pose_or_reaction: true
 
 profiles:
   day: {}
