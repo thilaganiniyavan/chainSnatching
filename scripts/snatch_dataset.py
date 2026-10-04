@@ -185,7 +185,7 @@ def import_videos(src: Path, labels: Path, move: bool = False) -> None:
     print(f"{placed} placed, {skipped} already present")
 
 
-def verify(labels: Path) -> bool:
+def verify(labels: Path, deep: bool = False) -> bool:
     import csv
     with open(labels, newline="", encoding="utf-8") as f:
         rows = list(csv.DictReader(f))
@@ -193,7 +193,31 @@ def verify(labels: Path) -> bool:
     for m in missing:
         print(f"missing: {m}")
     print(f"{len(rows) - len(missing)}/{len(rows)} labelled videos present in {OUT}")
-    return not missing
+    broken = []
+    if deep:
+        import cv2
+        total_h = 0.0
+        for r in rows:
+            path = OUT / "Chain Snatching Videos" / r["video"]
+            if not path.exists():
+                continue
+            cap = cv2.VideoCapture(str(path))
+            fps = cap.get(cv2.CAP_PROP_FPS) or 0
+            n = int(cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0)
+            ok_all = cap.isOpened() and fps > 0 and n > 0
+            for frac in (0.0, 0.5, 0.9):
+                if not ok_all:
+                    break
+                cap.set(cv2.CAP_PROP_POS_FRAMES, int(n * frac))
+                ok_all = cap.read()[0]
+            w, h = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            dur = n / fps if fps else 0
+            total_h += dur / 3600
+            print(f"  {'ok ' if ok_all else 'BAD'} {r['video']:28s} {w}x{h} {fps:5.1f} fps {dur / 60:6.1f} min  [{r['category']}, fold {r.get('fold', '')}]")
+            if not ok_all and r["category"] in ("snatch_bike", "snatch_foot", "normal"):
+                broken.append(r["video"])         # out-of-scope clips are never used, so they don't count
+        print(f"{total_h:.1f} h of video; {len(broken)} unreadable{': ' + ', '.join(broken) if broken else ''}")
+    return not missing and not broken
 
 
 def main() -> None:
@@ -209,6 +233,7 @@ def main() -> None:
     im.add_argument("--labels", type=Path, default=ROOT / "data" / "labels" / "snatch1.0.csv")
     ve = sub.add_parser("verify")
     ve.add_argument("--labels", type=Path, default=ROOT / "data" / "labels" / "snatch1.0.csv")
+    ve.add_argument("--deep", action="store_true", help="also open every video and read frames from it")
     sub.add_parser("list")
     g = sub.add_parser("get")
     g.add_argument("names", nargs="+")
@@ -225,7 +250,7 @@ def main() -> None:
         import_videos(args.src, args.labels, args.move)
         raise SystemExit(0 if verify(args.labels) else 1)
     if args.cmd == "verify":
-        raise SystemExit(0 if verify(args.labels) else 1)
+        raise SystemExit(0 if verify(args.labels, args.deep) else 1)
 
     with httpx.Client(timeout=httpx.Timeout(120.0, connect=20.0)) as client:
         index = build_index(client)

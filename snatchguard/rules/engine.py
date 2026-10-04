@@ -187,6 +187,9 @@ class RuleEngine:
             if pair.on_foot and pair.phase == "WATCH" and (bike.track_id in scene.rider_of or bike.cls is not ObjClass.PERSON):
                 self._drop(key)          # the "pedestrian" attacker turned out to be riding / not a person
                 continue
+            if not pair.on_foot and not bike.cls.is_vehicle:
+                self._drop(key)          # the "vehicle" was a rider+bike blob now voted 'person': not a valid pair
+                continue
             if scene.rider_of.get(pair.victim_id) == pair.bike_id and pair.phase != "CONTACT":
                 self._drop(key)          # turned out to be this bike's rider
                 continue
