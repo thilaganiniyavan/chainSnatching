@@ -1,0 +1,134 @@
+"""Stage 1: find candidate videos of real chain snatchings and of normal street CCTV.
+
+Runs many search queries (several Indian languages, cities, day/night) through yt-dlp's search
+(no API key), keeps the metadata only, and drops obvious non-CCTV content by title: pranks,
+films, animation, AI, awareness skits, compilations of unrelated crimes.
+
+    python -m snatchguard.webdata.discover --per-query 60
+Output: ~/snatch_web_dataset/meta/candidates.jsonl (one JSON object per unique video id)
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+DATASET = Path.home() / "snatch_web_dataset"
+
+CITIES = ["Hyderabad", "Bengaluru", "Chennai", "Delhi", "Mumbai", "Pune", "Kolkata", "Ahmedabad", "Coimbatore",
+          "Madurai", "Mysuru", "Vijayawada", "Visakhapatnam", "Lucknow", "Jaipur", "Ghaziabad", "Noida",
+          "Gurugram", "Thane", "Nagpur", "Indore", "Surat", "Kochi", "Thiruvananthapuram", "Ludhiana",
+          "Chandigarh", "Bhopal", "Patna", "Kanpur", "Agra", "Warangal", "Tirupati", "Salem", "Trichy"]
+
+SNATCH_QUERIES = [
+    "chain snatching cctv footage", "chain snatching caught on camera", "chain snatchers cctv",
+    "bike borne chain snatchers cctv", "chain snatching bike cctv video", "gold chain snatched cctv",
+    "mangalsutra snatching cctv", "chain snatching woman cctv", "chain snatching night cctv",
+    "chain snatching caught on cctv camera india", "snatchers on bike cctv woman chain",
+    "chain snatching incident cctv viral", "chain snatching old woman cctv",
+    "chain snatching morning walk cctv", "chain snatching temple cctv",
+    "chain snatcher caught cctv footage police", "chain snatching scooty cctv",
+    "चेन स्नैचिंग सीसीटीवी", "चेन स्नेचिंग सीसीटीवी वीडियो", "गले से चेन छीनी सीसीटीवी",
+    "చైన్ స్నాచింగ్ సీసీ కెమెరా", "செயின் பறிப்பு சிசிடிவி", "ಸರಗಳ್ಳತನ ಸಿಸಿಟಿವಿ",
+    "चेन चोरी सीसीटीवी", "మెడలో గొలుసు లాక్కెళ్లిన సీసీ కెమెరా", "செயின் பறிப்பு சிசிடிவி காட்சி",
+    "mobile snatching cctv bike", "purse snatching cctv bike india", "bag snatching bike cctv india",
+] + [f"chain snatching {c} cctv" for c in CITIES]
+
+NORMAL_QUERIES = [
+    "cctv footage street india", "street cctv camera india live", "traffic cctv footage india",
+    "cctv camera road india footage", "market street cctv india", "residential street cctv india",
+    "cctv footage colony street", "shop cctv street view india", "night street cctv footage india",
+    "cctv footage lane india night", "junction traffic cctv india", "cctv camera footage busy road",
+    "bus stop cctv footage india", "temple street cctv footage", "cctv footage footpath india",
+    "street view cctv recording full", "cctv dvr footage street outside house india",
+    "traffic police cctv junction footage", "night ir cctv street footage", "cctv footage village road india",
+] + [f"{c} street cctv footage" for c in CITIES[:15]]
+
+REJECT_TITLE = re.compile(
+    r"prank|movie|film|scene|drama|serial|web ?series|trailer|song|animat|cartoon|\bai\b|a\.i\.|generated|"
+    r"awareness|skit|comedy|funny|spoof|parody|game|gta|minecraft|roblox|tutorial|how to|reaction|podcast|"
+    r"interview|debate|explained|documentary|episode|short film|staged|fake|mock ?drill|re-?enact|"
+    r"recreat|simulation|dashcam|dash cam|drone|vlog|unboxing|review|asmr|live stream|livestream", re.I)
+
+
+def search(query: str, n: int) -> list[dict]:
+    cmd = [sys.executable, "-m", "yt_dlp", f"ytsearch{n}:{query}", "--flat-playlist", "--dump-json",
+           "--no-warnings", "--ignore-errors"]
+    try:
+        out = subprocess.run(cmd, capture_output=True, text=True, timeout=300).stdout
+    except subprocess.TimeoutExpired:
+        return []
+    items = []
+    for line in out.splitlines():
+        try:
+            d = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        items.append({"id": d.get("id"), "title": d.get("title") or "", "channel": d.get("channel") or
+                      d.get("uploader") or "", "duration": d.get("duration"), "url": d.get("url") or
+                      f"https://www.youtube.com/watch?v={d.get('id')}", "view_count": d.get("view_count")})
+    return items
+
+
+def keep(item: dict, kind: str) -> str | None:
+    """None to keep, else the reason for dropping."""
+    dur = item.get("duration")
+    if not item.get("id") or dur is None:
+        return "no duration (live/unavailable)"
+    if REJECT_TITLE.search(item["title"]):
+        return "title: not real CCTV"
+    if kind == "snatch":
+        if dur > 900:
+            return "too long for an incident clip"
+        if not re.search(r"snatch|chain|स्नैच|स्नेच|चेन|छीन|స్నాచ|గొలుసు|பறிப்பு|செயின்|ಸರ|mangalsutra|purse|bag|mobile", item["title"], re.I):
+            return "title: not about a snatching"
+    else:
+        if dur < 120:
+            return "too short for normal footage"
+        if re.search(r"snatch|theft|robbery|chor|stolen|accident|fight|attack|murder|crash|fire|caught", item["title"], re.I):
+            return "title: an incident, not normal footage"
+    return None
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--per-query", type=int, default=60)
+    ap.add_argument("--kind", choices=["snatch", "normal", "both"], default="both")
+    args = ap.parse_args()
+    out_path = DATASET / "meta" / "candidates.jsonl"
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    seen = {}
+    if out_path.exists():
+        for line in out_path.read_text(encoding="utf-8").splitlines():
+            d = json.loads(line)
+            seen[d["id"]] = d
+    jobs = ([("snatch", q) for q in SNATCH_QUERIES] if args.kind in ("snatch", "both") else []) + \
+           ([("normal", q) for q in NORMAL_QUERIES] if args.kind in ("normal", "both") else [])
+    dropped: dict[str, int] = {}
+    for i, (kind, q) in enumerate(jobs, 1):
+        found = search(q, args.per_query)
+        new = 0
+        for item in found:
+            reason = keep(item, kind)
+            if reason:
+                dropped[reason] = dropped.get(reason, 0) + 1
+                continue
+            if item["id"] in seen:
+                seen[item["id"]].setdefault("queries", []).append(q)
+                continue
+            item.update({"kind": kind, "queries": [q]})
+            seen[item["id"]] = item
+            new += 1
+        print(f"[{i}/{len(jobs)}] {kind:6s} {q[:50]:50s} {len(found):3d} results, {new:3d} new "
+              f"(total {sum(1 for v in seen.values() if v['kind'] == 'snatch')} snatch / "
+              f"{sum(1 for v in seen.values() if v['kind'] == 'normal')} normal)", flush=True)
+        out_path.write_text("".join(json.dumps(v, ensure_ascii=False) + "\n" for v in seen.values()), encoding="utf-8")
+    print("dropped:", dropped)
+
+
+if __name__ == "__main__":
+    main()

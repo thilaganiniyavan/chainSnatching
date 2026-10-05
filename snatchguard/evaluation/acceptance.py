@@ -93,6 +93,14 @@ def render(res: dict) -> str:
             lines.append(f"| {'IR (infrared camera)' if mode == 'ir' else 'colour low-light'} | {pct(r['recall'])} "
                          f"({ci(r['recall_ci95'])}) | {prec(r)} | {r['false_alarms_per_hour']:.2f} | "
                          f"{cell('snatch_bike')} | {cell('snatch_foot')} |")
+    ext = res.get("external")
+    if ext:
+        lines += ["", f"## External test: {ext['name']} (independent footage, thresholds fixed from Snatch 1.0)", "",
+                  "| recall | precision | false alarms / hour | by category | by lighting |", "|---|---|---|---|---|",
+                  f"| {pct(ext['recall'])} ({ext['events_detected']}/{ext['events']}, {ci(ext['recall_ci95'])}) | "
+                  f"{prec(ext)} | {ext['false_alarms_per_hour']:.2f} over {ext['normal_hours']} h | "
+                  + ", ".join(f"{k}: {v['caught']}/{v['events']}" for k, v in ext["by_category"].items()) + " | "
+                  + ", ".join(f"{k}: {v['caught']}/{v['events']}" for k, v in ext["by_lighting"].items()) + " |"]
     lines += ["", "## Every clip (scored on the fold it was not tuned on)", "",
               "| video | category | fold | caught | true alerts | false alarms | latency after grab |",
               "|---|---|---|---|---|---|---|"]
@@ -122,6 +130,9 @@ def main() -> None:
     ap.add_argument("--out", default=str(OUT_DIR / "acceptance_report.md"))
     args = ap.parse_args()
     res = json.loads(Path(args.result).read_text(encoding="utf-8"))
+    ext_path = Path(args.result).with_name("external.json")
+    if ext_path.exists():
+        res["external"] = json.loads(ext_path.read_text(encoding="utf-8"))
     night_path = Path(args.result).with_name("night.json")
     if night_path.exists():
         res["night"] = json.loads(night_path.read_text(encoding="utf-8"))
