@@ -183,12 +183,11 @@ def fine_batch(kind: str, decision: str = "unclear") -> None:
     out_dir = REVIEW / f"fine_{kind}"
     out_dir.mkdir(parents=True, exist_ok=True)
     dd = json.loads((DATASET / "meta" / f"dedup_{kind}.json").read_text(encoding="utf-8"))
-    with open(REVIEW / f"decisions_{kind}.csv", newline="", encoding="utf-8") as f:
-        rows = [r for r in csv.DictReader(f) if r["decision"] == decision]
+    rows = [dict(r, key=k) for k, r in decisions(kind).items() if r["decision"] == decision]
     for r in rows:
         seg = dd[r["key"]]
-        s = float(r["event_start_s"] or seg["start"])
-        e = float(r["event_end_s"] or seg["end"])
+        s = float(r.get("event_start_s") or seg["start"])
+        e = float(r.get("event_end_s") or seg["end"])
         s, e = max(seg["start"], s - 1.0), min(seg["end"], e + 1.0)
         fine(kind, r["key"], s, e, out_dir / f"{r['key'].replace('#', '_')}.jpg")
     print(f"{len(rows)} fine images -> {out_dir}")
@@ -276,6 +275,19 @@ def build(max_normal_s: float = 600.0) -> None:
                 w = csv.DictWriter(f, fieldnames=list(rows[0]))
                 w.writeheader()
                 w.writerows(rows)
+    stats = {"clips": {}, "hours": {}, "lighting": {}, "source_type": {}, "rejected_after_review": rejected,
+             "decisions": {}}
+    for m in manifest:
+        c = m["category"]
+        stats["clips"][c] = stats["clips"].get(c, 0) + 1
+        dur = float(m["source_end_s"]) - float(m["source_start_s"])
+        stats["hours"][c] = round(stats["hours"].get(c, 0) + dur / 3600, 3)
+        stats["lighting"][f"{c}/{m['lighting']}"] = stats["lighting"].get(f"{c}/{m['lighting']}", 0) + 1
+        stats["source_type"][m["source_type"]] = stats["source_type"].get(m["source_type"], 0) + 1
+    for kind in ("snatch", "normal"):
+        for d in decisions(kind).values():
+            stats["decisions"][d["decision"]] = stats["decisions"].get(d["decision"], 0) + 1
+    (DATASET / "stats.json").write_text(json.dumps(stats, indent=1), encoding="utf-8")
     print(f"{sum(1 for x in labels if x['category'] != 'normal')} snatch clips, "
           f"{sum(1 for x in labels if x['category'] == 'normal')} normal clips -> {DATASET}")
     print("accepted by review but not clean enough:", rejected)
