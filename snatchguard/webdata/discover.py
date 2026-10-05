@@ -38,6 +38,40 @@ SNATCH_QUERIES = [
     "mobile snatching cctv bike", "purse snatching cctv bike india", "bag snatching bike cctv india",
 ] + [f"chain snatching {c} cctv" for c in CITIES]
 
+# Raw uploads (police, home/shop DVR owners, CCTV channels) rather than news packages: news cuts
+# the footage short, zooms, and draws circles and arrows over it. Rider-on-pedestrian snatches of
+# phones and bags from other countries are the same motion pattern on different cameras.
+RAW_SNATCH_QUERIES = [
+    "chain snatching cctv footage full video", "chain snatching cctv original video", "chain snatching dvr recording",
+    "chain snatching caught on my house cctv", "chain snatching outside house cctv camera",
+    "chain snatching cctv camera 1", "chain snatching ip camera footage", "chain snatching cctv no edit",
+    "police cctv chain snatching footage", "district police chain snatching cctv",
+    "commissionerate police chain snatching cctv", "chain snatching cctv footage released by police",
+    "mobile snatching cctv karachi", "mobile snatching cctv lahore", "street crime cctv karachi snatching",
+    "snatching cctv footage pakistan bike", "dacoity cctv karachi street bike", "mobile snatching cctv india bike",
+    "robo en moto camara de seguridad", "motochorros camara de seguridad", "arrebato moto camara de seguridad",
+    "robo de celular en moto camara de seguridad", "motochorro arrebata celular camara",
+    "phone snatching moped cctv london", "moped snatch cctv", "bag snatch motorbike cctv",
+    "snatch theft cctv malaysia", "ragut cctv motosikal", "kes ragut rakaman cctv", "jambret cctv motor",
+    "chain snatching cctv sri lanka", "ছিনতাই সিসিটিভি", "chain snatching cctv bangladesh",
+]
+
+NEWS_CHANNEL = re.compile(
+    r"news|\btv|(?<!cc)tv\b|samachar|times|express|today|\blive\b|24|channel|media|bharat|aaj ?tak|ndtv|abp|zee|etv|"
+    r"polimer|thanthi|\bsun\b|v6|ntv|tv9|tv5|sakshi|abn|mirror|republic|\bani\b|oneindia|otv|ibc|asianet|"
+    r"manorama|mathrubhumi|puthiya|jaya|lokmat|loksatta|dainik|patrika|amar ujala|jagran|kesari|jagbani|ptc|"
+    r"sandesh|gstv|vtv|doordarshan|wion|hindustan|navbharat|bulletin|khabar|vaartha|eenadu|hmtv|kairali|"
+    r"reporter|suvarna|tribune|inkhabar|dinamalar|\btak\b|latestly|brut|associated press|scroll|nyoooz|"
+    r"headline|updates|darpan|prime9|kalinga|saam|savera|tiroki|telugubhoomi|samayam|inextlive|exclusive|"
+    r"\bfox\d*|cnn|bbc|sky|telemundo|univision|noticias|noticiero|diario|canal|astro awani|berita|kompas|"
+    r"geo|dawn|ary|samaa|dunya|express|92|bol\b|hum\b|aaj\b", re.I)
+
+
+def source_of(item: dict) -> str:
+    """'news' for a broadcaster's upload (edited package), else 'raw' (police, owner, CCTV channel)."""
+    return "news" if NEWS_CHANNEL.search(item.get("channel") or "") else "raw"
+
+
 NORMAL_QUERIES = [
     "cctv footage street india", "street cctv camera india live", "traffic cctv footage india",
     "cctv camera road india footage", "market street cctv india", "residential street cctv india",
@@ -84,7 +118,8 @@ def keep(item: dict, kind: str) -> str | None:
     if kind == "snatch":
         if dur > 900:
             return "too long for an incident clip"
-        if not re.search(r"snatch|chain|स्नैच|स्नेच|चेन|छीन|స్నాచ|గొలుసు|பறிப்பு|செயின்|ಸರ|mangalsutra|purse|bag|mobile", item["title"], re.I):
+        if not re.search(r"snatch|chain|स्नैच|स्नेच|चेन|छीन|స్నాచ|గొలుసు|பறிப்பு|செயின்|ಸರ|mangalsutra|purse|bag|mobile|"
+                         r"phone|robo|arrebat|motochorro|ragut|jambret|ছিনতাই|dacoit|street crime", item["title"], re.I):
             return "title: not about a snatching"
     else:
         if dur < 120:
@@ -98,6 +133,7 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--per-query", type=int, default=60)
     ap.add_argument("--kind", choices=["snatch", "normal", "both"], default="both")
+    ap.add_argument("--raw", action="store_true", help="run the raw-upload snatch queries instead")
     args = ap.parse_args()
     out_path = DATASET / "meta" / "candidates.jsonl"
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -106,8 +142,11 @@ def main() -> None:
         for line in out_path.read_text(encoding="utf-8").splitlines():
             d = json.loads(line)
             seen[d["id"]] = d
-    jobs = ([("snatch", q) for q in SNATCH_QUERIES] if args.kind in ("snatch", "both") else []) + \
-           ([("normal", q) for q in NORMAL_QUERIES] if args.kind in ("normal", "both") else [])
+    if args.raw:
+        jobs = [("snatch", q) for q in RAW_SNATCH_QUERIES]
+    else:
+        jobs = ([("snatch", q) for q in SNATCH_QUERIES] if args.kind in ("snatch", "both") else []) + \
+               ([("normal", q) for q in NORMAL_QUERIES] if args.kind in ("normal", "both") else [])
     dropped: dict[str, int] = {}
     for i, (kind, q) in enumerate(jobs, 1):
         found = search(q, args.per_query)
@@ -120,13 +159,16 @@ def main() -> None:
             if item["id"] in seen:
                 seen[item["id"]].setdefault("queries", []).append(q)
                 continue
-            item.update({"kind": kind, "queries": [q]})
+            item.update({"kind": kind, "queries": [q], "source": source_of(item)})
             seen[item["id"]] = item
             new += 1
         print(f"[{i}/{len(jobs)}] {kind:6s} {q[:50]:50s} {len(found):3d} results, {new:3d} new "
               f"(total {sum(1 for v in seen.values() if v['kind'] == 'snatch')} snatch / "
               f"{sum(1 for v in seen.values() if v['kind'] == 'normal')} normal)", flush=True)
         out_path.write_text("".join(json.dumps(v, ensure_ascii=False) + "\n" for v in seen.values()), encoding="utf-8")
+    for v in seen.values():
+        v["source"] = source_of(v)
+    out_path.write_text("".join(json.dumps(v, ensure_ascii=False) + "\n" for v in seen.values()), encoding="utf-8")
     print("dropped:", dropped)
 
 
