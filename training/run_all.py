@@ -44,7 +44,7 @@ RUNS = ROOT / "runtime" / "train_runs"
 MODELS = ROOT / "models"
 
 PROFILES = {
-    "full": dict(det_size="s", det_imgsz=960, det_epochs=50, pose_size="s", pose_imgsz=640, pose_epochs=30,
+    "full": dict(det_size="m", det_imgsz=960, det_epochs=100, pose_size="m", pose_imgsz=640, pose_epochs=50,
                  coco=12000, visdrone=6000, llvip=6000, exdark=True, pose_images=15000, pseudo_every=2.0,
                  pseudo_max=400, teacher="yolo26x.pt", edge_imgsz=960, pose_infer_imgsz=960, trials=150,
                  device="0", cpu_ok=False, night_max_seconds=600),

@@ -18,11 +18,11 @@ from pathlib import Path
 
 from ultralytics import YOLO
 
-# Augmentation tuned for CCTV: little colour jitter (night images are already
-# hard), strong brightness jitter, no vertical flips, mosaic off for the last
-# epochs so the model finishes on realistic whole frames.
-AUG = dict(hsv_h=0.01, hsv_s=0.5, hsv_v=0.5, degrees=0.0, translate=0.1, scale=0.5, fliplr=0.5, flipud=0.0,
-           mosaic=1.0, mixup=0.05, close_mosaic=10)
+# Augmentation tuned for CCTV: small motorcycles require careful handling.
+# Mosaic stitching (combining 4 images) destroys small object detection.
+# Strong augmentation on already-degraded CCTV creates distribution mismatch.
+AUG = dict(hsv_h=0.01, hsv_s=0.3, hsv_v=0.3, degrees=0.0, translate=0.05, scale=0.3, fliplr=0.5, flipud=0.0,
+           mosaic=0.0, mixup=0.0, close_mosaic=0)
 
 
 def train(kind: str, data: Path, epochs: int, imgsz: int, batch: int, size: str, project: Path, patience: int,
@@ -113,7 +113,7 @@ def main() -> None:
     ap.add_argument("--batch", type=int, default=-1, help="-1 = AutoBatch (fits the GPU's memory, e.g. an 8 GB RTX 4060)")
     ap.add_argument("--size", default="n", choices=["n", "s", "m"])
     ap.add_argument("--project", type=Path, default=Path("runs"))
-    ap.add_argument("--patience", type=int, default=15)
+    ap.add_argument("--patience", type=int, default=20)
     ap.add_argument("--workers", type=int, default=4, help="dataloader workers (Windows: keep 2-4)")
     ap.add_argument("--device", default=None, help="e.g. 0 for the first GPU (default: Ultralytics picks)")
     ap.add_argument("--export-to", type=Path, default=Path("export"))
