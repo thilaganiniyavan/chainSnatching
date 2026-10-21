@@ -45,7 +45,7 @@ foreach ($cu in @("cu130", "cu128", "cu126", "cu124")) {
 if (-not $ok) { throw "No CUDA-enabled PyTorch could see the GPU. Update the NVIDIA driver and re-run this script." }
 
 Write-Host "== SnatchGuard and its dependencies"
-& $py -m pip install -e ".[edge,central,dev,train]"
+& $py -m pip install -e ".[edge,central,dev,train,learned]"
 if ($LASTEXITCODE -ne 0) { throw "installing SnatchGuard failed (see the pip output above)" }
 & $py -c "import torch, ultralytics; print('GPU:', torch.cuda.get_device_name(0), '| torch', torch.__version__, '| ultralytics', ultralytics.__version__)"
 

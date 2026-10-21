@@ -26,6 +26,18 @@ processing:
 rules: configs/rules.yaml
 tracker: configs/tracker.yaml
 
+# Learned snatch scorer next to the rules (snatchguard/learned), fused with the rule decisions by
+# snatchguard/evaluation/fusion.py with configs/fusion.tuned.yaml (else configs/fusion.yaml).
+# It runs in its own thread on the newest frame only, so it never slows the rules down. If the model
+# file is missing or fails to load, the camera logs it once and runs on the rules alone.
+learned:
+  enabled: false         # live detection stays rule-based; set true to fuse the learned scorer in
+  model: models/learned/snatch_scorer.pt
+  fps: 8                 # frames/s offered to the scorer (it drops frames when it falls behind)
+  device: cpu            # cpu | 0 (first CUDA GPU)
+  threads: 1             # CPU threads for the scorer (leave the rest to detection and pose)
+  # fusion: configs/fusion.tuned.yaml
+
 evidence:
   dir: runtime/edge/evidence
   pre_s: 8               # seconds of video kept before the contact

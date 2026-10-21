@@ -148,7 +148,8 @@ class RuleEngine:
                 self._open_foot_pairs(victim, H, p)
 
     def _open_foot_pairs(self, victim, H: float, p: RuleParams) -> None:
-        """Someone on foot closing in on (or already right next to) an established pedestrian."""
+        """Someone on foot closing in on (or already right next to) an established pedestrian.
+        A person who looks seated is a rider whose two-wheeler the detector missed: judged as a vehicle."""
         scene = self.scene
         cv = g.center(victim.last.box)
         vv = victim.velocity(scene.t)
@@ -162,6 +163,9 @@ class RuleEngine:
                 continue
             gap = g.box_gap(victim.last.box, other.last.box) / H
             if gap > p.foot_pair_open_gap:
+                continue
+            if p.seated_attacker_enabled and scene.looks_seated(other, scene.t, p):
+                self.pairs[key] = PairState(key[0], key[1], seated=True)
                 continue
             u = g.center(other.last.box) - cv
             u = u / (np.linalg.norm(u) + 1e-9)
@@ -184,10 +188,15 @@ class RuleEngine:
             if victim is None or bike is None:
                 self._drop(key)
                 continue
-            if pair.on_foot and pair.phase == "WATCH" and (bike.track_id in scene.rider_of or bike.cls is not ObjClass.PERSON):
-                self._drop(key)          # the "pedestrian" attacker turned out to be riding / not a person
+            if pair.on_foot and pair.phase == "WATCH" and p.seated_attacker_enabled \
+                    and bike.cls is ObjClass.PERSON and scene.looks_seated(bike, t, p):
+                pair.on_foot, pair.seated = False, True     # the 'pedestrian' attacker sits on an unseen bike
+                p = self.params_for(pair)
+            if (pair.on_foot or pair.seated) and pair.phase == "WATCH" and (
+                    bike.track_id in scene.rider_of or bike.cls is not ObjClass.PERSON):
+                self._drop(key)          # the person attacker turned out to be riding a detected bike / not a person
                 continue
-            if not pair.on_foot and not bike.cls.is_vehicle:
+            if not pair.on_foot and not pair.seated and not bike.cls.is_vehicle:
                 self._drop(key)          # the "vehicle" was a rider+bike blob now voted 'person': not a valid pair
                 continue
             if scene.rider_of.get(pair.victim_id) == pair.bike_id and pair.phase != "CONTACT":
@@ -198,7 +207,7 @@ class RuleEngine:
                 pair.phase, pair.phase_contact_start, pair.escape_t = "WATCH", None, None
 
             if victim.lost_at is None:
-                sample = build_sample(scene, victim, bike, p)
+                sample = build_sample(scene, victim, bike, p, seated=pair.seated)
                 new_ep = pair.add(sample, p, keep_s)
             else:
                 sample, new_ep = None, None
@@ -258,12 +267,12 @@ class RuleEngine:
                 return None
             self._bike_cooldown[pair.bike_id] = t + p.cooldown_s
             self._victim_cooldown[pair.victim_id] = t + p.cooldown_s
-        riders = [] if pair.on_foot else self.scene.riders(pair.bike_id)
+        riders = [] if pair.on_foot or pair.seated else self.scene.riders(pair.bike_id)
         boxes = {"victim": [round(float(x), 1) for x in victim.last.box],
-                 ("attacker" if pair.on_foot else "vehicle"): [round(float(x), 1) for x in bike.last.box]}
+                 ("attacker" if pair.on_foot or pair.seated else "vehicle"): [round(float(x), 1) for x in bike.last.box]}
         for i, r in enumerate(riders):
             boxes[f"rider{i + 1}"] = [round(float(x), 1) for x in r.last.box]
-        mode = "on_foot" if pair.on_foot else bike.cls.value
+        mode = "on_foot" if pair.on_foot else ("two_wheeler_unseen" if pair.seated else bike.cls.value)
         return Decision(verdict, t, pair.victim_id, pair.bike_id, [r.track_id for r in riders], self._lighting, boxes,
                         mode)
 

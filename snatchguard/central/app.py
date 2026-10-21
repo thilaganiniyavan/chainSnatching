@@ -56,6 +56,7 @@ def create_app(data_dir: str | Path | None = None, api_keys: set[str] | None = N
     store = Store(data_dir / "central.db")
     bus = Broadcaster()
     thumbnails: dict[str, bytes] = {}
+    live_risk: dict[str, dict] = {}          # node/camera -> latest learned-scorer risk (memory only)
 
     async def watchdog() -> None:
         while True:
@@ -170,6 +171,38 @@ def create_app(data_dir: str | Path | None = None, api_keys: set[str] | None = N
             bus.publish("event", store.get_event(ev["event_id"]))
         bus.publish("cameras", {"cameras": store.cameras(), "nodes": store.nodes()})
         return {"ok": True}
+
+    @app.post("/api/v1/live", dependencies=[Depends(require_key)])
+    async def post_live(request: Request):
+        """Frequent, best-effort risk values (0..1) from each camera's learned scorer; not stored."""
+        body = await request.json()
+        node = body.get("node_id") if isinstance(body, dict) else None
+        if not isinstance(node, str) or not SAFE_ID.match(node):
+            raise HTTPException(422, "node_id missing or invalid")
+        cams = body.get("cameras", [])
+        if not isinstance(cams, list):
+            raise HTTPException(422, "cameras must be a list")
+        out = []
+        for cam in cams[:64]:
+            cid = cam.get("id") if isinstance(cam, dict) else None
+            if not isinstance(cid, str) or not SAFE_ID.match(cid):
+                continue
+            risk = cam.get("risk")
+            if isinstance(risk, (int, float)) and not isinstance(risk, bool):
+                risk = round(min(1.0, max(0.0, float(risk))), 3)
+            else:
+                risk = None
+            state = cam.get("learned") if cam.get("learned") in ("on", "off", "missing", "error") else None
+            entry = {"node_id": node, "camera_id": cid, "risk": risk, "learned": state, "at": now_iso()}
+            live_risk[f"{node}/{cid}"] = entry
+            out.append(entry)
+        if out:
+            bus.publish("risk", {"cameras": out})
+        return {"ok": True, "cameras": len(out)}
+
+    @app.get("/api/v1/live")
+    def get_live():
+        return {"cameras": list(live_risk.values())}
 
     # ---- dashboard-facing --------------------------------------------------
     @app.get("/api/v1/events")

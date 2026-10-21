@@ -127,3 +127,100 @@ def test_evidence_clip_and_snapshot(tmp_path):
     done = dict(rec.finished())
     assert snap.exists()
     assert done["ev1"] is not None and done["ev1"].exists() and done["ev1"].stat().st_size > 1000
+
+
+# ---- live learned scorer + fusion in the camera worker (fake scorer: no torch, no model download) ------
+
+import sys
+import types
+from dataclasses import dataclass
+
+
+@dataclass
+class _Win:
+    t_start: float
+    t_end: float
+    score: float
+
+
+class _FakeScorer:
+    """Emits one 2 s window per pushed frame with a fixed score (stands in for snatchguard.learned)."""
+
+    score = 0.9
+
+    def __init__(self, model_path, device="cpu", threads=2):
+        self.window_s, self.stride_s = 2.0, 0.5
+
+    def push(self, img, t):
+        return [_Win(max(0.0, t - 2.0), t, self.score)]
+
+    def reset(self):
+        pass
+
+
+def _node(tmp_path, learned=None):
+    from snatchguard.core.config import REPO_ROOT
+    return {"node_id": "n1", "site": "test", "models": {}, "rules": str(REPO_ROOT / "configs" / "rules.yaml"),
+            "evidence": {"dir": str(tmp_path / "ev"), "pre_s": 2, "post_s": 1},
+            "outbox": str(tmp_path / "outbox.db"), **({"learned": learned} if learned else {})}
+
+
+def _run_synthetic(tmp_path, learned=None):
+    from snatchguard.edge.camera import CameraWorker
+    cam = {"id": "c1", "source": "synthetic:snatch", "loop": False, "realtime": False}
+    w = CameraWorker(cam, _node(tmp_path, learned))
+    w.run()
+    events = [i.payload for i in Outbox(tmp_path / "outbox.db").due(limit=100) if i.kind == "event"]
+    return w, events
+
+
+def _fake_module(monkeypatch):
+    mod = types.ModuleType("snatchguard.learned.scorer")
+    mod.SnatchScorer = _FakeScorer
+    monkeypatch.setitem(sys.modules, "snatchguard.learned.scorer", mod)
+
+
+def test_camera_without_model_runs_rules_only_as_before(tmp_path):
+    base_dir, miss_dir = tmp_path / "a", tmp_path / "b"
+    _, plain = _run_synthetic(base_dir)
+    w, missing = _run_synthetic(miss_dir, {"enabled": True, "model": str(tmp_path / "no_such_model.pt")})
+    assert w.fuser is None and w.learned is None and w.learned_state == "missing"
+    st = w.status()
+    assert st["risk"] is None and st["learned"] == "missing"
+    assert [e["level"] for e in plain] == [e["level"] for e in missing] and plain
+    assert all(e["source"] == "rules" for e in plain + missing)
+
+
+def test_camera_fuses_model_scores_and_reports_risk(tmp_path, monkeypatch):
+    _fake_module(monkeypatch)
+    model = tmp_path / "fake.pt"
+    model.write_bytes(b"x")
+    fusion = tmp_path / "fusion.yaml"
+    fusion.write_text("params:\n  model_threshold: 0.5\n  model_k: 2\n  cooldown_s: 600\n")
+    w, events = _run_synthetic(tmp_path, {"enabled": True, "model": str(model), "fusion": str(fusion)})
+    assert w.fuser is not None and w.learned_state == "on"
+    assert w.learned.scored > 0 and w.status()["risk"] == 0.9
+    snatch = [e for e in events if e["type"] == "snatch"]
+    assert snatch and all({"source", "model_score", "rule_score"} <= set(e) for e in snatch)
+    sources = {e["source"] for e in snatch}
+    assert "model" in sources                           # the fake model is sure from the first windows
+    for e in snatch:
+        if e["source"] == "model":
+            assert e["mode"] == "unknown" and e["model_score"] == 0.9 and e["evidence"][0]["group"] == "model"
+    by_id = {e["event_id"] for e in snatch}
+    assert all(e["supersedes"] in by_id for e in snatch if "supersedes" in e)
+
+
+def test_camera_scorer_crash_falls_back_to_rules(tmp_path, monkeypatch):
+    class Broken(_FakeScorer):
+        def push(self, img, t):
+            raise RuntimeError("boom")
+
+    mod = types.ModuleType("snatchguard.learned.scorer")
+    mod.SnatchScorer = Broken
+    monkeypatch.setitem(sys.modules, "snatchguard.learned.scorer", mod)
+    model = tmp_path / "fake.pt"
+    model.write_bytes(b"x")
+    w, events = _run_synthetic(tmp_path, {"enabled": True, "model": str(model)})
+    assert w.status()["learned"] == "error" and w.status()["risk"] is None
+    assert any(e["level"] == "CONFIRMED" and e["source"] == "rules" for e in events)

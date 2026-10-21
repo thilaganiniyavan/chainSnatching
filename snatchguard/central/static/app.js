@@ -8,6 +8,7 @@ const state = {
   filter: "open",
   sound: true,
   openId: null,
+  risk: new Map(),         // node/camera -> {risk, learned, at} from the edge's learned scorer
 };
 
 const $ = (sel) => document.querySelector(sel);
@@ -32,6 +33,17 @@ const MODE_TEXT = { motorcycle: "by motorcycle", bicycle: "by bicycle", on_foot:
 const modeOf = (ev) => (ev.payload && MODE_TEXT[ev.payload.mode]) || "";
 const titleOf = (ev) => (LEVEL_LABEL[ev.level] || ev.level) + (ev.type === "snatch" && modeOf(ev) ? ` (${modeOf(ev)})` : "");
 const STATUS_TEXT = { new: "Needs review", acknowledged: "Acknowledged", confirmed: "Confirmed", false_alarm: "False alarm" };
+const SOURCE_TEXT = { rules: "rules", model: "learned scorer", fused: "rules + model" };
+const pct100 = (x) => Math.round(Number(x) * 100);
+function sourcePills(ev) {
+  const p = ev.payload || {};
+  if (ev.type !== "snatch") return "";
+  let out = "";
+  if (p.source && p.source !== "rules") out += `<span class="pill src-${esc(p.source)}">${esc(SOURCE_TEXT[p.source] || p.source)}</span>`;
+  if (p.model_score != null) out += `<span class="pill" title="learned scorer">model ${pct100(p.model_score)}</span>`;
+  if (p.supersedes) out += `<span class="pill" title="upgrades an earlier alert">upgrade</span>`;
+  return out;
+}
 
 // ---------------------------------------------------------------------------
 function timeAgo(iso) {
@@ -88,7 +100,7 @@ function cardHtml(ev) {
     ${thumb}
     <div class="body">
       <div class="title"><strong>${esc(titleOf(ev))}</strong>
-        <span class="pill ${esc(ev.level)}">${esc(ev.level)}</span>${light}${conf}</div>
+        <span class="pill ${esc(ev.level)}">${esc(ev.level)}</span>${light}${conf}${sourcePills(ev)}</div>
       <div class="meta">${esc(ev.camera_name || ev.camera_id || "")} · ${esc(ev.site || "")} · ${clock(ev.occurred_at)} (${timeAgo(ev.received_at)})</div>
       <div class="why">${esc(summary(ev))}</div>
     </div>
@@ -112,6 +124,7 @@ function renderCameras() {
     (p.tamper || []).forEach((t) => badges.push(`<span class="badge bad">⚠ ${esc(t)}</span>`));
     if (p.degraded) badges.push(`<span class="badge warn">⚠ low fps</span>`);
     const img = `/api/v1/cameras/${encodeURIComponent(c.node_id)}/${encodeURIComponent(c.camera_id)}/thumbnail.jpg?t=${Date.now()}`;
+    const key = `${c.node_id}/${c.camera_id}`;
     return `<div class="cam">
       <div class="frame"><img src="${img}" alt="" onerror="this.style.visibility='hidden'">
         <div class="overlay">${badges.join("")}</div>
@@ -122,8 +135,32 @@ function renderCameras() {
           <div class="sub">${esc(c.node_id)} · ${esc(p.fps_proc ?? "–")} fps · ${esc(p.tracks ?? 0)} tracks · ${esc(p.pairs ?? 0)} pairs</div></div>
         <div class="sub" title="restarts">${p.restarts ? `↻ ${esc(p.restarts)}` : ""}</div>
       </div>
+      <div class="risk" data-risk-key="${esc(key)}">${riskInner(riskOf(key, p))}</div>
     </div>`;
   }).join("");
+}
+
+function riskOf(key, payload) {
+  const live = state.risk.get(key);
+  if (live) return live;
+  return { risk: payload ? payload.risk : null, learned: payload ? payload.learned : null };
+}
+
+function riskInner(r) {
+  if (!r || r.learned == null || r.learned === "off") return "";
+  if (r.learned !== "on") return `<span class="risk-label muted">learned scorer: ${esc(r.learned)} (rules only)</span>`;
+  const v = r.risk == null ? 0 : Math.max(0, Math.min(1, Number(r.risk)));
+  const cls = v >= 0.7 ? "high" : v >= 0.4 ? "mid" : "low";
+  return `<div class="risk-track"><div class="risk-fill ${cls}" style="width:${(v * 100).toFixed(0)}%"></div></div>
+    <span class="risk-label">risk ${r.risk == null ? "–" : pct100(v)}</span>`;
+}
+
+function updateRisk(entries) {
+  (entries || []).forEach((e) => state.risk.set(`${e.node_id}/${e.camera_id}`, e));
+  document.querySelectorAll("[data-risk-key]").forEach((el) => {
+    const r = state.risk.get(el.dataset.riskKey);
+    if (r) el.innerHTML = riskInner(r);
+  });
 }
 
 async function refreshStats() {
@@ -177,7 +214,13 @@ function detailHtml(ev) {
       <div class="breakdown">${bars}</div>
       ${GROUPS.map(([g, label]) => `<div class="section-title">${label}</div><ul class="checks">${checks(g)}</ul>`).join("")}
       <div class="section-title">Playfulness / familiarity checks (reduce the score)</div>
-      <ul class="checks benign">${checks("benign")}</ul>`;
+      <ul class="checks benign">${checks("benign")}</ul>
+      ${p.source || p.model_score != null ? `<div class="section-title">Learned scorer</div>
+      <dl class="facts"><dt>Decided by</dt><dd>${esc(SOURCE_TEXT[p.source] || p.source || "rules")}</dd>
+        <dt>Model score</dt><dd>${p.model_score == null ? "– (not available)" : pct100(p.model_score) + " / 100"}</dd>
+        <dt>Rule verdict</dt><dd>${p.rule_level ? esc(p.rule_level) + (p.rule_score != null ? ` (score ${pct100(p.rule_score)})` : "") : "–"}</dd>
+        ${p.supersedes ? `<dt>Upgrades</dt><dd style="font-family:var(--mono);font-size:12px">${esc(p.supersedes)}</dd>` : ""}
+      </dl><ul class="checks">${checks("model")}</ul>` : ""}`;
   } else if (ev.type === "tamper") {
     right = `<div class="section-title">Condition</div><p>${esc(TAMPER_TEXT[p.condition] || p.condition)}</p>
       <dl class="facts"><dt>Brightness</dt><dd>${esc(p.brightness)}</dd><dt>Sharpness</dt><dd>${esc(p.sharpness)}</dd>
@@ -310,6 +353,7 @@ function connect() {
   es.onerror = () => { conn.className = "conn down"; $("#conn-text").textContent = "Reconnecting…"; };
   es.addEventListener("event", (m) => { upsert(JSON.parse(m.data), true); refreshStats(); });
   es.addEventListener("event_update", (m) => upsert(JSON.parse(m.data), false));
+  es.addEventListener("risk", (m) => updateRisk(JSON.parse(m.data).cameras));
   es.addEventListener("cameras", (m) => {
     const d = JSON.parse(m.data);
     state.cameras = d.cameras || [];
@@ -327,6 +371,7 @@ async function loadInitial() {
   renderFeed();
   renderCameras();
   refreshStats();
+  fetch("/api/v1/live").then((r) => r.json()).then((d) => updateRisk(d.cameras)).catch(() => {});
 }
 
 document.querySelectorAll("#tabs button").forEach((b) => b.addEventListener("click", () => {

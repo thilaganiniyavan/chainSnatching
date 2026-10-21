@@ -130,6 +130,7 @@ class Scenario:
     expect: set[Level]                 # acceptable outcomes (DISMISSED = no alert)
     lighting: Lighting = Lighting.DAY
     fps: float = 8.0
+    rule_overrides: dict = field(default_factory=dict)   # opt-in rule features this scene exercises
 
     def frames(self, seed: int = 0, jitter_px: float = 1.5, drop_prob: float = 0.08):
         """Yield FrameObservations with tracker-like noise and dropped frames."""
@@ -316,6 +317,39 @@ def phone_call_passing() -> Scenario:
                     [victim] + riders, 9.5, expect={Level.DISMISSED})
 
 
+def unseen_bike(sc: Scenario, same_depth: bool = True) -> Scenario:
+    """The detector misses the two-wheeler (small, blurry, merged into the riders): only the riders are seen, as
+    squat seated boxes that end at the footrest, about 0.3 H above the ground. `same_depth` puts the bike on the
+    victim's ground line, where that raised box bottom no longer matches the victim's feet."""
+    victim = next(a for a in sc.actors if a.track_id == 1)
+    bike = next(a for a in sc.actors if a.cls.is_vehicle)
+    shift = (victim.path[0][2] - bike.path[0][2]) if same_depth else 0.0
+    bike.visible = (1e9, 1e9)
+    for a in sc.actors:
+        if a.cls is ObjClass.PERSON and a.track_id >= 10:
+            a.path = [(t, x, y + shift - 0.24 * H) for t, x, y in a.path]
+            a.box_h, a.box_w = 0.62 * H, 0.42 * H
+    sc.name = f"{sc.name}[unseen_bike]"
+    sc.rule_overrides = {**sc.rule_overrides, "seated_attacker_enabled": True}
+    return sc
+
+
+def snatch_unseen_bike(pose: bool = True) -> Scenario:
+    """Classic snatch, but the motorcycle itself is never detected: the riders look like squat 'people'."""
+    sc = unseen_bike(snatch_from_behind(pose=pose, reaction="neck" if pose else "chase"))
+    sc.expect = {Level.CONFIRMED} if pose else {Level.SUSPECT, Level.CONFIRMED}
+    return sc
+
+
+def parked_rider_brush() -> Scenario:
+    """Someone sits on a parked scooter (bike not detected); a pedestrian walks past, brushing them."""
+    victim = _pedestrian(1, _walk(200.0, 0.8, 12.0))
+    sitter = Actor(30, ObjClass.PERSON, [(0.0, 640.0, VY - 0.30 * H), (12.0, 640.0, VY - 0.30 * H)],
+                   box_h=0.62 * H, box_w=0.42 * H)
+    return Scenario("parked_rider_brush", "Pedestrian brushes past a person sitting on a parked scooter.",
+                    [victim, sitter], 10.0, expect={Level.DISMISSED})
+
+
 def snatch_with_bystander() -> Scenario:
     """A snatch next to a second pedestrian: exactly one alert should come out."""
     sc = snatch_from_behind()
@@ -449,6 +483,17 @@ def all_scenarios() -> list[Scenario]:
         pat_on_shoulder_walk_together(),
         playful_tag_and_run(),
         crowd_brush(),
+        snatch_unseen_bike(),
+        snatch_unseen_bike(pose=False),
+        unseen_bike(passing_bike()),
+        unseen_bike(passing_bike_other_depth(), same_depth=False),
+        unseen_bike(friends_chat_then_leave()),
+        unseen_bike(playful_tap_and_go()),
+        unseen_bike(handover_stationary()),
+        unseen_bike(hug_goodbye()),
+        unseen_bike(walking_alongside()),
+        unseen_bike(phone_call_passing()),
+        parked_rider_brush(),
     ]
 
 

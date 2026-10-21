@@ -4,6 +4,7 @@
 * restarts crashed camera processes with backoff (watchdog)
 * sends a heartbeat with every camera's health + thumbnail to central
 * runs the publisher that drains the store-and-forward outbox
+* pushes each camera's live learned-scorer risk to central about once a second (best effort)
 """
 
 from __future__ import annotations
@@ -13,6 +14,7 @@ import multiprocessing as mp
 import os
 import queue
 import signal
+import threading
 import time
 from datetime import datetime, timezone
 
@@ -22,6 +24,43 @@ from snatchguard.edge.publisher import Publisher
 
 log = logging.getLogger(__name__)
 VERSION = "0.1.0"
+
+
+class RiskPusher(threading.Thread):
+    """Sends the latest per-camera risk to central's /api/v1/live. Never queued or retried: a lost
+    update is replaced by the next one, and a slow or dead central never delays the supervisor."""
+
+    def __init__(self, base_url: str, api_key: str, node_id: str, period_s: float = 1.0) -> None:
+        super().__init__(name="risk-pusher", daemon=True)
+        import httpx
+        self.url = base_url.rstrip("/") + "/api/v1/live"
+        self.headers = {"X-API-Key": api_key}
+        self.node_id = node_id
+        self.period_s = period_s
+        self.client = httpx.Client(timeout=httpx.Timeout(1.0, connect=1.0))
+        self._lock = threading.Lock()
+        self._latest: dict[str, dict] = {}
+        self._dirty = False
+        self._halt = threading.Event()
+
+    def update(self, cam_id: str, risk: float | None, state: str | None) -> None:
+        with self._lock:
+            self._latest[cam_id] = {"id": cam_id, "risk": risk, "learned": state}
+            self._dirty = True
+
+    def stop(self) -> None:
+        self._halt.set()
+
+    def run(self) -> None:
+        while not self._halt.wait(self.period_s):
+            with self._lock:
+                if not self._dirty:
+                    continue
+                cams, self._dirty = list(self._latest.values()), False
+            try:
+                self.client.post(self.url, json={"node_id": self.node_id, "cameras": cams}, headers=self.headers)
+            except Exception as exc:              # best effort: the next push replaces this one
+                log.debug("risk push failed: %s", exc)
 
 
 def _camera_process(cam: dict, node: dict, status_q, stop_evt, log_level: int) -> None:
@@ -42,6 +81,8 @@ class EdgeNode:
         self.publisher = Publisher(self.outbox, central.get("url", "http://127.0.0.1:8000"),
                                    central.get("api_key", ""))
         self.heartbeat_s = float(central.get("heartbeat_s", 10))
+        self.risk = RiskPusher(central.get("url", "http://127.0.0.1:8000"), central.get("api_key", ""),
+                               self.node_id) if (cfg.get("learned") or {}).get("enabled") else None
         self.ctx = mp.get_context("spawn")
         self.status_q = self.ctx.Queue()
         self.stop_evt = self.ctx.Event()
@@ -74,6 +115,8 @@ class EdgeNode:
         signal.signal(signal.SIGINT, _on_signal)
         signal.signal(signal.SIGTERM, _on_signal)
         self.publisher.start()
+        if self.risk is not None:
+            self.risk.start()
         cams = {c["id"]: c for c in self.cfg.get("cameras", [])}
         for cam in cams.values():
             self._spawn(cam)
@@ -123,6 +166,8 @@ class EdgeNode:
             time.sleep(0.5)
         self.publisher.heartbeat(self._heartbeat())
         self.publisher.stop()
+        if self.risk is not None:
+            self.risk.stop()
         if self.outbox.pending():
             log.warning("%d item(s) still queued; they will be sent on next start", self.outbox.pending())
 
@@ -132,6 +177,13 @@ class EdgeNode:
                 st = self.status_q.get_nowait()
             except queue.Empty:
                 return
+            if st.get("kind") == "risk":
+                if self.risk is not None:
+                    self.risk.update(st["id"], st.get("risk"), st.get("learned"))
+                prev = self.cam_status.get(st["id"])
+                if prev is not None:
+                    prev.update(risk=st.get("risk"), learned=st.get("learned"))
+                continue
             self.cam_status[st["id"]] = st
 
     def _heartbeat(self) -> dict:

@@ -7,7 +7,7 @@ Everything heavy runs on the GPU box; the laptop only runs the dashboard.
 |---|---|---|
 | setup | GPU box | 15 min |
 | Snatch 1.0 download (12.5 GB) | GPU box | 1–3 h, depends on your connection |
-| full pipeline (`train_all.ps1`) | GPU box | about 12–18 h (`-Profile quick`: about 4–6 h) |
+| full pipeline (`train_all.ps1`) | GPU box | about 13–20 h (`-Profile quick`: about 5–7 h) |
 | demo | GPU box + laptop | live |
 
 Disk: keep **80 GB free**. The run uses about 60 GB: Snatch 1.0 videos 12 GB (+12.5 GB if the original zips
@@ -56,6 +56,23 @@ powershell -ExecutionPolicy Bypass -File scripts\windows\train_all.ps1 -Zips D:\
   again**: finished steps are skipped and training resumes from its last epoch.
 * Logs: `runtime\pipeline\logs\<step>.log`. Progress markers: `runtime\pipeline\*.done`.
 * Re-run from a step: `... -Extra "--from","cache"` (e.g. after changing `configs\rules.yaml`).
+* `-Web D:\snatch_web_dataset` adds the external test (25 snatch + 11 normal clips from other cities and
+  cameras; copy the whole `snatch_web_dataset` folder, it needs `labels.csv` and `clips\`). It is only
+  scored, never trained or tuned on. Default: `%USERPROFILE%\snatch_web_dataset` if that folder exists.
+* `-Tiles 2x2` also runs the detector on 4 overlapping tiles of every frame, so small, distant bikes are
+  seen at a usable size. Off by default: it costs 5 detector passes per frame (the `cache` step takes
+  roughly 3x longer), and on the laptop (YOLO26n, 512 px) it helped 1 of 3 tested bike clips (23_0.mp4:
+  motorcycle found in 12 instead of 7 of 24 frames, tracked in 4 instead of 0), with no change on 17_0
+  and 2_0. Turn it on after a run if `python -m snatchguard.evaluation.funnel` shows bikes being lost at
+  detection: `-Tiles 2x2 -Extra "--from","install"`.
+
+**Already ran an earlier version?** The training settings and the pipeline changed, so re-run from the
+pseudo-labels (the downloaded datasets are kept; training starts fresh, an older run folder is moved to
+`runtime\train_runs\det_previous_<date>`):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\train_all.ps1 -Extra "--from","pseudo"
+```
 
 What the steps do, in order:
 
@@ -66,15 +83,17 @@ What the steps do, in order:
 | models | pretrained YOLO26 detector, pose, YOLO26x teacher | `models\` |
 | baseline | (with `-Baseline`) caches + tuning with pretrained models | `runtime\tuning_baseline\` |
 | datasets | ExDark, LLVIP, VisDrone, COCO + night / CCTV variants | `data\datasets\` |
-| pseudo | teacher labels on the 15 *pseudo-fold* normal videos | added to `sg_det` |
-| train_det | fine-tune the detector (YOLO26s, 960 px) | `runtime\train_runs\det\` |
-| compare | day vs night mAP, pretrained vs fine-tuned | `runtime\train_runs\compare_det.json` |
+| pseudo | teacher labels on the 15 *pseudo-fold* normal videos; 3 whole videos become a real-CCTV validation set | added to `sg_det` |
+| train_det | fine-tune the detector (YOLO26s, 960 px, 50 epochs) | `runtime\train_runs\det\` |
+| compare | day / night / real-CCTV mAP, pretrained vs fine-tuned | `runtime\train_runs\compare_det.json` |
 | train_pose | fine-tune the pose model | `runtime\train_runs\pose\` |
 | install | copy weights, write `configs\edge.gpu.yaml` | `models\*_finetuned.pt` |
 | cache | perception once over all evaluation videos | `runtime\cache\` |
+| learned | learned snatch scorer: video features, cross-validated scores, deployed model (30–60 min) | `models\learned\`, `runtime\learned\` |
 | tune | cross-validated rule tuning against 90 % / 90 % | `runtime\tuning\` |
+| fusion | cross-validated tuning of how rule alerts and the learned score are combined (minutes) | `runtime\tuning\fusion.json`, `configs\fusion.tuned.yaml` |
 | night | the same held-out footage as simulated IR and low-light night, scored with the tuned rules | `runtime\tuning\night.json` |
-| report | **acceptance report**, deploys the tuned rules | `runtime\tuning\acceptance_report.md` |
+| report | external test on the web dataset (with `-Web`), then the **acceptance report**; deploys the tuned rules | `runtime\tuning\acceptance_report.md`, `runtime\tuning\external.json` |
 
 ### How the 90 % is measured (so the number holds up in front of a panel)
 
@@ -82,9 +101,13 @@ What the steps do, in order:
   right moment. **Precision**: of all alerts (on snatch clips *and* on 3.1 h of normal CCTV), how many
   were real. Both are event-level and include 95 % confidence intervals.
 * The data is split three ways and nothing is scored on data it was fitted to:
-  the detector learns from the `pseudo` fold of normal videos only; rule thresholds are tuned on fold A
-  and scored on fold B and vice versa (cross-validation); the reported number is the pooled
-  held-out score.
+  the detector learns from the `pseudo` fold of normal videos only; rule thresholds, the learned scorer
+  and the fusion thresholds are fitted on fold A and scored on fold B and vice versa (cross-validation);
+  the reported number is the pooled held-out score. The web dataset is a fourth, fully external check.
+* The real-CCTV detector validation (`compare_det.json`, `cctv`) is scored against the YOLO26x teacher's
+  labels, so it measures agreement with a much larger model on real footage, not ground truth.
+* The precision / recall that Ultralytics prints while training (`Box(P R mAP50 ...)`) is the detector on
+  its validation images, per box. It is not the event-level snatch precision / recall of the report.
 * "Alert" means anything that notifies the dashboard (CONFIRMED or SUSPECT). Use
   `python -m snatchguard.evaluation.tune --level confirmed` for the stricter CONFIRMED-only figure.
 

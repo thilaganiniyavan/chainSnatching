@@ -119,3 +119,22 @@ def test_no_stitching_far_away_or_different_kind():
     sc.update(_frame(1.4, [Detection(8, ObjClass.MOTORCYCLE, np.array([900, 300, 1020, 380.0]), 0.6),
                            Detection(9, ObjClass.PERSON, np.array([100, 230, 150, 380.0]), 0.6)]), P)
     assert sc.canonical(8) == 8 and sc.canonical(9) == 9
+
+
+def test_box_stopping_just_short_of_the_frame_edge_counts_as_cut():
+    """Detectors often end a box cut by the border a few pixels inside the frame."""
+    sc = Scene()
+    sc.update(_frame(0.0, [Detection(1, ObjClass.PERSON, np.array([600, 520, 660, 716.0]), 0.6),
+                           Detection(2, ObjClass.PERSON, np.array([300, 300, 360, 480.0]), 0.6)]), P)
+    assert sc.tracks[1].last.clip[3]
+    assert not any(sc.tracks[2].last.clip)
+
+
+def test_seated_looking_person_is_flagged_as_seated_and_standing_one_is_not():
+    sc = Scene()
+    for i in range(10):
+        x = 100 + i * 20
+        sc.update(_frame(i * 0.125, [Detection(3, ObjClass.PERSON, np.array([x, 300, x + 70, 400.0]), 0.6),
+                                     Detection(4, ObjClass.PERSON, np.array([600, 250, 650, 400.0]), 0.6)]), P)
+    assert sc.looks_seated(sc.tracks[3], sc.t, P)
+    assert not sc.looks_seated(sc.tracks[4], sc.t, P)

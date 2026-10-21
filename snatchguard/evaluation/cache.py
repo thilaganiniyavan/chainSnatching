@@ -53,8 +53,11 @@ def perception_tag(edge_cfg: dict, fps: float, night: str | None = None) -> str:
         "pose_imgsz": m.get("pose_imgsz"), "pose_mode": m.get("pose_mode"), "conf": m.get("conf"),
         "fps": fps, "tracker": tracker.read_text() if tracker.exists() else "",
         **({"night": night} if night and night != "none" else {}),
+        **({"tiles": list(m["tiles"]), "tile_overlap": m.get("tile_overlap", 0.2)} if m.get("tiles") else {}),
     }, sort_keys=True)
     suffix = f"-{night}" if night and night != "none" else ""
+    if m.get("tiles"):
+        suffix = f"-t{m['tiles'][0]}x{m['tiles'][1]}" + suffix
     return (Path(str(m["detector"])).name.replace(".", "_")[:24] + "-" + hashlib.md5(key.encode()).hexdigest()[:8]
             + suffix)
 

@@ -14,21 +14,42 @@ from __future__ import annotations
 import argparse
 import json
 import shutil
+import time
 from pathlib import Path
 
 from ultralytics import YOLO
 
-# Augmentation tuned for CCTV: small motorcycles require careful handling.
-# Mosaic stitching (combining 4 images) destroys small object detection.
-# Strong augmentation on already-degraded CCTV creates distribution mismatch.
-AUG = dict(hsv_h=0.01, hsv_s=0.3, hsv_v=0.3, degrees=0.0, translate=0.05, scale=0.3, fliplr=0.5, flipud=0.0,
-           mosaic=0.0, mixup=0.0, close_mosaic=0)
+# Augmentation for CCTV. Mosaic stays on: it shrinks whole images into quadrants, which adds exactly the
+# small, partly cut-off people and bikes that distant CCTV shows; close_mosaic finishes the last epochs on
+# whole frames. Night / IR / CCTV degradation are already explicit in the data (prepare_dataset.py), so
+# colour jitter stays moderate. scale keeps the Ultralytics default range so objects are seen at many sizes.
+# Mixup stays off (ghost objects, no reported gain for small-object detection).
+AUG = dict(hsv_h=0.01, hsv_s=0.5, hsv_v=0.4, degrees=0.0, translate=0.1, scale=0.5, fliplr=0.5, flipud=0.0,
+           mosaic=1.0, mixup=0.0, close_mosaic=15)
+
+
+SETTINGS_FILE = "snatchguard_settings.json"
+
+
+def _same_run(run_dir: Path, wanted: dict) -> bool:
+    """Was the run in run_dir started with these settings? (Recorded by us: after a resume, Ultralytics'
+    own args.yaml names last.pt as the model, so it cannot tell runs apart.)"""
+    f = run_dir / SETTINGS_FILE
+    return f.exists() and json.loads(f.read_text(encoding="utf-8")) == json.loads(json.dumps(wanted))
 
 
 def train(kind: str, data: Path, epochs: int, imgsz: int, batch: int, size: str, project: Path, patience: int,
           workers: int = 4, device: str | None = None) -> Path:
-    """Trains, or resumes automatically if a previous (disconnected) run left last.pt behind."""
-    last = project.resolve() / kind / "weights" / "last.pt"
+    """Trains, or resumes automatically if a previous (disconnected) run with the same settings left last.pt
+    behind. A run with other settings (model, size, epochs, augmentation) is moved aside, not reused."""
+    base = f"yolo26{size}.pt" if kind == "det" else f"yolo26{size}-pose.pt"
+    run_dir = project.resolve() / kind
+    last = run_dir / "weights" / "last.pt"
+    wanted = {"model": base, "imgsz": imgsz, "epochs": epochs, **AUG}
+    if run_dir.exists() and not _same_run(run_dir, wanted):
+        old = run_dir.with_name(f"{kind}_previous_{time.strftime('%Y%m%d_%H%M%S')}")
+        run_dir.rename(old)
+        print(f"previous {kind} run used other settings: moved to {old}, training from scratch")
     if last.exists():
         print(f"resuming from {last}")
         model = YOLO(str(last))
@@ -37,7 +58,8 @@ def train(kind: str, data: Path, epochs: int, imgsz: int, batch: int, size: str,
         except AssertionError as exc:          # previous run already finished all epochs
             print(f"nothing to resume ({exc})")
         return last.parent / "best.pt"
-    base = f"yolo26{size}.pt" if kind == "det" else f"yolo26{size}-pose.pt"
+    run_dir.mkdir(parents=True, exist_ok=True)
+    (run_dir / SETTINGS_FILE).write_text(json.dumps(wanted), encoding="utf-8")
     model = YOLO(base)
     extra = {"device": device} if device is not None else {}
     model.train(data=str(data / "data.yaml"), epochs=epochs, imgsz=imgsz, batch=batch, project=str(project.resolve()),
@@ -69,7 +91,7 @@ def _coco_id_view(data: Path, split: str) -> Path:
 
 def evaluate(weights: str, data: Path, imgsz: int, kind: str) -> dict:
     out = {}
-    for split in ("day", "night"):
+    for split in ("day", "night", "cctv"):          # cctv: real footage, teacher labels (training/pseudo_label.py)
         yaml_path = data / f"data_{split}.yaml"
         if not yaml_path.exists():
             continue
@@ -113,7 +135,9 @@ def main() -> None:
     ap.add_argument("--batch", type=int, default=-1, help="-1 = AutoBatch (fits the GPU's memory, e.g. an 8 GB RTX 4060)")
     ap.add_argument("--size", default="n", choices=["n", "s", "m"])
     ap.add_argument("--project", type=Path, default=Path("runs"))
-    ap.add_argument("--patience", type=int, default=20)
+    ap.add_argument("--patience", type=int, default=0,
+                    help="0 = no early stopping: epochs are sized to the time budget, best.pt is chosen on validation "
+                         "anyway, and stopping early would skip the final whole-frame (close_mosaic) epochs")
     ap.add_argument("--workers", type=int, default=4, help="dataloader workers (Windows: keep 2-4)")
     ap.add_argument("--device", default=None, help="e.g. 0 for the first GPU (default: Ultralytics picks)")
     ap.add_argument("--export-to", type=Path, default=Path("export"))

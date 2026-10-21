@@ -4,7 +4,7 @@ This trains the system's detection models on your NVIDIA GPU and then measures w
 the target: **at least 90 % of real chain snatchings caught (recall) and at least 90 % of alerts
 being real snatchings (precision)**, on footage it has never been trained or tuned on.
 
-One script does everything. It runs for about **12–18 hours**; you mostly just leave it running.
+One script does everything. It runs for about **13–20 hours**; you mostly just leave it running.
 
 ---
 
@@ -15,8 +15,8 @@ One script does everything. It runs for about **12–18 hours**; you mostly just
 | Computer | Windows 10/11 laptop or PC with an **NVIDIA GPU** (RTX 3060/4060 or better, 8 GB+ VRAM) |
 | Disk | **80 GB free** (uses ~60 GB: videos 12 GB, training data ~25 GB, Python/GPU libraries ~7 GB, results; ~12 GB less with `--move` in step 3) |
 | Internet | to install packages and download training datasets (~10 GB) |
-| Time | 15 min setup + 12–18 h unattended run |
-| Files | `snatchguard_code.zip` (from your friend) and the **Snatch 1.0 videos** you already have |
+| Time | 15 min setup + 13–20 h unattended run |
+| Files | `snatchguard_code.zip` (from your friend), the **Snatch 1.0 videos** you already have, and (optional) the `snatch_web_dataset` folder |
 
 ---
 
@@ -59,10 +59,22 @@ It **must end with `64/64 labelled videos present`**; if not, it lists the missi
 ## Step 4: Run everything
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts\windows\train_all.ps1 -Baseline
+powershell -ExecutionPolicy Bypass -File scripts\windows\train_all.ps1 -Baseline -Web "D:\snatch_web_dataset"
 ```
 
-Leave it running (about 12–18 hours). The laptop is kept awake automatically while it runs.
+`-Web` points at the `snatch_web_dataset` folder from your friend (it must contain `labels.csv` and
+`clips`). It is an extra test on footage from other cities; leave `-Web ...` out if you don't have it.
+
+**Already ran an earlier version of this?** Unzip the new code over the old folder (keep `data`, `models`
+and `runtime`), run `setup.ps1` again, then instead of the command above run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\train_all.ps1 -Web "D:\snatch_web_dataset" -Extra "--from","pseudo"
+```
+
+It keeps the downloaded training images and retrains with the corrected settings (about 11–16 hours).
+
+Leave it running (about 13–20 hours). The laptop is kept awake automatically while it runs.
 **Keep it plugged in.** You will see progress for each step:
 
 | step | what it does | rough time |
@@ -75,7 +87,9 @@ Leave it running (about 12–18 hours). The laptop is kept awake automatically w
 | compare | day vs night accuracy, before vs after | minutes |
 | train_pose | trains the body-keypoint model | 2–3 h |
 | install, cache | installs the trained models and runs them over the test videos | 1–2 h |
-| tune, night, report | tunes the rules and writes the final report | 30–60 min |
+| learned | trains the learned snatch scorer on the same videos (cross-validated) | 30–60 min |
+| tune, fusion, night | tunes the rules and how they are combined with the learned scorer | 30–60 min |
+| report | tests on the web dataset (if given) and writes the final report | 15–30 min |
 
 **If it stops** (error, reboot, power cut, laptop closed): run the **same command again**. Finished
 steps are skipped and training continues from where it stopped.
@@ -94,9 +108,11 @@ Zip them up and send them to your friend:
 |---|---|
 | `runtime\tuning\acceptance_report.md` | **the result**: PASS / NOT MET against 90 %, every video's outcome |
 | `runtime\tuning_baseline\acceptance_report.md` | the same test before training (for comparison) |
-| `runtime\train_runs\compare_det.json` | detector accuracy, day vs night, before vs after |
+| `runtime\tuning\external.json`, `runtime\tuning\fusion.json` | web-dataset test; rules + learned scorer results |
+| `runtime\train_runs\compare_det.json` | detector accuracy, day vs night vs real CCTV, before vs after |
 | `models\det_finetuned.pt` and `models\pose_finetuned.pt` | the trained models |
-| `configs\rules.tuned.yaml` and `configs\edge.gpu.yaml` | the tuned settings |
+| `models\learned\` (the whole folder) and `runtime\learned\report.md` | the learned scorer and its report |
+| `configs\rules.tuned.yaml`, `configs\fusion.tuned.yaml` and `configs\edge.gpu.yaml` | the tuned settings |
 | `runtime\pipeline\logs\` (the whole folder) | logs, in case something needs checking |
 
 ---

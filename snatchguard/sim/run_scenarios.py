@@ -8,13 +8,18 @@ from __future__ import annotations
 import argparse
 import logging
 
+from snatchguard.core.config import RuleConfig
 from snatchguard.core.types import Level
 from snatchguard.rules.engine import Decision, RuleEngine
 from snatchguard.sim.synthetic import Scenario, all_scenarios
 
 
+def engine_for(scenario: Scenario) -> RuleEngine:
+    return RuleEngine(RuleConfig.load(overrides=scenario.rule_overrides) if scenario.rule_overrides else None)
+
+
 def run(scenario: Scenario, seed: int = 0) -> list[Decision]:
-    engine = RuleEngine()
+    engine = engine_for(scenario)
     out: list[Decision] = []
     for frame in scenario.frames(seed=seed):
         out += engine.step(frame)

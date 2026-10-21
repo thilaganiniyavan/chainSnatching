@@ -21,6 +21,8 @@ from __future__ import annotations
 import argparse
 import io
 import json
+import shutil
+import subprocess
 import time
 import zipfile
 from pathlib import Path
@@ -115,13 +117,35 @@ def fetch(name: str, index: dict, client: httpx.Client) -> Path:
     return dest
 
 
+def part_name(n: int) -> str:
+    return f"Snatch 1.0-20201231T071009Z-00{n}.zip"
+
+
+def download_aria2(dest: Path) -> bool:
+    """All parts over several connections each. Zenodo throttles every connection (about 0.4 MB/s seen from
+    Colab), so one connection per part takes hours where 8 per part take minutes."""
+    listing = dest / "aria2_urls.txt"
+    listing.write_text("".join(f"{RECORD.format(n=n)}\n  out={part_name(n)}\n" for n in PARTS), encoding="utf-8")
+    proc = subprocess.run(["aria2c", "--continue", "-j7", "-x8", "-s8", "-k1M", "--file-allocation=none",
+                           "--summary-interval=60", "--console-log-level=warn", "-d", str(dest), "-i", str(listing)])
+    if proc.returncode == 0:
+        return True
+    for control in dest.glob("*.aria2"):      # parts fetched out of order: the fallback can't append to them
+        (dest / control.stem).unlink(missing_ok=True)
+        control.unlink()
+    print(f"aria2c failed (exit {proc.returncode}); falling back to one connection per part", flush=True)
+    return False
+
+
 def download_all(dest: Path) -> None:
-    """All 7 archive parts, resuming partial files after connection drops."""
+    """All 7 archive parts, resuming partial files after connection drops (with aria2c when it is installed)."""
     dest.mkdir(parents=True, exist_ok=True)
+    if shutil.which("aria2c") and download_aria2(dest):
+        return
     with httpx.Client(timeout=httpx.Timeout(60.0, connect=20.0), follow_redirects=True) as client:
         for n in PARTS:
             url = RECORD.format(n=n)
-            out = dest / f"Snatch 1.0-20201231T071009Z-00{n}.zip"
+            out = dest / part_name(n)
             total = int(client.head(url).headers["content-length"])
             for attempt in range(200):
                 have = out.stat().st_size if out.exists() else 0

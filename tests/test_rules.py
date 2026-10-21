@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import numpy as np
 import pytest
 
 from snatchguard.core.types import Level, Lighting
 from snatchguard.rules.engine import RuleEngine
 from snatchguard.sim import synthetic as syn
-from snatchguard.sim.run_scenarios import outcome, run
+from snatchguard.sim.run_scenarios import engine_for, outcome, run
 
 SCENARIOS = syn.all_scenarios()
 
@@ -25,7 +26,7 @@ def test_no_false_alarms_and_all_snatches_found_across_frame_rates(fps, jitter, 
     for sc in syn.all_scenarios():
         sc.fps = fps
         for seed in range(4):
-            engine, out = RuleEngine(), []
+            engine, out = engine_for(sc), []
             for f in sc.frames(seed=seed, jitter_px=jitter, drop_prob=drop):
                 out += engine.step(f)
             if outcome(out) not in sc.expect:
@@ -40,7 +41,7 @@ def test_benign_scenes_never_confirm_even_at_low_fps():
         for fps, jitter, drop in [(4, 4.0, 0.3), (5, 3.0, 0.2)]:
             sc.fps = fps
             for seed in range(5):
-                engine, out = RuleEngine(), []
+                engine, out = engine_for(sc), []
                 for f in sc.frames(seed=seed, jitter_px=jitter, drop_prob=drop):
                     out += engine.step(f)
                 assert outcome(out) is not Level.CONFIRMED, (sc.name, fps, seed)
@@ -93,3 +94,25 @@ def test_night_profile_is_used():
     engine.step(frames[0])
     assert engine.params.name == "ir"
     assert engine.params.neck_radius > engine.rules.for_lighting(Lighting.DAY).neck_radius
+
+
+def _victim_track(boxes, t0=0.0, frame=(1280, 720)):
+    from snatchguard.core.types import Detection, FrameObservation, ObjClass
+    from snatchguard.rules.scene import Scene
+    sc, P = Scene(), RuleEngine().params
+    for i, b in enumerate(boxes):
+        sc.update(FrameObservation(t0 + i * 0.125, frame, [Detection(1, ObjClass.PERSON, np.array(b, float), 0.8)]), P)
+    return sc.tracks[1], P
+
+
+@pytest.mark.parametrize("bottom,expect_fall", [(650.0, True), (716.0, False)])
+def test_fall_needs_a_box_not_cut_by_the_frame(bottom, expect_fall):
+    """A real fall: the box top drops while the feet stay. A person walking out of the bottom of the frame
+    also loses box height, but that box is cut by the edge and says nothing about a fall."""
+    from snatchguard.rules.evaluate import eval_reaction
+    from snatchguard.rules.pair import PairState
+    standing = [[600, bottom - 200, 660, bottom]] * 17                 # 2 s before the contact at t=2.0
+    after = [[600, bottom - 200 + k * 25, 660 + (k * 6 if bottom < 700 else 0), bottom] for k in range(1, 6)]
+    victim, P = _victim_track(standing + after)
+    _, _, ev, _ = eval_reaction(PairState(1, 2), victim, 2.0, 2.2, P)
+    assert next(e for e in ev if e.key == "fall").passed is expect_fall

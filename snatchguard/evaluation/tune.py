@@ -83,8 +83,11 @@ def defaults(base: RuleConfig) -> dict[str, float]:
 
 
 def objective(m: Metrics, target: float) -> float:
-    """Recall, heavily penalised for every point of precision below the target."""
-    return m.recall - 3.0 * max(0.0, target - m.precision) + 0.001 * m.precision
+    """Recall, heavily penalised for every point of precision below the target. Raising no alerts at all counts
+    as precision 0 (Metrics reports 1.0): otherwise, whenever the target is out of reach, staying silent would
+    beat every setting that catches anything, and the run would report 0 % recall instead of the best it can do."""
+    precision = m.precision if m.true_alerts + m.false_alarms else 0.0
+    return m.recall - 3.0 * max(0.0, target - precision) + 0.001 * precision
 
 
 # ---- worker processes ----------------------------------------------------------------------------

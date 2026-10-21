@@ -1,0 +1,16 @@
+# Fusion of the rule engine and the learned snatch scorer (snatchguard/evaluation/fusion.py).
+# These are starting values; `python -m snatchguard.evaluation.fusion --tune` fits them with
+# cross-validation and writes configs/fusion.tuned.yaml, which the live edge prefers when present.
+# Any threshold >= 1.0 switches that path off (model scores are probabilities in 0..1).
+params:
+  suspect_gate: 0.0            # rule SUSPECT is kept only if the model near the contact scores >= this (0 = always)
+  upgrade_threshold: 1.01      # rule SUSPECT becomes CONFIRMED when the model near it scores >= this
+  rescue_threshold: 1.01       # rule DISMISSED becomes SUSPECT when the model near it scores >= this
+  model_threshold: 1.01        # model-only alert: score >= this ...
+  model_k: 2                   # ... for this many consecutive windows
+  model_confirm_threshold: 1.01  # model-only alert is CONFIRMED when its peak scores >= this
+  context_pad_s: 1.5           # "near the contact" = windows overlapping [contact_start - pad, contact_end + pad]
+  hold_max_s: 3.0              # live: longest a rule decision waits for the model to cover its contact
+  cooldown_s: 8.0              # a model-sourced alert this close to an earlier alert is merged into it
+  use_rules: true
+  use_model: true

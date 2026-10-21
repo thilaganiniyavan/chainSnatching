@@ -20,6 +20,7 @@ TRACK_MEMORY_S = 30.0     # how much history each track keeps
 LOST_FORGET_S = 8.0       # lost tracks are forgotten after this long
 STITCH_MAX_GAP_S = 1.2    # a new tracker id this soon after a loss, where the lost track was heading,
 STITCH_DIST_H = 0.6       # ...within this many body-heights of the predicted spot = the same object
+EDGE_MARGIN = 0.015       # a box within this fraction of the frame size from a border counts as cut by it
 
 
 @dataclass(slots=True)
@@ -229,7 +230,9 @@ class Scene:
         tr.vote(det.cls)
         box = np.asarray(det.box, dtype=float)
         w, h = self.frame_size
-        clip = (box[0] <= 2, box[1] <= 2, box[2] >= w - 2, box[3] >= h - 2)
+        # detectors often stop a few pixels short of the border for objects cut by it
+        mx, my = max(2.0, EDGE_MARGIN * w), max(2.0, EDGE_MARGIN * h)
+        clip = (box[0] <= mx, box[1] <= my, box[2] >= w - mx, box[3] >= h - my)
         tr.append(Obs(t, box, det.conf, pose, clip))
         tr.lost_at = None
         while tr.obs and t - tr.obs[0].t > TRACK_MEMORY_S:
@@ -343,6 +346,18 @@ class Scene:
             return False
         H = max(person.ref_height(t), 1.0)
         return person.speed(t, span=1.0) / H <= p.pedestrian_max_speed
+
+    def looks_seated(self, person: Track, t: float, p: RuleParams) -> bool:
+        """Squat box over the last moments: someone sitting on a two-wheeler whose bike the detector missed
+        (or merged into the rider's box). Standing people are 2-3.5 times taller than wide."""
+        key = ("seated", t, p.seated_window_s, p.seated_max_aspect)
+        hit = person._memo.get(key)
+        if hit is None:
+            recent = person.window(t - p.seated_window_s, t)
+            aspects = sorted(g.height(o.box) / max(g.width(o.box), 1.0) for o in recent if not any(o.clip))
+            hit = len(aspects) >= 3 and aspects[len(aspects) // 2] < p.seated_max_aspect
+            person._memo[key] = hit
+        return hit
 
     # ---- queries -----------------------------------------------------------
     def pedestrians(self, p: RuleParams | None = None) -> list[Track]:

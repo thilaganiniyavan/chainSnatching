@@ -283,8 +283,9 @@ def add_coco_det(w: Writer, cache: Path, rng: random.Random, n_images: int, val_
 
 
 def write_det_yaml(root: Path) -> None:
-    for name, val in (("data.yaml", ["val_day", "val_night"]), ("data_night.yaml", ["val_night"]),
-                      ("data_day.yaml", ["val_day"])):
+    """val_cctv (real CCTV frames, teacher-labelled) is added by training/pseudo_label.py when present."""
+    for name, val in (("data.yaml", ["val_day", "val_night", "val_cctv"]), ("data_night.yaml", ["val_night"]),
+                      ("data_day.yaml", ["val_day"]), ("data_cctv.yaml", ["val_cctv"])):
         cfg = {"path": str(root.resolve()), "train": "images/train",
                "val": [f"images/{v}" for v in val if (root / "images" / v).exists()],
                "names": {i: n for i, n in enumerate(NAMES)}}

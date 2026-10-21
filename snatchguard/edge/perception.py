@@ -5,6 +5,10 @@
 * Pose runs only on the few regions the rule engine asks for (people close to
   a bike), cropped from the full-resolution frame, so a pillion rider's wrist
   is still visible on a wide CCTV view. Everyone else never costs a pose pass.
+* Optional tiled detection (`tiles: [rows, cols]`, `tile_overlap`): the
+  detector also runs on overlapping tiles at full input size, so small, distant
+  motorcycles are seen at a usable scale. Tile and full-frame boxes are merged
+  and then tracked with the same tracker config.
 
 Any Ultralytics-loadable model works: `.pt`, an OpenVINO export directory
 (fastest on Intel/AMD CPUs), ONNX or TensorRT. Class ids are resolved from the
@@ -75,10 +79,23 @@ class Perception:
         if ObjClass.PERSON not in self.class_of.values():
             raise ValueError(f"detector has no person class: {self.det.names}")
         log.info("detector classes used: %s", {k: v.value for k, v in self.class_of.items()})
+        self.tiles = tuple(int(v) for v in cfg["tiles"]) if cfg.get("tiles") else None
+        self.tile_overlap = float(cfg.get("tile_overlap", 0.2))
+        self._tracker = None
         self.det_ms = 0.0
         self.pose_ms = 0.0
 
+    def reset_tracking(self) -> None:
+        """Forget all tracks (new scene), whichever tracking path is in use."""
+        if self._tracker is not None:
+            self._tracker.reset()
+        predictor = getattr(self.det, "predictor", None)
+        for tr in getattr(predictor, "trackers", None) or []:
+            tr.reset()
+
     def detect_track(self, img: np.ndarray, conf: float) -> list[Detection]:
+        if self.tiles:
+            return self._detect_track_tiled(img, conf)
         t0 = time.perf_counter()
         res = self.det.track(img, persist=True, tracker=self.tracker_cfg, conf=conf, iou=0.6, imgsz=self.imgsz,
                              classes=list(self.class_of), device=self.device, verbose=False, **self._prec)[0]
@@ -92,6 +109,38 @@ class Perception:
         cf = boxes.conf.cpu().numpy()
         return [Detection(int(i), self.class_of[int(c)], b.astype(float), float(s))
                 for b, i, c, s in zip(xyxy, ids, cls, cf) if int(c) in self.class_of]
+
+    def detect_tiled(self, img: np.ndarray, conf: float) -> np.ndarray:
+        """Untracked detections from the full frame plus every tile, merged: rows (x1, y1, x2, y2, conf, cls)."""
+        h, w = img.shape[:2]
+        parts = []
+        for ri, (x1, y1, x2, y2) in enumerate([(0, 0, w, h), *tile_regions(w, h, *self.tiles, self.tile_overlap)]):
+            r = self.det.predict(img[y1:y2, x1:x2], conf=conf, iou=0.6, imgsz=self.imgsz, classes=list(self.class_of),
+                                 device=self.device, verbose=False, **self._prec)[0]
+            if r.boxes is None or len(r.boxes) == 0:
+                continue
+            b = r.boxes.data.cpu().numpy()[:, :6].astype(float)
+            b[:, [0, 2]] += x1
+            b[:, [1, 3]] += y1
+            if ri:
+                b = b[~_touches_inner_edge(b, (x1, y1, x2, y2), w, h)]
+            parts.append(np.column_stack([b, np.full(len(b), ri)]))
+        if not parts:
+            return np.zeros((0, 6))
+        return merge_tiled(np.concatenate(parts))
+
+    def _detect_track_tiled(self, img: np.ndarray, conf: float) -> list[Detection]:
+        from ultralytics.engine.results import Boxes
+
+        t0 = time.perf_counter()
+        if self._tracker is None:
+            self._tracker = _make_tracker(self.tracker_cfg)
+        dets = self.detect_tiled(img, conf)
+        tracks = self._tracker.update(Boxes(dets.astype(np.float32), img.shape[:2]), img)
+        self.det_ms = (time.perf_counter() - t0) * 1000
+        # rows: x1, y1, x2, y2, track_id, conf, cls, det_index
+        return [Detection(int(t[4]), self.class_of[int(t[6])], t[:4].astype(float), float(t[5]))
+                for t in tracks if int(t[6]) in self.class_of]
 
     def estimate_poses(self, img: np.ndarray, crops: list[np.ndarray],
                        persons: dict[int, np.ndarray]) -> dict[int, Pose]:
@@ -146,3 +195,59 @@ class Perception:
             used_t.add(tid)
             used_p.add(i)
         return out
+
+
+# ---- tiled detection helpers ------------------------------------------------------------------------
+
+def tile_regions(w: int, h: int, rows: int, cols: int, overlap: float) -> list[tuple[int, int, int, int]]:
+    """Overlapping tiles covering the frame: `overlap` is the fraction of a tile shared with its neighbour."""
+    def spans(size: int, n: int) -> list[tuple[int, int]]:
+        if n <= 1:
+            return [(0, size)]
+        tile = size / (n - (n - 1) * overlap)
+        step = tile * (1 - overlap)
+        return [(int(round(i * step)), size if i == n - 1 else int(round(i * step + tile))) for i in range(n)]
+    return [(x1, y1, x2, y2) for y1, y2 in spans(h, rows) for x1, x2 in spans(w, cols)]
+
+
+def _touches_inner_edge(b: np.ndarray, region: tuple[int, int, int, int], w: int, h: int, margin: float = 2.0) -> np.ndarray:
+    """Boxes cut by a tile border that is not a frame border. Such an object is either whole in a
+    neighbouring tile (it is smaller than the overlap) or large enough for the full-frame pass."""
+    x1, y1, x2, y2 = region
+    return (((x1 > 0) & (b[:, 0] <= x1 + margin)) | ((y1 > 0) & (b[:, 1] <= y1 + margin))
+            | ((x2 < w) & (b[:, 2] >= x2 - margin)) | ((y2 < h) & (b[:, 3] >= y2 - margin)))
+
+
+def merge_tiled(rows: np.ndarray, iou_thr: float = 0.5) -> np.ndarray:
+    """Greedy class-wise merge of boxes from different passes (rows: x1, y1, x2, y2, conf, cls, region).
+
+    Within one pass the model has already removed duplicates, so only boxes from different passes are
+    compared. Plain IoU on purpose: boxes cut by a tile border are dropped before this, and a person
+    standing inside another person's box (the moment of a grab) must stay a separate detection."""
+    order = np.argsort(-rows[:, 4], kind="stable")
+    kept: list[int] = []
+    area = (rows[:, 2] - rows[:, 0]).clip(0) * (rows[:, 3] - rows[:, 1]).clip(0)
+    for i in order:
+        dup = False
+        for k in kept:
+            if rows[k, 5] != rows[i, 5] or rows[k, 6] == rows[i, 6]:
+                continue
+            iw = min(rows[i, 2], rows[k, 2]) - max(rows[i, 0], rows[k, 0])
+            ih = min(rows[i, 3], rows[k, 3]) - max(rows[i, 1], rows[k, 1])
+            if iw > 0 and ih > 0 and iw * ih / (area[i] + area[k] - iw * ih + 1e-9) > iou_thr:
+                dup = True
+                break
+        if not dup:
+            kept.append(int(i))
+    return rows[kept, :6] if kept else np.zeros((0, 6))
+
+
+def _make_tracker(tracker_cfg: str):
+    from ultralytics.trackers.track import TRACKER_MAP
+    from ultralytics.utils import YAML, IterableSimpleNamespace
+    from ultralytics.utils.checks import check_yaml
+
+    cfg = IterableSimpleNamespace(**YAML.load(check_yaml(tracker_cfg)))
+    if getattr(cfg, "with_reid", False):
+        raise ValueError("tiled detection does not support ReID trackers; use ocsort or bytetrack in the tracker config")
+    return TRACKER_MAP[cfg.tracker_type](args=cfg)

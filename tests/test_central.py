@@ -109,3 +109,27 @@ def test_dashboard_password(tmp_path):
         # edge nodes keep working with their API key
         assert c.post("/api/v1/heartbeat", json={"node_id": "n1", "cameras": []}, headers=KEY).status_code == 200
         assert c.get("/healthz").status_code == 200
+
+
+def test_new_payload_fields_round_trip(client):
+    ev = _event(level="SUSPECT", source="model", model_score=0.93, rule_score=None, mode="unknown",
+                supersedes=None)
+    client.post("/api/v1/events", data={"meta": json.dumps(ev)}, headers=KEY)
+    got = client.get(f"/api/v1/events/{ev['event_id']}").json()
+    assert got["payload"]["source"] == "model" and got["payload"]["model_score"] == 0.93
+    old = _event()                                       # an edge without the learned scorer still works
+    assert client.post("/api/v1/events", data={"meta": json.dumps(old)}, headers=KEY).json()["ok"]
+
+
+def test_live_risk_endpoint(client):
+    assert client.post("/api/v1/live", json={"node_id": "n1", "cameras": [{"id": "c1", "risk": 0.5}]},
+                       headers={"X-API-Key": "nope"}).status_code == 401
+    assert client.post("/api/v1/live", json={"cameras": []}, headers=KEY).status_code == 422
+    assert client.post("/api/v1/live", json={"node_id": "n1", "cameras": {"id": "c1"}}, headers=KEY).status_code == 422
+    r = client.post("/api/v1/live", json={"node_id": "n1", "cameras": [
+        {"id": "c1", "risk": 1.7, "learned": "on"}, {"id": "c2", "risk": "high"}, {"id": "../x", "risk": 0.2}]},
+        headers=KEY)
+    assert r.json() == {"ok": True, "cameras": 2}
+    live = {c["camera_id"]: c for c in client.get("/api/v1/live").json()["cameras"]}
+    assert live["c1"]["risk"] == 1.0 and live["c1"]["learned"] == "on"
+    assert live["c2"]["risk"] is None and "../x" not in live

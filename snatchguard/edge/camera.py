@@ -2,6 +2,8 @@
 
     frame -> lighting mode -> enhancement -> detect + track -> scene/pairs
           -> pose on the closest pairs -> rule engine -> alert / clip / tamper
+    frame -> learned snatch scorer (own thread, newest frame only) -/
+             rule decisions + window scores -> fusion (evaluation/fusion.py, same code as offline)
 
 Runs in its own process (see node.py), writes alerts to the shared outbox and
 reports health to the supervisor through a queue.
@@ -11,6 +13,7 @@ from __future__ import annotations
 
 import base64
 import logging
+import threading
 import time
 import uuid
 from datetime import datetime, timezone
@@ -37,6 +40,70 @@ def _iso(ts: float) -> str:
 
 def _path(p: str) -> str:
     return str(p if Path(p).is_absolute() else REPO_ROOT / p)
+
+
+class LearnedRunner(threading.Thread):
+    """Runs the learned scorer beside the rule path. It always takes the newest offered frame and drops
+    older ones when it falls behind, so a slow model never delays the rules."""
+
+    def __init__(self, scorer, cam_id: str) -> None:
+        super().__init__(name=f"learned-{cam_id}", daemon=True)
+        self.scorer = scorer
+        self.cam_id = cam_id
+        self._cv = threading.Condition()
+        self._latest: tuple[np.ndarray, float] | None = None
+        self._out: list = []
+        self._reset = False
+        self._halt = False
+        self.risk: float | None = None
+        self.error: str | None = None
+        self.scored = 0
+        self.dropped = 0
+
+    def offer(self, img: np.ndarray, t: float) -> None:
+        with self._cv:
+            if self._latest is not None:
+                self.dropped += 1
+            self._latest = (img, t)
+            self._cv.notify()
+
+    def drain(self) -> list:
+        with self._cv:
+            out, self._out = self._out, []
+        return out
+
+    def reset(self) -> None:
+        with self._cv:
+            self._reset, self._latest, self._out, self.risk = True, None, [], None
+
+    def stop(self) -> None:
+        with self._cv:
+            self._halt = True
+            self._cv.notify()
+
+    def run(self) -> None:
+        while True:
+            with self._cv:
+                while self._latest is None and not self._halt:
+                    self._cv.wait(timeout=1.0)
+                if self._halt:
+                    return
+                (img, t), self._latest = self._latest, None
+                do_reset, self._reset = self._reset, False
+            try:
+                if do_reset:
+                    self.scorer.reset()
+                wins = self.scorer.push(img, t)
+            except Exception as exc:              # the rules keep running; fusion falls back to them
+                log.exception("[%s] learned scorer failed, continuing with rules only", self.cam_id)
+                self.error, self.risk = str(exc)[:200], None
+                return
+            self.scored += 1
+            if wins:
+                with self._cv:
+                    if not self._reset:
+                        self._out.extend(wins)
+                        self.risk = float(wins[-1].score)
 
 
 class SyntheticSource:
@@ -148,12 +215,54 @@ class CameraWorker:
                       "det_ms": 0.0, "pose_ms": 0.0, "loop_ms": 0.0}
         self._fps_window: list[float] = []
         self._last_status = 0.0
+        self._last_risk_push = 0.0
         self._last_img: np.ndarray | None = None
         self._mode = Lighting.DAY
+
+        self.learned: LearnedRunner | None = None
+        self.fuser = None
+        self._fusion_params = None
+        self._fusion_events: dict[int, str] = {}
+        self._learned_dt = 0.125
+        self._last_offer = -1e9
+        self.learned_state = "off"
+        lcfg = node.get("learned") or {}
+        if lcfg.get("enabled"):
+            self._init_learned(lcfg)
+
+    def _init_learned(self, lcfg: dict) -> None:
+        """Learned scorer + fusion, or a single warning and the rules alone (exactly as without it)."""
+        model = Path(_path(lcfg.get("model", "models/learned/snatch_scorer.pt")))
+        if not model.exists():
+            log.warning("[%s] learned scorer enabled but %s does not exist: rules only", self.id, model)
+            self.learned_state = "missing"
+            return
+        try:
+            from snatchguard.evaluation.fusion import Fuser, FusionParams
+            from snatchguard.learned.scorer import SnatchScorer
+            scorer = SnatchScorer(model, device=str(lcfg.get("device", "cpu")), threads=int(lcfg.get("threads", 2)))
+            self._fusion_params = FusionParams.load(_path(lcfg["fusion"]) if lcfg.get("fusion") else None)
+        except Exception as exc:
+            log.warning("[%s] learned scorer unavailable (%s): rules only", self.id, exc)
+            self.learned_state = "error"
+            return
+        self._learned_dt = 1.0 / float(lcfg.get("fps", 8))
+        self.fuser = Fuser(self._fusion_params)
+        self.learned = LearnedRunner(scorer, self.id)
+        self.learned_state = "on"
+        log.info("[%s] learned scorer %s on %s, fusion %s", self.id, model.name, lcfg.get("device", "cpu"),
+                 self._fusion_params.to_dict())
+
+    def _new_fuser(self) -> None:
+        from snatchguard.evaluation.fusion import Fuser
+        self.fuser = Fuser(self._fusion_params)
+        self._fusion_events = {}
 
     # ------------------------------------------------------------------
     def run(self, stop_event=None) -> None:
         self.source.start()
+        if self.learned is not None:
+            self.learned.start()
         log.info("[%s] started (%s)", self.id, self.cam["source"])
         min_dt = 1.0 / self.target_fps
         last_proc = -1e9
@@ -169,6 +278,12 @@ class CameraWorker:
                 frame, truth = got if isinstance(got, tuple) else (got, None)
                 if frame.segment != segment and self.pipeline is not None:
                     segment = frame.segment          # next playlist item: a different scene
+                    if self.fuser is not None and self._last_img is not None:
+                        for a in self.fuser.flush():
+                            self._publish_fused(a, Frame(self._last_img, self.engine.scene.t, time.time(), -1),
+                                                self._last_img)
+                        self.learned.reset()
+                        self._new_fuser()
                     self.pipeline.reset()
                     self.engine = self.pipeline.engine
                     self.tamper = TamperDetector()
@@ -179,9 +294,14 @@ class CameraWorker:
                 self._report_status()
         finally:
             if self.source.ended and self._last_img is not None:
-                for d in self.engine.flush():      # stream ended mid-encounter: judge what was seen
-                    self._handle_decision(d, Frame(self._last_img, self.engine.scene.t, time.time(), -1),
-                                          self._last_img)
+                last = Frame(self._last_img, self.engine.scene.t, time.time(), -1)
+                if self.fuser is None:
+                    for d in self.engine.flush():      # stream ended mid-encounter: judge what was seen
+                        self._handle_decision(d, last, self._last_img)
+                else:
+                    self._fuse(self.engine.flush(), last, self._last_img, final=True)
+            if self.learned is not None:
+                self.learned.stop()
             self.recorder.flush()
             self._drain_clips(wait=True)
             self.source.stop()
@@ -207,8 +327,14 @@ class CameraWorker:
         dets = [Detection(canon(d.track_id), d.cls, d.box, d.conf) for d in dets]
         self.recorder.push(enhanced, frame.t, dets)
         self._last_img = enhanced
-        for d in decisions:
-            self._handle_decision(d, frame, enhanced)
+        if self.fuser is None:
+            for d in decisions:
+                self._handle_decision(d, frame, enhanced)
+        else:
+            if frame.t - self._last_offer >= self._learned_dt * 0.95:
+                self._last_offer = frame.t
+                self.learned.offer(img, frame.t)
+            self._fuse(decisions, frame, enhanced)
 
         raised, cleared = (set(), set()) if truth is not None else self.tamper.update(img, frame.t, mode.value)
         for cond in raised:
@@ -252,10 +378,61 @@ class CameraWorker:
             "detected_at": _iso(wall_now),
             "video_time_s": round(d.verdict.contact_start, 2),
             **d.to_payload(),
+            "source": "rules",
         }
         self.outbox.put("event", payload, {"snapshot": str(snap)})
         log.warning("[%s] %s score=%.2f victim=%d bike=%d latency=%.1fs", self.id, d.level.value,
                     d.verdict.score, d.victim_id, d.bike_id, d.t - d.verdict.contact_start)
+
+    def _fuse(self, decisions: list[Decision], frame: Frame, img: np.ndarray, final: bool = False) -> None:
+        self.fuser.add_windows(self.learned.drain())
+        for d in decisions:
+            if d.level is Level.DISMISSED:
+                self.stats["dismissed"] += 1
+                log.info("[%s] dismissed encounter victim=%d bike=%d score=%.2f penalties=%s",
+                         self.id, d.victim_id, d.bike_id, d.verdict.score, d.verdict.penalties)
+            self.fuser.add_rule(d.to_payload(), ref=d)
+        for a in (self.fuser.flush() if final else self.fuser.poll(frame.t)):
+            self._publish_fused(a, frame, img)
+
+    def _publish_fused(self, a, frame: Frame, img: np.ndarray) -> None:
+        """One fused alert (rule decision gated/upgraded/rescued by the model, or model-only) -> outbox."""
+        pl, d = a.payload, a.ref
+        level = pl["level"]
+        self.stats["alerts" if level == "CONFIRMED" else "suspects"] += 1
+        event_id = str(uuid.uuid4())
+        cs, ce = pl["contact_start"], pl["contact_end"]
+        contact_wall = frame.wall - (frame.t - cs)
+        ms = pl.get("model_score")
+        model_txt = f"  model {ms:.2f}" if ms is not None else ""
+        if d is not None:
+            roles = {d.victim_id: "victim", d.bike_id: "attacker" if d.mode == "on_foot" else "vehicle"}
+            roles.update({rid: f"rider{i + 1}" for i, rid in enumerate(d.rider_ids)})
+            base = d.to_payload()
+            title = f"{level}  score {d.verdict.score:.2f}{model_txt}  {self.name}"
+        else:
+            roles = {}
+            base = {"mode": "unknown", "score": pl["score"], "confidence": "low", "lighting": self._mode.value,
+                    "contact_start": cs, "contact_end": ce, "decided_at": pl["decided_at"],
+                    "latency_s": pl["latency_s"], "components": {}, "penalties": {}, "evidence": pl["evidence"],
+                    "boxes": {}}
+            title = f"{level} (learned scorer){model_txt}  {self.name}"
+        snap = self.recorder.snapshot(event_id, (cs + ce) / 2, roles, title, fallback=img)
+        self.recorder.schedule_clip(event_id, cs, frame.t, roles, title)
+        payload = {
+            "event_id": event_id, "type": "snatch", "node_id": self.node.get("node_id"),
+            "site": self.node.get("site"), "camera_id": self.id, "camera_name": self.name,
+            "occurred_at": _iso(contact_wall), "detected_at": _iso(frame.wall), "video_time_s": round(cs, 2),
+            **base,
+            "level": level, "source": pl["source"], "model_score": ms, "rule_score": pl.get("rule_score"),
+            "rule_level": pl.get("rule_level"),
+        }
+        if pl.get("upgrade_of") in self._fusion_events:
+            payload["supersedes"] = self._fusion_events[pl["upgrade_of"]]
+        self._fusion_events[pl["fusion_id"]] = event_id
+        self.outbox.put("event", payload, {"snapshot": str(snap)})
+        log.warning("[%s] %s (%s) rule=%s model=%s latency=%.1fs", self.id, level, pl["source"],
+                    pl.get("rule_score"), ms, frame.t - cs)
 
     def _queue_tamper(self, cond: str, frame: Frame, active: bool) -> None:
         event_id = str(uuid.uuid4())
@@ -299,12 +476,27 @@ class CameraWorker:
             "pairs": len(self.engine.pairs),
             "stats": {k: (round(v, 1) if isinstance(v, float) else v) for k, v in self.stats.items()},
             "thumbnail": thumb,
+            **self._learned_status(),
         }
+
+    def _learned_status(self) -> dict:
+        lr = self.learned
+        if lr is None:
+            return {"learned": self.learned_state, "risk": None}
+        state = "error" if lr.error else "on"
+        return {"learned": state, "risk": None if lr.risk is None else round(lr.risk, 3),
+                "learned_stats": {"scored": lr.scored, "dropped": lr.dropped}}
 
     def _report_status(self, force: bool = False, final: bool = False) -> None:
         if self.status_queue is None:
             return
         now = time.monotonic()
+        if self.learned is not None and now - self._last_risk_push >= 0.5:
+            self._last_risk_push = now           # small, frequent: the dashboard's live risk bar
+            try:
+                self.status_queue.put_nowait({"id": self.id, "kind": "risk", **self._learned_status()})
+            except Exception:
+                pass
         if not force and now - self._last_status < 2.0:
             return
         self._last_status = now

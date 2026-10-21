@@ -137,13 +137,15 @@ def eval_reaction(pair: PairState, victim: Track, cs: float, ce: float, p: RuleP
 
     # fall / stumble: the box collapses from the top while the feet stay on the ground.
     # (A vehicle hiding the legs shrinks the box from the bottom instead: not a fall.)
-    base_obs = victim.window(cs - 2.0, cs)
+    # (A box cut by the top or bottom of the frame shrinks for no reason at all: never a fall.)
+    base_obs = [o for o in victim.window(cs - 2.0, cs) if not (o.clip[1] or o.clip[3])]
     base_h = float(np.median([g.height(o.box) for o in base_obs])) if base_obs else None
     base_foot = float(np.median([o.box[3] for o in base_obs])) if base_obs else None
     fell = base_h is not None and any(
         g.height(o.box) < p.fall_height_ratio * base_h
         and g.width(o.box) / max(g.height(o.box), 1.0) > p.fall_aspect
         and o.box[3] >= base_foot - 0.15 * base_h
+        and not (o.clip[1] or o.clip[3])
         for o in victim.window(cs, cs + p.reaction_window_s))
     found["fall"] = fell
     ev.append(Evidence("fall", "reaction", fell, "victim fell or crouched after contact"))
@@ -180,7 +182,8 @@ def _gap_at(victim: Track, bike: Track, t: float) -> float | None:
     if vo is None or bo is None or t - vo.t > 0.5 or t - bo.t > 0.5:
         return None
     b = bo.box.copy()
-    b[1] -= 0.9 * g.height(b)            # include where the riders sit
+    if bike.cls.is_vehicle:
+        b[1] -= 0.9 * g.height(b)        # include where the riders sit (a person attacker's box already does)
     return g.box_gap(vo.box, b)
 
 
@@ -270,12 +273,13 @@ def eval_benign(pair: PairState, cs: float, ce: float, now: float, p: RuleParams
         if last_end is None or e.start - last_end >= p.repeat_min_separation_s:
             encounters += 1
         last_end = e.end
-    # Sustained contact = hand at the neck for long, or boxes overlapping while the bike is stopped.
-    # Overlap while riding alongside for a moment (a snatch) is not "long".
+    # Sustained contact = hand at the neck for long, or touching while the bike is stopped (even in frames where
+    # the boxes overlap too much to score a contact). Overlap while riding alongside for a moment (a snatch) is not "long".
     during = pair.between(cs, ce)
     ddt = _dts(during)
     pose_time = sum(dt for s, dt in zip(during, ddt) if s.contact == CONTACT_POSE)
-    still_time = sum(dt for s, dt in zip(during, ddt) if s.contact and s.bike_speed <= p.dwell_bike_speed)
+    still_time = sum(dt for s, dt in zip(during, ddt)
+                     if (s.contact or s.gap <= p.long_contact_touch_gap) and s.bike_speed <= p.dwell_bike_speed)
     longest = max(pose_time, still_time)
     after = [s for s in pair.between(ce, now) if s.t > ce]
     linger = sum(dt for s, dt in zip(after, _dts(after))

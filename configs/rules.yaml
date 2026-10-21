@@ -27,6 +27,12 @@ base:
   pedestrian_board_s: 3.0       # an established pedestrian must ride along this long to count as a new rider
   pedestrian_min_aspect: 1.9    # box height/width: standing people ~2-3.5, seated riders ~1.2-1.7
   pedestrian_max_speed: 2.5     # H/s: faster than running = on a vehicle
+  # A person whose box looks seated is a rider whose two-wheeler the detector missed (small, blurry or merged
+  # into the rider's box). As an attacker they are judged by the vehicle rules, not the on-foot ones.
+  seated_attacker_enabled: false  # off by default: on real CCTV it caught 1/25 snatches but added 7 false alarms (5 CONFIRMED) in 2 h of normal footage
+  seated_max_aspect: 1.8        # median box height/width over seated_window_s below this = seated
+  seated_window_s: 1.0
+  seated_ground_offset: 0.45    # H: a seated rider's box ends at the footrest, this far above the ground
 
   # --- CONTACT -------------------------------------------------------------
   neck_radius: 0.22             # H, rider wrist within this of victim neck => pose contact
@@ -74,6 +80,7 @@ base:
   cotravel_dv: 0.4              # H/s velocity difference
   cotravel_min_s: 5.0
   long_contact_s: 2.0           # a snatch grab is short; hugs / handovers last longer
+  long_contact_touch_gap: 0.05  # H: boxes this close while the attacker is stopped count as touching
   repeated_contacts: 3          # this many separate contact encounters within history window = play
   repeat_min_separation_s: 1.5  # contacts closer together than this are one encounter
   linger_s: 3.0                 # bike stays near the victim after contact

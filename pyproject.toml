@@ -19,6 +19,7 @@ edge = ["ultralytics>=8.4", "openvino>=2024.0", "lap>=0.5"]
 central = ["fastapi>=0.115", "uvicorn[standard]>=0.30", "python-multipart>=0.0.9", "pydantic>=2.7"]
 dev = ["pytest>=8"]
 train = ["huggingface_hub>=0.24"]
+learned = ["torch>=2.2", "torchvision>=0.17", "scikit-learn>=1.4"]
 
 [project.scripts]
 snatchguard-edge = "snatchguard.edge.__main__:main"

@@ -80,7 +80,20 @@ def attacker_boxes(scene: Scene, bike: Track) -> tuple[list[np.ndarray], list[Tr
     return [b], []
 
 
-def build_sample(scene: Scene, victim: Track, bike: Track, p: RuleParams) -> PairSample:
+def _people_near(scene: Scene, victim: Track, H: float, radius: float) -> list[int]:
+    """Live people within `radius` (H) of the victim this frame; shared by all of the victim's pairs."""
+    key = ("near", scene.t, H, radius)
+    hit = victim._memo.get(key)
+    if hit is None:
+        vbox = victim.last.box
+        hit = [tr.track_id for tr in scene.tracks.values()
+               if tr.cls is ObjClass.PERSON and tr.lost_at is None and tr.track_id != victim.track_id
+               and g.box_gap(vbox, tr.last.box) / H <= radius]
+        victim._memo[key] = hit
+    return hit
+
+
+def build_sample(scene: Scene, victim: Track, bike: Track, p: RuleParams, seated: bool = False) -> PairSample:
     t = scene.t
     vbox = victim.last.box
     H = max(victim.ref_height(t), 1.0)
@@ -88,7 +101,12 @@ def build_sample(scene: Scene, victim: Track, bike: Track, p: RuleParams) -> Pai
     bike_lost = bike.lost_at is not None
 
     gap = min(g.box_gap(vbox, b) for b in boxes) / H
-    depth_ok = abs(float(vbox[3] - bike.last.box[3])) / H <= p.same_depth_tol
+    dy = float(vbox[3] - bike.last.box[3]) / H
+    if seated:
+        # a seated rider's box ends at the footrest, above the ground: it may sit higher in the image
+        depth_ok = -p.same_depth_tol <= dy <= p.same_depth_tol + p.seated_ground_offset
+    else:
+        depth_ok = abs(dy) <= p.same_depth_tol
     if depth_ok and riders:
         lo, hi = p.scale_ratio_range
         depth_ok = any(lo <= g.height(r.last.box) / H <= hi for r in riders)
@@ -145,13 +163,8 @@ def build_sample(scene: Scene, victim: Track, bike: Track, p: RuleParams) -> Pai
             if nose is not None and (nose[1] - pt[1]) / H >= p.wave_above_nose:
                 waving = True
 
-    crowd = 0
-    for tr in scene.tracks.values():
-        if (tr.cls is not ObjClass.PERSON or tr.lost_at is not None or tr.track_id in (victim.track_id, bike.track_id)
-                or scene.rider_of.get(tr.track_id) == bike.track_id):
-            continue
-        if g.box_gap(vbox, tr.last.box) / H <= p.crowd_radius:
-            crowd += 1
+    crowd = sum(1 for tid in _people_near(scene, victim, H, p.crowd_radius)
+                if tid != bike.track_id and scene.rider_of.get(tid) != bike.track_id)
 
     return PairSample(
         t=t,
@@ -178,8 +191,9 @@ def build_sample(scene: Scene, victim: Track, bike: Track, p: RuleParams) -> Pai
 @dataclass
 class PairState:
     victim_id: int
-    bike_id: int                    # the attacker: a vehicle, or a person when on_foot
+    bike_id: int                    # the attacker: a vehicle, or a person when on_foot / seated
     on_foot: bool = False
+    seated: bool = False            # attacker is a seated person whose two-wheeler was not detected
     samples: list[PairSample] = field(default_factory=list)
     episodes: list[ContactEpisode] = field(default_factory=list)
     phase: str = "WATCH"            # WATCH | CONTACT | COOLDOWN
