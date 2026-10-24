@@ -8,6 +8,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 DATA=${1:?usage: bash scripts/train_verifier.sh <verifier_data folder> [--quick] [finetune.py run options]}
 shift
+[ ! -f "$DATA/index.json" ] && [ -f "$DATA/verifier_data/index.json" ] && DATA="$DATA/verifier_data"   # unzipped into a folder of the same name
 [ -f "$DATA/index.json" ] || { echo "$DATA has no index.json: point at the unzipped verifier_data folder"; exit 1; }
 if [ ! -x .venv/bin/python ]; then
     python3 -m venv .venv

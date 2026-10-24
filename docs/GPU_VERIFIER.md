@@ -21,8 +21,9 @@ after the run.
 1. **NVIDIA driver**: install the latest Game Ready or Studio driver from nvidia.com. Check it: open PowerShell
    and type `nvidia-smi`; it should print the GPU's name.
 2. **Python 3.12** from https://www.python.org/downloads/ ; in the installer tick **"Add python.exe to PATH"**.
-3. Unzip `snatchguard_code.zip` to `C:\snatchguard` and `verifier_data.zip` to `C:\verifier_data`
-   (short paths without spaces are safest; `C:\verifier_data` must directly contain `index.json` and `strips`).
+3. Unzip `snatchguard_code.zip` to `C:\snatchguard`, and unzip `verifier_data.zip` to `C:\` (it holds a
+   `verifier_data` folder, so you get `C:\verifier_data` with `index.json` and `strips` inside; short paths
+   without spaces are safest).
    Already have `C:\snatchguard` from the earlier SnatchGuard run? Unzip the new code over it (keep `.venv`).
 4. Open PowerShell in `C:\snatchguard` (in File Explorer type `powershell` in the address bar, press Enter) and run:
 

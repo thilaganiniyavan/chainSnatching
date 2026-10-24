@@ -9,6 +9,9 @@ $ErrorActionPreference = "Continue"   # python exit codes are passed through
 Set-Location (Resolve-Path "$PSScriptRoot\..\..")
 $py = ".\.venv\Scripts\python.exe"
 if (-not (Test-Path $py)) { throw "No .venv: run scripts\windows\setup.ps1 first." }
+if (-not (Test-Path (Join-Path $Data "index.json")) -and (Test-Path (Join-Path $Data "verifier_data\index.json"))) {
+    $Data = Join-Path $Data "verifier_data"   # unzipped into a folder of the same name
+}
 if (-not (Test-Path (Join-Path $Data "index.json"))) { throw "$Data has no index.json: point -Data at the unzipped verifier_data folder." }
 $out = "runtime\verifier_ft"
 $argsList = @("-m", "snatchguard.verifier.finetune", "run", "--data", $Data, "--batch", "$Batch")
