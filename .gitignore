@@ -21,3 +21,4 @@ configs/edge.gpu.yaml
 configs/edge.baseline.yaml
 configs/rules.tuned.yaml
 configs/fusion.tuned.yaml
+data/snatch_web

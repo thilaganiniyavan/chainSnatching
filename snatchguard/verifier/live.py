@@ -100,9 +100,16 @@ class _Runner(threading.Thread):
 
 
 class VerifierStage:
-    def __init__(self, verifier, cam_id: str, threshold: float | None = None, max_lag_s: float = 20.0) -> None:
+    def __init__(self, verifier, cam_id: str, threshold: float | None = None, max_lag_s: float = 20.0,
+                 threshold_confirm: float | None = None) -> None:
         self.stage = CandidateStage()
         self.threshold = verifier.threshold if threshold is None else float(threshold)
+        confirm = getattr(verifier, "threshold_confirm", None) if threshold_confirm is None else threshold_confirm
+        self.threshold_confirm = None if confirm is None else float(confirm)
+        # multi-view verifiers score the clip window shifted by each of these (s); a clip waits for its last view
+        self.shifts = tuple(getattr(verifier, "shifts", (0.0,)))
+        self._wait = AFTER_S + max(self.shifts)
+        self._keep = BEFORE_S - min(self.shifts) + self._wait + 1.0
         self.max_lag_s = float(max_lag_s)
         self._ring: deque[tuple[float, np.ndarray]] = deque()
         self._pending: list[ClipCandidate] = []
@@ -114,21 +121,23 @@ class VerifierStage:
         """Feed one analysed frame (the image the detector saw, and its raw tracker detections).
         Returns the clips verified since the last call that scored at or above the threshold."""
         self._ring.append((t, img_bgr))
-        while self._ring and t - self._ring[0][0] > BEFORE_S + AFTER_S + 1.0:
+        while self._ring and t - self._ring[0][0] > self._keep:
             self._ring.popleft()
         new = self.stage.step(t, dets)
         self.candidates += len(new)
         self._pending += new
-        ready = [c for c in self._pending if t >= c.t + AFTER_S]
-        self._pending = [c for c in self._pending if t < c.t + AFTER_S]
+        ready = [c for c in self._pending if t >= c.t + self._wait]
+        self._pending = [c for c in self._pending if t < c.t + self._wait]
         for clip in ready:
             self.runner.offer(clip, self._frames(clip), t)
         return [v for v in self.runner.drain() if v.score >= self.threshold]
 
     def _frames(self, clip: ClipCandidate) -> np.ndarray:
+        """(NF, SIDE, SIDE, 3), or (len(shifts), NF, SIDE, SIDE, 3) for a multi-view verifier."""
         ts = np.array([x[0] for x in self._ring])
-        out = [cut(self._ring[int(np.argmin(np.abs(ts - tt)))][1], clip.crop) for tt in sample_times(clip.t)]
-        return np.stack(out)
+        views = [np.stack([cut(self._ring[int(np.argmin(np.abs(ts - tt)))][1], clip.crop)
+                           for tt in sample_times(clip.t, s)]) for s in self.shifts]
+        return views[0] if len(views) == 1 else np.stack(views)
 
     def flush(self) -> None:
         """Scene over: verify the clips still inside their window with the frames seen so far (past the last frame

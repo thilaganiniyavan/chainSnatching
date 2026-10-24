@@ -1,18 +1,21 @@
 # SnatchGuard on a GPU laptop: start here
 
-## The job now (October 2026): fine-tune the learned verifier, about 1-3 hours
+## The job now (October 2026): fine-tune the learned verifier, then run it live
 
-You need two files from the SnatchGuard team, `snatchguard_code.zip` and `verifier_data.zip`, and an NVIDIA
-GPU with 4 GB or more. Follow **[docs/GPU_VERIFIER.md](docs/GPU_VERIFIER.md)**. In short (Windows):
+You need **`snatchguard_code.zip`**, **`verifier_data.zip`** and (for the live demo) **`snatch_web_test_clips.zip`**
+from the SnatchGuard team, and an NVIDIA GPU with 4 GB or more. Follow **[docs/GPU_VERIFIER.md](docs/GPU_VERIFIER.md)**.
+In short (Windows, PowerShell in `C:\snatchguard`):
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\windows\setup.ps1
 powershell -ExecutionPolicy Bypass -File scripts\windows\train_verifier.ps1 -Data C:\verifier_data -Quick
 powershell -ExecutionPolicy Bypass -File scripts\windows\train_verifier.ps1 -Data C:\verifier_data
+powershell -ExecutionPolicy Bypass -File scripts\windows\run_live.ps1
 ```
 
-Then send back `verifier_ft_results.zip`. The older, longer job below (detector training and the 90 % acceptance
-test, 13-20 hours) is not needed for this.
+Training takes about 2-5 hours (`-SkipSwin` saves about 40 %). Then send back `verifier_ft_results.zip` (a few MB);
+the trained models stay on the GPU laptop for the live system. The older, longer job below (detector training and
+the 90 % acceptance test, 13-20 hours) is not needed for this.
 
 ---
 

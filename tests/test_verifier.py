@@ -36,6 +36,19 @@ def test_contact_starts_once_and_again_after_separating():
     assert {(c.a, c.b) for c in starts} == {(1, 2)}
 
 
+def test_contact_starts_again_after_one_of_the_pair_was_lost():
+    # Snatch 1.0 7_0: in contact, attacker undetected for 2 s, back in contact for the grab
+    det = ContactDetector()
+    starts = []
+    t = 0.0
+    for dets, n in [([person(1, 100.0), person(2, 130.0)], 4), ([person(1, 100.0)], 16),
+                    ([person(1, 100.0), person(2, 130.0)], 4)]:
+        for _ in range(n):
+            starts += det.step(t, dets)
+            t += 0.125
+    assert [c.t for c in starts] == [0.0, 2.5]
+
+
 def test_jitter_around_the_threshold_does_not_start_new_contacts():
     det = ContactDetector()
     starts = []
@@ -229,3 +242,39 @@ def test_verifier_process_scores_like_the_in_process_one():
     ref = Verifier(model, threads=1)
     assert pv.threshold == pytest.approx(ref.threshold)
     assert np.allclose(got, ref.score(clips), atol=1e-4)
+
+
+def test_multi_view_live_stage_cuts_one_clip_per_shift_and_waits_for_the_last():
+    from snatchguard.verifier.live import VerifierStage
+    stub = _StubVerifier(0.9)
+    stub.shifts = (-0.5, 0.0, 0.5)
+    stage = VerifierStage(stub, "test")
+    img = np.full((240, 320, 3), 128, np.uint8)
+    t, onset, offered = 0.0, None, None
+    for k in range(int((AFTER_S + 2.0) * 8)):
+        x = 220.0 - 12.0 * min(k, 8)
+        stage.step(t, img, [person(1, 100.0), person(2, x)])
+        if onset is None and stage.candidates:
+            onset = t
+        if offered is None and not stage._pending and onset is not None:
+            offered = t
+        t += 0.125
+    deadline = time.time() + 5.0
+    while not stub.seen and time.time() < deadline:
+        time.sleep(0.02)
+    stage.stop()
+    assert stub.seen and stub.seen[0] == (1, 3, NF, SIDE, SIDE, 3)
+    assert offered - onset >= AFTER_S + 0.5 and offered - onset < AFTER_S + 0.5 + 0.2
+
+
+def test_live_stage_takes_the_confirm_threshold_from_the_model_unless_configured():
+    from snatchguard.verifier.live import VerifierStage
+    stub = _StubVerifier(0.9)
+    stub.threshold_confirm = 0.95
+    a, b = VerifierStage(stub, "a"), VerifierStage(stub, "b", threshold_confirm=0.97)
+    try:
+        assert a.threshold_confirm == pytest.approx(0.95) and b.threshold_confirm == pytest.approx(0.97)
+        assert VerifierStage(_StubVerifier(0.9), "c").threshold_confirm is None
+    finally:
+        for st in (a, b):
+            st.stop()

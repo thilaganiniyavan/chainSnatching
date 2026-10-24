@@ -6,7 +6,7 @@ process at `nice 19`, which only gets the time detection leaves idle: the networ
 are dropped and counted by the live stage). Clips go over stdin as raw uint8, scores come back over stdout as
 float32.
 
-    python -m snatchguard.verifier.serve <model> <threads> <device> <nice>
+    python -m snatchguard.verifier.serve <model> <threads> <device> <nice> [tta: auto|on|off]
 """
 
 from __future__ import annotations
@@ -37,19 +37,25 @@ def _read(stream, n: int) -> bytes:
 class ProcessVerifier:
     """Same interface as Verifier (`threshold`, `score`, `backend`), running in a niced child process."""
 
-    def __init__(self, model_path: str | Path, threads: int = 2, device: str = "cpu", nice: int = 19) -> None:
+    def __init__(self, model_path: str | Path, threads: int = 2, device: str = "cpu", nice: int = 19,
+                 tta: bool | str = "auto") -> None:
+        tta = tta if tta == "auto" else ("on" if tta else "off")
         self.proc = subprocess.Popen([sys.executable, "-m", "snatchguard.verifier.serve", str(model_path),
-                                      str(int(threads)), device, str(int(nice))],
+                                      str(int(threads)), device, str(int(nice)), tta],
                                      stdin=subprocess.PIPE, stdout=subprocess.PIPE)
         head = self.proc.stdout.readline().decode().split()
         if not head or head[0] != "ready":
             self.close()
             raise RuntimeError("verifier process failed to start: " + " ".join(head))
         self.threshold, self.backend = float(head[1]), head[2]
+        self.shifts = tuple(float(x) for x in head[3].split(","))
+        self.threshold_confirm = None if head[4] == "None" else float(head[4])
 
     def score(self, clips: np.ndarray) -> np.ndarray:
+        """(N, NF, SIDE, SIDE, 3) or (N, len(shifts), NF, SIDE, SIDE, 3) uint8 -> (N,) scores."""
         clips = np.ascontiguousarray(clips, np.uint8)
-        self.proc.stdin.write(struct.pack("<I", len(clips)) + clips.tobytes())
+        views = 1 if clips.ndim == 5 else clips.shape[1]
+        self.proc.stdin.write(struct.pack("<II", len(clips), views) + clips.tobytes())
         self.proc.stdin.flush()
         return np.frombuffer(_read(self.proc.stdout, 4 * len(clips)), np.float32).copy()
 
@@ -63,19 +69,22 @@ class ProcessVerifier:
 
 def main() -> None:
     model, threads, device, nice = sys.argv[1], int(sys.argv[2]), sys.argv[3], int(sys.argv[4])
+    tta = {"auto": "auto", "on": True, "off": False}[sys.argv[5] if len(sys.argv) > 5 else "auto"]
     if nice:
         os.nice(nice)                            # before any library starts its worker threads
     from snatchguard.verifier.model import Verifier
     out = sys.stdout.buffer
     sys.stdout = sys.stderr                      # library chatter must not corrupt the score stream
-    v = Verifier(model, threads, device)
-    out.write(f"ready {v.threshold!r} {v.encoder.backend}\n".encode())
+    v = Verifier(model, threads, device, tta=tta)
+    confirm = None if v.threshold_confirm is None else float(v.threshold_confirm)
+    out.write(f"ready {v.threshold!r} {v.encoder.backend} {','.join(repr(x) for x in v.shifts)} {confirm!r}\n"
+              .encode())
     out.flush()
     inp = sys.stdin.buffer
     while True:
         try:
-            n = struct.unpack("<I", _read(inp, 4))[0]
-            clips = np.frombuffer(_read(inp, n * _CLIP_BYTES), np.uint8).reshape(n, NF, SIDE, SIDE, 3)
+            n, views = struct.unpack("<II", _read(inp, 8))
+            clips = np.frombuffer(_read(inp, n * views * _CLIP_BYTES), np.uint8).reshape(n, views, NF, SIDE, SIDE, 3)
         except EOFError:
             return
         out.write(v.score(clips).astype(np.float32).tobytes())

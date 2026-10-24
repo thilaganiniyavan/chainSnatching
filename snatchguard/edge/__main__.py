@@ -5,6 +5,7 @@
     python -m snatchguard.edge --source clip.mp4 --night ir      # ...turned into IR night footage
     python -m snatchguard.edge --source rtsp://user:pw@cam/stream
     python -m snatchguard.edge --source synthetic:snatch         # scripted scene, no models needed
+    python -m snatchguard.edge --config configs/edge.live_gpu.yaml --verifier-model models/verifier/verifier_ft.pt
 """
 
 from __future__ import annotations
@@ -31,6 +32,7 @@ def main() -> None:
     ap.add_argument("--api-key", default=os.environ.get("SNATCHGUARD_API_KEY"),
                     help="API key for the central server (overrides config; env SNATCHGUARD_API_KEY)")
     ap.add_argument("--until-done", action="store_true", help="exit when all sources ended and alerts are delivered")
+    ap.add_argument("--verifier-model", help="turn the learned verifier on with this model (overrides config)")
     ap.add_argument("-v", "--verbose", action="store_true")
     args = ap.parse_args()
 
@@ -41,6 +43,8 @@ def main() -> None:
         cfg.setdefault("central", {})["url"] = args.central
     if args.api_key:
         cfg.setdefault("central", {})["api_key"] = args.api_key
+    if args.verifier_model:
+        cfg.setdefault("verifier", {}).update(enabled=True, model=args.verifier_model)
     if args.source:
         cfg["cameras"] = [{
             "id": args.camera_id, "name": args.name or args.source.split("/")[-1],

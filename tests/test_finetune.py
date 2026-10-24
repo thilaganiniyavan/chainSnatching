@@ -188,3 +188,67 @@ def test_augment_keeps_the_clip_shape():
         out = augment(frames, random.Random(k))
         assert out.shape == (NF, SIDE, SIDE, 3) and out.dtype == np.uint8
     assert SimpleNamespace  # noqa: B018 - keep the import used if tests change
+
+
+def test_views_are_the_live_window_shifted_and_mirrored():
+    from snatchguard.verifier.finetune import DT, VIEWS, centre, view
+    frames = np.random.default_rng(0).integers(0, 255, size=(STRIP_NF, STRIP_SIDE, STRIP_SIDE, 3), dtype=np.uint8)
+    assert VIEWS[0] == (PAD, False) and len(VIEWS) == 6
+    assert np.array_equal(view(frames), centre(frames))
+    assert np.array_equal(view(frames, 0)[PAD:], view(frames)[:-PAD])           # 0.73 s earlier
+    assert np.array_equal(view(frames, PAD, True), view(frames)[:, :, ::-1])
+    assert PAD * DT == pytest.approx(0.727, abs=1e-3)
+
+
+def test_multi_view_checkpoint_scores_the_mean_logit(tmp_path):
+    from snatchguard.verifier.finetune import _save, build_net
+    from snatchguard.verifier.model import _MEAN, _STD, Verifier
+    torch.manual_seed(0)
+    net = build_net(pretrained=False).eval()
+    _save(net, tmp_path / "ft.pt", threshold=0.7, meta={}, threshold_tta=0.6, confirm=0.9, confirm_tta=0.8)
+    single = Verifier(tmp_path / "ft.pt", threads=1)                                 # auto: views not selected
+    assert single.shifts == (0.0,) and single.threshold_confirm == pytest.approx(0.9)
+    v = Verifier(tmp_path / "ft.pt", threads=1, tta=True)
+    assert v.threshold == pytest.approx(0.6) and v.flip and v.shifts == pytest.approx((-0.7273, 0.0, 0.7273))
+    assert v.threshold_confirm == pytest.approx(0.8)
+    clips = np.random.default_rng(0).integers(0, 255, size=(2, 3, NF, SIDE, SIDE, 3), dtype=np.uint8)
+
+    def logit(c):
+        x = torch.from_numpy(((c / 255.0 - _MEAN) / _STD).astype(np.float32).transpose(0, 4, 1, 2, 3))
+        with torch.inference_mode():
+            return net(x).squeeze(1).numpy()
+    z = np.stack([logit(clips[:, k]) for k in range(3)] + [logit(clips[:, k, :, :, ::-1]) for k in range(3)], 1)
+    assert np.allclose(v.score(clips), 1 / (1 + np.exp(-z.mean(1))), atol=1e-4)
+
+
+def test_swin3d_takes_the_live_clip_and_freezes_by_block():
+    from snatchguard.verifier.finetune import _freeze, build_net
+    net = build_net(pretrained=False, arch="swin3d_t")
+    out = net(torch.zeros(2, 3, NF, SIDE, SIDE))
+    assert out.shape == (2, 1)
+    _freeze(net, "layer3")
+    trained = {n.split(".")[0] for n, p in net.named_parameters() if p.requires_grad}
+    assert trained == {"layer3", "layer4", "fc"}
+
+
+def test_select_uses_cross_validation_not_the_test_set(tmp_path):
+    import json
+    from snatchguard.verifier.finetune import _save, build_net, cmd_select
+    net = build_net(pretrained=False).eval()
+    runs = []
+    for name, (cv, cv_tta, web) in {"r2": (3, 3, 9), "swin": (4, 2, 1)}.items():
+        d = tmp_path / name
+        d.mkdir()
+        _save(net, d / "verifier_ft.pt", 0.7, {}, threshold_tta=0.6)
+        rep = {"arch": name, "protocols": {
+            "external": {"test": {"at_threshold": {"caught_actor": web}}},
+            "s1-cv": {"pooled_at_thresholds": {"caught_actor": cv, "events_actor": 9, "false_alarms_per_h": 5.0,
+                                               "mean_clip_auc": 0.8},
+                      "pooled_at_thresholds_tta": {"caught_actor": cv_tta, "events_actor": 9,
+                                                   "false_alarms_per_h": 5.0, "mean_clip_auc": 0.9}}}}
+        (d / "report.json").write_text(json.dumps(rep))
+        runs.append(str(d))
+    cmd_select(SimpleNamespace(runs=runs, out=str(tmp_path / "deploy" / "verifier_ft.pt")))
+    choice = json.loads((tmp_path / "deploy" / "selection.json").read_text())
+    assert choice["run"].endswith("swin") and choice["views"] is False                # 4 > 3, whatever Web says
+    assert torch.load(tmp_path / "deploy" / "verifier_ft.pt", weights_only=True)["tta_default"] is False

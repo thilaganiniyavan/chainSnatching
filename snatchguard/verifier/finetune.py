@@ -33,6 +33,10 @@ Protocols (every threshold is fixed on validation footage held out of training, 
   s1-cv      5 folds holding out Snatch 1.0 cameras and event videos; train on the rest + Snatch-Web + pool
   curve      `external` with 0, 1/3 and 2/3 of the pool's event uploads: recall against training events
   final      everything except the validation split; this is the model to deploy
+
+Each run fine-tunes one pretrained network (--arch: R(2+1)D-18 or Swin3D-T) and scores every test clip twice: its
+live view alone, and the mean over VIEWS (shifted by +-0.73 s, mirrored), each with its own threshold fixed on the
+validation footage. `select` then picks the network and scoring to deploy from the Snatch 1.0 cross-validation only.
 """
 
 from __future__ import annotations
@@ -61,6 +65,10 @@ CONTEXT = 1.25                            # strip square = CONTEXT x the live cr
 STRIP_SIDE = round(SIDE * CONTEXT)        # 140 px
 DT = (BEFORE_S + AFTER_S) / (NF - 1)      # frame spacing of the live clip
 POOL_NEAR_S = 4.0                         # pool candidates this close to an event are ignored, not negatives
+ARCHS = ("r2plus1d_18", "swin3d_t")       # Kinetics-400 top-1: 67.5 % (native 112 px) and 77.7 % (trained at 224 px)
+# test-time views (strip frame offset, mirrored): the live window, PAD frames (0.73 s) earlier and later, and their
+# mirror images, i.e. variations training draws from; a clip's score is the mean of its views' logits
+VIEWS = tuple((o, f) for o in (PAD, 0, 2 * PAD) for f in (False, True))
 PACKAGE_VERSION = 1
 
 
@@ -297,16 +305,23 @@ def augment(frames: np.ndarray, rng: random.Random, graphics: float = 0.25) -> n
     return np.clip(x, 0, 255).astype(np.uint8)
 
 
-def centre(frames: np.ndarray) -> np.ndarray:
+def view(frames: np.ndarray, offset: int = PAD, flip: bool = False) -> np.ndarray:
+    """The live clip seen `offset - PAD` frames later, optionally mirrored (a test-time view, VIEWS)."""
     o = (STRIP_SIDE - SIDE) // 2
-    return np.ascontiguousarray(frames[PAD:PAD + NF, o:o + SIDE, o:o + SIDE])
+    x = frames[offset:offset + NF, o:o + SIDE, o:o + SIDE]
+    return np.ascontiguousarray(x[:, :, ::-1] if flip else x)
+
+
+def centre(frames: np.ndarray) -> np.ndarray:
+    return view(frames)
 
 
 class _Clips:
     """Torch dataset over strips: item = (clip tensor, unit id, unit label)."""
 
-    def __init__(self, pkg: Package, items: list[tuple[int, int, int]], train: bool, seed: int) -> None:
-        self.pkg, self.items, self.train, self.seed = pkg, items, train, seed
+    def __init__(self, pkg: Package, items: list[tuple[int, int, int]], train: bool, seed: int,
+                 view: tuple[int, bool] = (PAD, False)) -> None:
+        self.pkg, self.items, self.train, self.seed, self.view = pkg, items, train, seed, view
 
     def __len__(self) -> int:
         return len(self.items)
@@ -319,7 +334,7 @@ class _Clips:
         # news uploads often circle the grab itself: negatives get drawn-on graphics more often than positives,
         # so a circle cannot stand in for the motion
         x = (augment(frames, random.Random(self.seed * 1_000_003 + k), GRAPHICS_NEG if y == 0 else GRAPHICS_POS)
-             if self.train else centre(frames))
+             if self.train else view(frames, *self.view))
         x = ((x.astype(np.float32) / 255.0 - _MEAN) / _STD).transpose(3, 0, 1, 2)
         return torch.from_numpy(np.ascontiguousarray(x)), unit, y
 
@@ -377,12 +392,48 @@ def _batches(pos: list[tuple[bool, list[int]]], neg: list[int], weights: np.ndar
         yield items
 
 
-def build_net(pretrained: bool = True):
+def build_net(pretrained: bool = True, arch: str = "r2plus1d_18"):
     import torch
+    if arch == "swin3d_t":
+        return _swin3d_t(pretrained)
+    if arch != "r2plus1d_18":
+        raise ValueError(f"unknown arch {arch!r}: {ARCHS}")
     from torchvision.models.video import R2Plus1D_18_Weights, r2plus1d_18
     net = r2plus1d_18(weights=R2Plus1D_18_Weights.KINETICS400_V1 if pretrained else None)
     net.fc = torch.nn.Sequential(torch.nn.Dropout(0.5), torch.nn.Linear(512, 1))
     return net
+
+
+def _swin3d_t(pretrained: bool):
+    """Swin3D-T under R(2+1)D-18's block names (stem, layer1-4, fc), so _freeze and the optimiser groups apply
+    unchanged. Clips here are normalised for R(2+1)D; the first step re-normalises them for Swin's ImageNet
+    statistics. Window attention takes the 12 x 112 x 112 live clip as it is."""
+    import torch
+    from torchvision.models.video import Swin3D_T_Weights, swin3d_t
+    from snatchguard.verifier.model import _MEAN, _STD
+    w = Swin3D_T_Weights.KINETICS400_V1
+    base = swin3d_t(weights=w if pretrained else None)
+    tf = w.transforms()
+    gain = torch.tensor(_STD) / torch.tensor(tf.std)
+    bias = (torch.tensor(_MEAN) - torch.tensor(tf.mean)) / torch.tensor(tf.std)
+
+    class Swin3D(torch.nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            f = base.features
+            self.stem = torch.nn.Sequential(base.patch_embed, base.pos_drop)
+            self.layer1, self.layer2 = f[0], torch.nn.Sequential(f[1], f[2])
+            self.layer3, self.layer4 = torch.nn.Sequential(f[3], f[4]), torch.nn.Sequential(f[5], f[6], base.norm)
+            self.fc = torch.nn.Sequential(torch.nn.Dropout(0.5), torch.nn.Linear(base.head.in_features, 1))
+            self.register_buffer("gain", gain.view(1, 3, 1, 1, 1), persistent=False)
+            self.register_buffer("bias", bias.view(1, 3, 1, 1, 1), persistent=False)
+
+        def forward(self, x):
+            x = self.stem(x * self.gain + self.bias)                       # (B, T, H, W, C) from here on
+            x = self.layer4(self.layer3(self.layer2(self.layer1(x))))
+            return self.fc(x.mean(dim=(1, 2, 3)))
+
+    return Swin3D()
 
 
 BLOCKS = ("stem", "layer1", "layer2", "layer3", "layer4", "fc")
@@ -410,7 +461,7 @@ def train_model(pkg: Package, idx: np.ndarray, a, seed: int, tag: str):
     hard = {i for i in neg if not pkg.normal[i]}
     if not pos or not neg:
         raise RuntimeError(f"{tag}: no positives or no negatives to train on")
-    net = build_net().to(dev)
+    net = build_net(arch=a.arch).to(dev)
     _freeze(net, a.train_from)
     trunk = [p for name in BLOCKS[:-1] for p in getattr(net, name).parameters() if p.requires_grad]
     groups = ([{"params": trunk, "lr": a.lr}] if trunk else []) + [{"params": list(net.fc.parameters()), "lr": a.lr * 10}]
@@ -463,18 +514,28 @@ def train_model(pkg: Package, idx: np.ndarray, a, seed: int, tag: str):
     return net
 
 
-def predict(net, pkg: Package, idx: np.ndarray, a) -> np.ndarray:
+def predict(net, pkg: Package, idx: np.ndarray, a, views=VIEWS[:1]) -> np.ndarray:
+    """(len(idx), len(views)) logits; _prob turns them into scores."""
     import torch
     net.eval()
-    ds = _Clips(pkg, [(int(i), 0, 0) for i in idx], train=False, seed=0)
-    loader = torch.utils.data.DataLoader(ds, batch_size=a.batch * 2, num_workers=a.workers,
-                                         pin_memory=a.device.startswith("cuda"))
-    out = []
-    with torch.inference_mode():
-        for x, _, _ in loader:
-            with torch.autocast("cuda", dtype=torch.float16, enabled=a.device.startswith("cuda")):
-                out.append(torch.sigmoid(net(x.to(a.device)).float().squeeze(1)).cpu().numpy())
-    return np.concatenate(out) if out else np.zeros(0, np.float32)
+    cols = []
+    for v in views:
+        ds = _Clips(pkg, [(int(i), 0, 0) for i in idx], train=False, seed=0, view=v)
+        loader = torch.utils.data.DataLoader(ds, batch_size=a.batch * 2, num_workers=a.workers,
+                                             pin_memory=a.device.startswith("cuda"))
+        out = []
+        with torch.inference_mode():
+            for x, _, _ in loader:
+                with torch.autocast("cuda", dtype=torch.float16, enabled=a.device.startswith("cuda")):
+                    out.append(net(x.to(a.device)).float().squeeze(1).cpu().numpy())
+        cols.append(np.concatenate(out) if out else np.zeros(0, np.float32))
+    return np.stack(cols, 1)
+
+
+def _prob(logits: np.ndarray, tta: bool) -> np.ndarray:
+    """Score of each clip: its live view alone, or the mean logit of all its views (tta)."""
+    z = logits.mean(1) if tta else logits[:, 0]
+    return (1.0 / (1.0 + np.exp(-z))).astype(np.float32)
 
 
 def poisson_ci(k: int, exposure: float) -> tuple[float, float]:
@@ -584,13 +645,25 @@ def _val_split(pkg: Package, idx: np.ndarray, frac: float, seed: int) -> tuple[n
     return idx[~is_val], idx[is_val]
 
 
-def _save(net, path: Path, threshold: float, meta: dict) -> None:
+def _save(net, path: Path, threshold: float, meta: dict, arch: str = "r2plus1d_18",
+          threshold_tta: float | None = None, confirm: float | None = None, confirm_tta: float | None = None) -> None:
+    """threshold: for the live clip alone; threshold_tta: for the mean over VIEWS (live: shifted clips + mirror);
+    confirm(_tta): the stricter CONFIRMED-alert thresholds."""
     import torch
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(".tmp")
-    torch.save({"format": FT_FORMAT, "state_dict": {k: v.detach().cpu() for k, v in net.state_dict().items()},
-                "threshold": float(threshold), "meta": meta,
-                "clip": {"nf": NF, "side": SIDE, "before_s": BEFORE_S, "after_s": AFTER_S}}, tmp)
+    ckpt = {"format": FT_FORMAT, "arch": arch,
+            "state_dict": {k: v.detach().cpu() for k, v in net.state_dict().items()},
+            "threshold": float(threshold), "meta": meta,
+            "clip": {"nf": NF, "side": SIDE, "before_s": BEFORE_S, "after_s": AFTER_S}}
+    if confirm is not None:
+        ckpt["threshold_confirm"] = float(confirm)
+    if threshold_tta is not None:
+        ckpt["tta"] = {"threshold": float(threshold_tta), "flip": any(f for _, f in VIEWS),
+                       "shifts_s": sorted({round((o - PAD) * DT, 4) for o, _ in VIEWS})}
+        if confirm_tta is not None:
+            ckpt["tta"]["threshold_confirm"] = float(confirm_tta)
+    torch.save(ckpt, tmp)
     tmp.replace(path)
 
 
@@ -601,21 +674,33 @@ def run_protocol(pkg: Package, name: str, train_idx: np.ndarray, test_idx: np.nd
     vm = pkg.normal[val]
     vmask = np.zeros(len(pkg.videos), bool)
     vmask[np.unique(pkg.vi[val])] = True
-    sv = predict(net, pkg, val[vm], a)
-    thr, per_src = _threshold(pkg, val[vm], sv, a.budget)
-    out = {"train_clips": int(len(trn)), "val_normal_hours": round(pkg.hours(vmask), 3), "threshold": thr,
-           "val_by_source": per_src}
+    views = VIEWS if a.tta else VIEWS[:1]
+    lv = predict(net, pkg, val[vm], a, views)
+    out = {"train_clips": int(len(trn)), "val_normal_hours": round(pkg.hours(vmask), 3)}
+    # two alert levels, both fixed here: SUSPECT at `budget` false alarms/h, CONFIRMED at `budget_confirm`
+    for sfx, tta in (("", False), ("_tta", True)) if a.tta else (("", False),):
+        sv = _prob(lv, tta)
+        out["threshold" + sfx], out["val_by_source" + sfx] = _threshold(pkg, val[vm], sv, a.budget)
+        out["threshold_confirm" + sfx] = max(_threshold(pkg, val[vm], sv, a.budget_confirm)[0], out["threshold" + sfx])
     if test_idx is not None and len(test_idx):
-        s = predict(net, pkg, test_idx, a)
-        out["test"] = evaluate(pkg, test_idx, s, thr, a.budgets)
-        np.savez_compressed(Path(a.out) / f"scores_{name}.npz", idx=test_idx, score=s)
-        p = out["test"]["at_threshold"]
-        log.info("%s: threshold %.4f -> %d/%d events (actor), %d/%d (time overlap), %s false alarms/h %s",
-                 name, thr, p["caught_actor"], out["test"]["events_actor"], p["caught_overlap"],
-                 out["test"]["events_timed"], p["false_alarms_per_h"], p["fa_ci"])
+        lt = predict(net, pkg, test_idx, a, views)
+        scores = {}
+        for sfx, tta in (("", False), ("_tta", True)) if a.tta else (("", False),):
+            s = scores["score" + sfx] = _prob(lt, tta)
+            t = out["test" + sfx] = evaluate(pkg, test_idx, s, out["threshold" + sfx], a.budgets)
+            t["threshold_confirm"] = out["threshold_confirm" + sfx]
+            t["at_confirm"] = evaluate(pkg, test_idx, s, out["threshold_confirm" + sfx], [])["at_threshold"]
+            for lvl, p in (("suspect", t["at_threshold"]), ("confirmed", t["at_confirm"])):
+                log.info("%s%s %s: %d/%d events (actor), %d/%d (time overlap), %s false alarms/h %s", name,
+                         " (views)" if tta else "", lvl, p["caught_actor"], t["events_actor"], p["caught_overlap"],
+                         t["events_timed"], p["false_alarms_per_h"], p["fa_ci"])
+        np.savez_compressed(Path(a.out) / f"scores_{name}.npz", idx=test_idx, **scores)
     if save_to is not None:
-        _save(net, save_to, thr, {"protocol": name, "trained": time.strftime("%Y-%m-%d %H:%M"), "steps": a.steps,
-                                  "budget_per_h": a.budget, "val_normal_hours": out["val_normal_hours"]})
+        _save(net, save_to, out["threshold"], {"protocol": name, "trained": time.strftime("%Y-%m-%d %H:%M"),
+                                               "steps": a.steps, "budget_per_h": a.budget,
+                                               "budget_confirm_per_h": a.budget_confirm,
+                                               "val_normal_hours": out["val_normal_hours"]},
+              a.arch, out.get("threshold_tta"), out["threshold_confirm"], out.get("threshold_confirm_tta"))
     del net
     return out
 
@@ -654,6 +739,22 @@ def _retry(fn, a):
             log.warning("GPU out of memory: starting again with batch %d", a.batch)
 
 
+def _pool(folds: list[dict], key: str) -> dict:
+    """Events caught and false alarms summed over the cross-validation folds, each at its own threshold."""
+    tot = {}
+    for f in folds:
+        p, t = f[key]["at_threshold"], f[key]
+        for k in ("false_alarms", "caught_actor", "caught_overlap"):
+            tot[k] = tot.get(k, 0) + p[k]
+        for k in ("normal_hours", "events_actor", "events_timed"):
+            tot[k] = tot.get(k, 0) + t[k]
+    tot["false_alarms_per_h"] = round(tot["false_alarms"] / max(tot["normal_hours"], 1e-9), 2)
+    tot["fa_ci"] = [round(x, 2) for x in poisson_ci(tot["false_alarms"], max(tot["normal_hours"], 1e-9))]
+    aucs = [f[key]["clip_auc"] for f in folds if "clip_auc" in f[key]]
+    tot["mean_clip_auc"] = round(float(np.mean(aucs)), 3) if aucs else None
+    return tot
+
+
 def cmd_run(a) -> None:
     import torch
     from sklearn.model_selection import GroupKFold
@@ -677,9 +778,10 @@ def cmd_run(a) -> None:
             m = np.where(pkg.set == s)[0]
             keep |= set(m[pkg.y[m] == 1][:4]) | set(m[pkg.bag[m]][:6]) | set(m[pkg.y[m] == 0][:40])
         allidx = np.array(sorted(keep))
-    report = {"package": str(pkg.root), "device": a.device, "steps": a.steps, "batch": a.batch, "lr": a.lr,
-              "train_from": a.train_from,
-              "budget_per_h": a.budget, "protocols": {}}
+    a.tta = not a.no_tta
+    report = {"package": str(pkg.root), "device": a.device, "arch": a.arch, "steps": a.steps, "batch": a.batch,
+              "lr": a.lr, "train_from": a.train_from, "views": [list(v) for v in (VIEWS if a.tta else VIEWS[:1])],
+              "budget_per_h": a.budget, "budget_confirm_per_h": a.budget_confirm, "protocols": {}}
     t0 = time.time()
     sets = pkg.set[allidx]
     if "external" in a.protocols:
@@ -700,18 +802,13 @@ def cmd_run(a) -> None:
             test = s1[te]
             train = np.setdiff1d(allidx, test)
             folds.append(_retry(lambda: run_protocol(pkg, f"s1-cv{f}", train, test, a, a.seed + f), a))
-        tot = {}
-        for f in folds:
-            p, t = f["test"]["at_threshold"], f["test"]
-            for k in ("false_alarms", "caught_actor", "caught_overlap"):
-                tot[k] = tot.get(k, 0) + p[k]
-            for k in ("normal_hours", "events_actor", "events_timed"):
-                tot[k] = tot.get(k, 0) + t[k]
-        tot["false_alarms_per_h"] = round(tot["false_alarms"] / max(tot["normal_hours"], 1e-9), 2)
-        tot["fa_ci"] = [round(x, 2) for x in poisson_ci(tot["false_alarms"], max(tot["normal_hours"], 1e-9))]
-        report["protocols"]["s1-cv"] = {"folds": folds, "pooled_at_thresholds": tot}
-        log.info("s1-cv pooled: %d/%d events (actor), %d/%d (overlap), %.1f false alarms/h", tot["caught_actor"],
-                 tot["events_actor"], tot["caught_overlap"], tot["events_timed"], tot["false_alarms_per_h"])
+        report["protocols"]["s1-cv"] = {"folds": folds}
+        for key in ("test", "test_tta") if a.tta else ("test",):
+            tot = _pool(folds, key)
+            report["protocols"]["s1-cv"]["pooled_at_thresholds" + ("_tta" if key == "test_tta" else "")] = tot
+            log.info("s1-cv pooled%s: %d/%d events (actor), %d/%d (overlap), %.1f false alarms/h",
+                     " (views)" if key == "test_tta" else "", tot["caught_actor"], tot["events_actor"],
+                     tot["caught_overlap"], tot["events_timed"], tot["false_alarms_per_h"])
     if "final" in a.protocols:
         report["protocols"]["final"] = _retry(lambda: run_protocol(pkg, "final", allidx, None, a, a.seed + 100,
                                                                    Path(a.out) / "verifier_ft.pt"), a)
@@ -778,6 +875,50 @@ def cmd_frozen(a) -> None:
              p["caught_overlap"], res["events_timed"], p["false_alarms_per_h"], p["fa_ci"])
 
 
+def cmd_select(a) -> None:
+    """The model to deploy, by a rule fixed before any run: most Snatch 1.0 cross-validation events caught (each
+    fold at its own threshold), then the higher mean clip AUC there; ties keep the earlier run and the live view
+    alone. The Snatch-Web test set plays no part, so it stays a held-out result for every candidate."""
+    import torch
+    cands = []
+    for k, run in enumerate(a.runs):
+        rep_path, model = Path(run) / "report.json", Path(run) / "verifier_ft.pt"
+        if not rep_path.exists() or not model.exists():
+            log.warning("%s: no report.json or verifier_ft.pt, skipped", run)
+            continue
+        rep = json.loads(rep_path.read_text())
+        cv = rep["protocols"].get("s1-cv", {})
+        for tta in (False, True):
+            tot = cv.get("pooled_at_thresholds_tta" if tta else "pooled_at_thresholds")
+            if tot is not None:
+                cands.append(((tot["caught_actor"], tot.get("mean_clip_auc") or 0.0, -k, -int(tta)),
+                              run, rep.get("arch", "r2plus1d_18"), tta, tot))
+    if not cands:
+        raise SystemExit("no run with an s1-cv result and a final model")
+    for c in sorted(cands, key=lambda c: c[0], reverse=True):
+        log.info("  %-28s %-12s views=%-5s s1-cv %d/%d events, %.1f false alarms/h, clip AUC %s", c[1], c[2],
+                 c[3], c[4]["caught_actor"], c[4]["events_actor"], c[4]["false_alarms_per_h"], c[4].get("mean_clip_auc"))
+    _, run, arch, tta, tot = max(cands, key=lambda c: c[0])
+    ckpt = torch.load(Path(run) / "verifier_ft.pt", map_location="cpu", weights_only=True)
+    if tta and "tta" not in ckpt:
+        raise SystemExit(f"{run}/verifier_ft.pt has no multi-view threshold")
+    ckpt["tta_default"] = tta
+    choice = {"run": str(run), "arch": arch, "views": tta, "s1_cv": tot, "selected": time.strftime("%Y-%m-%d %H:%M"),
+              "rule": "max s1-cv events caught, then mean clip AUC; ties: earlier run, single view"}
+    ckpt["selection"] = json.dumps(choice)
+    out = Path(a.out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    torch.save(ckpt, out)
+    ext = Path(run) / "verifier_ft_external.pt"
+    if ext.exists():        # the same network trained without Snatch-Web: the one to demonstrate on Snatch-Web clips
+        demo = torch.load(ext, map_location="cpu", weights_only=True)
+        demo["tta_default"] = tta
+        torch.save(demo, out.with_name("verifier_ft_external.pt"))
+        choice["demo_model"] = str(out.with_name("verifier_ft_external.pt"))
+    out.with_name("selection.json").write_text(json.dumps(choice, indent=1))
+    log.info("deploy: %s (%s, %s) -> %s", run, arch, "multi-view" if tta else "single view", out)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -798,11 +939,15 @@ def main() -> None:
                    help="first block that is trained (earlier ones keep the Kinetics weights); fc = linear probe")
     r.add_argument("--folds", type=int, default=5)
     r.add_argument("--budget", type=float, default=10.0, help="false alarms per hour the threshold allows")
+    r.add_argument("--budget-confirm", type=float, default=1.0,
+                   help="false alarms per hour of the stricter CONFIRMED threshold")
     r.add_argument("--budgets", type=float, nargs="+", default=[1, 10, 100])
     r.add_argument("--workers", type=int, default=4)
     r.add_argument("--device", default="auto")
     r.add_argument("--seed", type=int, default=1)
     r.add_argument("--quick", action="store_true", help="smoke test on a few clips (works on a CPU)")
+    r.add_argument("--arch", default="r2plus1d_18", choices=ARCHS, help="pretrained video network to fine-tune")
+    r.add_argument("--no-tta", action="store_true", help="score the live view only (no shifted / mirrored views)")
     fz = sub.add_parser("frozen", help="CPU baseline: the head-only verifier on this package (external protocol)")
     fz.add_argument("--data", required=True)
     fz.add_argument("--out", default=str(REPO_ROOT / "runtime" / "verifier_ft"))
@@ -813,9 +958,12 @@ def main() -> None:
     fz.add_argument("--budgets", type=float, nargs="+", default=[1, 10, 100])
     fz.add_argument("--threads", type=int, default=2)
     fz.add_argument("--seed", type=int, default=1)
+    sl = sub.add_parser("select", help="pick the model to deploy from finished runs (Snatch 1.0 cross-validation)")
+    sl.add_argument("--runs", nargs="+", required=True, help="output folders of `run` (report.json + verifier_ft.pt)")
+    sl.add_argument("--out", default=str(REPO_ROOT / "models" / "verifier" / "verifier_ft.pt"))
     a = ap.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
-    {"pack": cmd_pack, "run": cmd_run, "frozen": cmd_frozen}[a.cmd](a)
+    {"pack": cmd_pack, "run": cmd_run, "frozen": cmd_frozen, "select": cmd_select}[a.cmd](a)
 
 
 if __name__ == "__main__":

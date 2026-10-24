@@ -1,0 +1,40 @@
+# Demo camera: the Snatch-Web test set (25 real snatchings, 11 normal street clips, other cities and cameras).
+# Demonstrate it with models/verifier/verifier_ft_external.pt, which never trained on these clips
+# (scripts/windows/run_live.ps1 does). Paths: unzip snatch_web_test_clips.zip into the repo folder.
+# Format: path [start_s] [end_s]
+data/snatch_web/clips/normal/08xbnbbFSrM_0.mp4
+data/snatch_web/clips/snatch/0eOz5O3FQM8_0.mp4   # snatch_bike 11.60-12.90 s night
+data/snatch_web/clips/snatch/1lRnmbRT1pA_0.mp4   # snatch_bike 9.60-11.00 s day
+data/snatch_web/clips/normal/63BY-o5Cz1Q_0.mp4
+data/snatch_web/clips/snatch/4bA-yaG8eDA_0.mp4   # snatch_foot 10.87-13.37 s day
+data/snatch_web/clips/snatch/5EgvaLCfXWw_0.mp4   # snatch_bike 10.40-14.00 s night
+data/snatch_web/clips/normal/MB14fCF8tL8_0.mp4
+data/snatch_web/clips/snatch/5EgvaLCfXWw_2.mp4   # snatch_bike 5.20-6.80 s night
+data/snatch_web/clips/snatch/5SozzlraeoU_14.mp4   # snatch_bike 5.34-7.04 s day
+data/snatch_web/clips/normal/OG0CQBeo0XE_0.mp4
+data/snatch_web/clips/snatch/6L-sz3oSYjo_1.mp4   # snatch_bike 18.00-35.00 s day
+data/snatch_web/clips/snatch/9Z8icbLqzcs_0.mp4   # snatch_bike 18.60-19.60 s night
+data/snatch_web/clips/normal/QQHLLrcD7h0_0.mp4
+data/snatch_web/clips/snatch/BmWTFmJtnvo_2.mp4   # snatch_foot 5.20-8.20 s night
+data/snatch_web/clips/snatch/DnFOKnNWzfQ_1.mp4   # snatch_foot 6.73-9.03 s day
+data/snatch_web/clips/normal/ZlaNuo2XGJ4_0.mp4
+data/snatch_web/clips/snatch/Hd6TsOIKBG8_4.mp4   # snatch_foot 9.30-13.80 s day
+data/snatch_web/clips/snatch/IhTWYISUwRU_1.mp4   # snatch_bike 14.96-16.96 s night
+data/snatch_web/clips/normal/cjJKgFj49kk_0.mp4
+data/snatch_web/clips/snatch/OTGVGhOqJOo_0.mp4   # snatch_bike 8.00-13.50 s day
+data/snatch_web/clips/snatch/PG3m7Gvt2tU_1.mp4   # snatch_bike 5.80-10.80 s day
+data/snatch_web/clips/normal/jqmN92Zo1cE_0.mp4
+data/snatch_web/clips/snatch/PHM9Fy1LBjs_1.mp4   # snatch_bike 5.00-6.40 s day
+data/snatch_web/clips/snatch/RE9-bASXjsg_0.mp4   # snatch_foot 8.40-12.00 s day
+data/snatch_web/clips/normal/pGJhb5yRvzQ_0.mp4
+data/snatch_web/clips/snatch/SbdxD4JRxkw_0.mp4   # snatch_bike 20.00-21.60 s day
+data/snatch_web/clips/snatch/WNO2T_tFHVw_1.mp4   # snatch_foot 15.80-17.80 s day
+data/snatch_web/clips/normal/pY8dBytBxZ0_0.mp4
+data/snatch_web/clips/snatch/aLM6e-bq0JU_0.mp4   # snatch_bike 6.40-7.20 s day
+data/snatch_web/clips/snatch/dhEe9obCwHg_1.mp4   # snatch_bike 20.00-23.00 s day
+data/snatch_web/clips/normal/H4gbVsnQD6w_2.mp4
+data/snatch_web/clips/snatch/eF7pCH8VGdc_0.mp4   # snatch_foot 20.00-21.10 s day
+data/snatch_web/clips/snatch/neQBR2xecg8_0.mp4   # snatch_foot 20.00-43.50 s day
+data/snatch_web/clips/snatch/nvYFDZporGo_1.mp4   # snatch_foot 20.00-38.50 s day
+data/snatch_web/clips/snatch/wQhUHot54ZY_1.mp4   # snatch_bike 7.20-8.80 s day
+data/snatch_web/clips/snatch/y6aoNyg164Q_8.mp4   # snatch_foot 5.20-6.80 s day

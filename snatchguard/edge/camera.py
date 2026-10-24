@@ -248,13 +248,15 @@ class CameraWorker:
             from snatchguard.verifier.model import AFTER_S, Verifier
             from snatchguard.verifier.serve import ProcessVerifier
             threads, device = int(vcfg.get("threads", 2)), str(vcfg.get("device", "cpu"))
-            v = (ProcessVerifier(model, threads, device, int(vcfg.get("nice", 19))) if vcfg.get("isolate", True)
-                 else Verifier(model, threads, device))
+            tta = vcfg.get("tta", "auto")
+            v = (ProcessVerifier(model, threads, device, int(vcfg.get("nice", 19)), tta) if vcfg.get("isolate", True)
+                 else Verifier(model, threads, device, tta=tta))
         except Exception as exc:
             log.warning("[%s] verifier unavailable (%s): rules only", self.id, exc)
             self.verifier_state = "error"
             return
-        self.verifier = VerifierStage(v, self.id, vcfg.get("threshold"), float(vcfg.get("max_lag_s", 20)))
+        self.verifier = VerifierStage(v, self.id, vcfg.get("threshold"), float(vcfg.get("max_lag_s", 20)),
+                                      vcfg.get("threshold_confirm"))
         self.verifier_state = "on"
         # a verifier alert can arrive up to max_lag_s (+ one batch) after its window: keep its footage until then
         self.recorder.keep_s = max(self.recorder.keep_s,
@@ -478,13 +480,16 @@ class CameraWorker:
                     pl.get("rule_score"), ms, frame.t - cs)
 
     def _publish_verified(self, v, frame: Frame, img: np.ndarray) -> None:
-        """A clip the learned verifier scored over its threshold -> SUSPECT alert for the operator."""
-        self.stats["suspects"] += 1
+        """A clip the learned verifier scored over its threshold -> SUSPECT alert for the operator, or CONFIRMED when
+        it also clears the model's stricter threshold (fixed on held-out footage at fewer false alarms per hour)."""
+        conf = self.verifier.threshold_confirm
+        level = "CONFIRMED" if conf is not None and v.score >= conf else "SUSPECT"
+        self.stats["alerts" if level == "CONFIRMED" else "suspects"] += 1
         c = v.clip
         event_id = str(uuid.uuid4())
         canon = self.engine.scene.canonical
         roles = {canon(tid): "actor" for pair in c.pairs for tid in pair}
-        title = f"SUSPECT  verifier {v.score:.2f}  {self.name}"
+        title = f"{level}  verifier {v.score:.2f}  {self.name}"
         snap = self.recorder.snapshot(event_id, c.t, roles, title, fallback=img)
         self.recorder.schedule_clip(event_id, c.t, v.decided_t, roles, title)   # around the clip, not the queue wait
         thr = self.verifier.threshold
@@ -492,19 +497,20 @@ class CameraWorker:
             "event_id": event_id, "type": "snatch", "node_id": self.node.get("node_id"),
             "site": self.node.get("site"), "camera_id": self.id, "camera_name": self.name,
             "occurred_at": _iso(frame.wall - (frame.t - c.t)), "detected_at": _iso(frame.wall),
-            "video_time_s": round(c.t, 2), "level": "SUSPECT", "mode": "unknown", "score": round(v.score, 3),
-            "confidence": "low", "lighting": self._mode.value, "contact_start": round(c.t, 3),
+            "video_time_s": round(c.t, 2), "level": level, "mode": "unknown", "score": round(v.score, 3),
+            "confidence": "high" if level == "CONFIRMED" else "low", "lighting": self._mode.value, "contact_start": round(c.t, 3),
             "contact_end": round(c.t, 3), "decided_at": round(frame.t, 3), "latency_s": round(frame.t - c.t, 3),
             "components": {}, "penalties": {}, "boxes": {},
             "evidence": [{"key": "verifier", "group": "model", "passed": True, "value": round(v.score, 3),
                           "detail": f"learned verifier scored the clip around tracks "
                                     f"{', '.join(f'{a}-{b}' for a, b in c.pairs[:3])} at {v.score:.2f} "
-                                    f"(alert from {thr:.2f})"}],
+                                    f"(alert from {thr:.2f}"
+                                    f"{f', confirmed from {conf:.2f}' if conf is not None else ''})"}],
             "source": "verifier", "model_score": round(v.score, 3), "crop": [round(x, 1) for x in c.crop],
             "pairs": c.pairs,
         }
         self.outbox.put("event", payload, {"snapshot": str(snap)})
-        log.warning("[%s] SUSPECT (verifier) score=%.3f pairs=%s latency=%.1fs", self.id, v.score, c.pairs,
+        log.warning("[%s] %s (verifier) score=%.3f pairs=%s latency=%.1fs", self.id, level, v.score, c.pairs,
                     frame.t - c.t)
 
     def _queue_tamper(self, cond: str, frame: Frame, active: bool) -> None:

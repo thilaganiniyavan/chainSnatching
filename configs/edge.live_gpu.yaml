@@ -1,0 +1,76 @@
+# Edge node on a laptop with an NVIDIA GPU: the learned verifier scores every contact (scripts/windows/run_live.ps1).
+# The detector is the one the verifier was trained with (YOLO26n at 512 px, 8 frames/s), here in PyTorch on the GPU.
+node_id: edge-gpu-01
+site: demo
+
+central:
+  url: http://127.0.0.1:8000
+  api_key: dev-edge-key          # must match central's SNATCHGUARD_API_KEYS
+  heartbeat_s: 10
+
+models:
+  detector: models/yolo26n.pt     # same weights as the OpenVINO export the training candidates came from
+  pose: models/yolo26n-pose.pt
+  imgsz: 512
+  pose_imgsz: 384
+  device: auto            # auto = CUDA GPU if available, else CPU (OpenVINO models always CPU)
+  pose_mode: full         # crops (CPU: pose only near bike/person pairs) | full (GPU: whole frame)
+  # Detections down to this confidence are passed to the tracker; OC-SORT's two-stage matching
+  # (track_high/low_thresh in tracker.yaml) decides which become tracks. Keeps small, far bikes.
+  conf: {day: 0.10, lowlight: 0.08, ir: 0.08}
+  max_pose_crops: 2                            # pose passes per frame (closest pairs first)
+
+processing:
+  target_fps: 8          # frames/s actually analysed; the source can run faster (extra frames are dropped)
+  min_fps_warning: 5     # below this the rules lose reliability -> reported as degraded
+
+rules: configs/rules.yaml
+tracker: configs/tracker.yaml
+
+# Learned snatch scorer next to the rules (snatchguard/learned), fused with the rule decisions by
+# snatchguard/evaluation/fusion.py with configs/fusion.tuned.yaml (else configs/fusion.yaml).
+# It runs in its own thread on the newest frame only, so it never slows the rules down. If the model
+# file is missing or fails to load, the camera logs it once and runs on the rules alone.
+learned:
+  enabled: false         # live detection stays rule-based; set true to fuse the learned scorer in
+  model: models/learned/snatch_scorer.pt
+  fps: 8                 # frames/s offered to the scorer (it drops frames when it falls behind)
+  device: cpu            # cpu | 0 (first CUDA GPU)
+  threads: 1             # CPU threads for the scorer (leave the rest to detection and pose)
+  # fusion: configs/fusion.tuned.yaml
+
+# Two-stage verifier (snatchguard/verifier), fine-tuned on a GPU (docs/GPU_VERIFIER.md): every contact candidate
+# is scored; at or above the model's threshold (10 false alarms/h on held-out footage) it alerts SUSPECT, at or
+# above its stricter one (1/h) CONFIRMED. Both thresholds were fixed before the test sets were scored.
+verifier:
+  enabled: true
+  model: models/verifier/verifier_ft.pt   # chosen by `finetune select` (train_verifier.ps1)
+  threads: 2
+  device: cuda
+  isolate: false         # on a GPU the network does not compete with detection for the CPU
+  tta: auto              # multi-view scoring if `finetune select` chose it (its own thresholds)
+  # threshold_confirm: 0.99   # override the CONFIRMED threshold stored in the model
+  # threshold: 0.9       # override the threshold stored in the model
+  max_lag_s: 20          # clips waiting longer than this for the network are dropped (counted in the status)
+
+evidence:
+  dir: runtime/edge/evidence
+  pre_s: 8               # seconds of video kept before the contact
+  post_s: 4              # seconds recorded after the decision
+  clip_width: 960
+
+outbox: runtime/edge/outbox.db
+
+# Cameras. `source` is an RTSP/HTTP URL, a webcam index, a video file, or
+# `synthetic:<scenario>` (scripted scene, no models needed).
+# For laptop simulation: `realtime: true` plays files at real speed, `loop` repeats,
+# `simulate_night: ir | lowlight` turns daytime video into night video.
+cameras:
+  - id: cam-01
+    name: Snatch-Web test clips (held out)
+    source: playlist:web_heldout
+    loop: true
+    realtime: true
+    lighting: auto        # auto | day | lowlight | ir
+    simulate_night: none
+    # detect_zone: [0.0, 0.0, 0.7, 0.7]   # optional: walkway area (frame fractions) -> zoom for distant cameras

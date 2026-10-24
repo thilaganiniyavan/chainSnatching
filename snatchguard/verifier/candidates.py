@@ -20,6 +20,7 @@ CLOSE = 0.25        # gap, in body heights, that counts as contact
 OPEN = 0.6          # gap that ends a contact episode (hysteresis against jitter)
 RIDER_IOU = 0.3     # a person box on a vehicle box is its rider, not a pair
 MIN_SEP_S = 1.5     # a pair must be out of contact this long before it can start a new candidate
+ABSENT_S = 0.5      # a pair not seen together this long is out of contact (the detector lost one of them)
 MIN_PERSON_PX = 24  # people shorter than this are too small to judge
 CROP_SCALE = 2.0    # clip crop side = CROP_SCALE x the larger side of the actors' union box
 CROP_MIN = 96.0     # ... but at least this many pixels
@@ -85,6 +86,8 @@ class ContactDetector:
                 st = self._state.get(key)
                 if st is None:
                     st = self._state[key] = [False, -1e9, t]
+                if t - st[2] > ABSENT_S:
+                    st[0] = False   # else a grab after one of them was lost continues the earlier contact
                 st[2] = t
                 if gap <= CLOSE:
                     if not st[0] and t - st[1] >= MIN_SEP_S:

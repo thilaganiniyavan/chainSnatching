@@ -290,6 +290,23 @@ separately from the gain from more data; `s1-cv` holds out Snatch 1.0 cameras in
 to deploy. A fine-tuned model loads like the head-only one (`verifier.model` in `configs/edge.yaml`) and runs
 through OpenVINO on a CPU at the same cost per clip.
 
+**Where events were lost, and what changed (2026-10-24).** Of the 50 test events (25 Snatch 1.0, 25 Snatch-Web),
+only 24 reached the verifier as a candidate between the labelled victim and attacker; the rest were lost before
+any classifier: 7 actors never tracked, 6 unresolvable at 512 px, 5 untimed, and 8 tracked events with no
+victim-attacker candidate. In 3 of those 8 a pair stayed "in contact" while the detector lost one of them, so the
+real grab, seconds later, continued the old contact instead of starting a new one; a pair not seen together for
+0.5 s (`ABSENT_S`) is now out of contact. On the cached footage this gives 28 of 50 events a correct candidate
+(Snatch 1.0 6 -> 9 of 11 tracked events, Snatch-Web 18 -> 19 of 21) for 13 % more candidates on normal footage
+(3,240 -> 3,653 per hour). The package was rebuilt with it. The other losses need a better detector.
+
+The GPU run now trains two pretrained networks under the same protocols, R(2+1)D-18 (Kinetics-400 top-1 67.5 %)
+and Swin3D-T (77.7 %; its window attention takes the same 12 x 112 x 112 clip), and scores every clip both alone
+and as the mean of six views (shifted 0.73 s either way, mirrored), each scoring with its own thresholds fixed on
+validation footage: SUSPECT at 10 and CONFIRMED at 1 false alarm per hour. `finetune select` picks the network
+and scoring to deploy from the Snatch 1.0 cross-validation only, so the Snatch-Web result stays held out for every
+candidate. Live, alerts go to the dashboard and, with a Telegram bot configured, to phones with the snapshot and
+then the evidence clip (`snatchguard/central/notify.py`), logging the delay from contact to phone.
+
 ## Training and the 90 % acceptance test (NVIDIA GPU)
 
 Step-by-step for Windows 11 + RTX 4060: **[docs/WINDOWS_GPU_GUIDE.md](docs/WINDOWS_GPU_GUIDE.md)**. In short:

@@ -24,6 +24,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from snatchguard.central.db import Store, now_iso
+from snatchguard.central.notify import TelegramNotifier
 
 log = logging.getLogger(__name__)
 STATIC = Path(__file__).parent / "static"
@@ -48,7 +49,7 @@ class Review(BaseModel):
 
 
 def create_app(data_dir: str | Path | None = None, api_keys: set[str] | None = None,
-               dashboard_password: str | None = None) -> FastAPI:
+               dashboard_password: str | None = None, notifier=None) -> FastAPI:
     data_dir = Path(data_dir or os.environ.get("SNATCHGUARD_DATA", "runtime/central"))
     media = data_dir / "media"
     media.mkdir(parents=True, exist_ok=True)
@@ -57,6 +58,12 @@ def create_app(data_dir: str | Path | None = None, api_keys: set[str] | None = N
     bus = Broadcaster()
     thumbnails: dict[str, bytes] = {}
     live_risk: dict[str, dict] = {}          # node/camera -> latest learned-scorer risk (memory only)
+    phone = notifier if notifier is not None else TelegramNotifier.from_env(data_dir)   # None: no phone alerts
+
+    def notify(event_id: str, snapshot: Path | None = None) -> None:
+        if phone is not None:
+            ev = store.get_event(event_id)
+            phone.event({**ev["payload"], "level": ev["level"], "received_at": ev["received_at"]}, snapshot)
 
     async def watchdog() -> None:
         while True:
@@ -73,6 +80,7 @@ def create_app(data_dir: str | Path | None = None, api_keys: set[str] | None = N
                       "detail": f"No heartbeat for over {int(OFFLINE_AFTER_S)} s: cameras on this node are NOT monitored."}
                 store.insert_event(ev, None)
                 bus.publish("event", store.get_event(ev["event_id"]))
+                notify(ev["event_id"])
                 bus.publish("cameras", {"cameras": store.cameras()})
                 log.warning("node %s went offline", node["node_id"])
 
@@ -81,6 +89,8 @@ def create_app(data_dir: str | Path | None = None, api_keys: set[str] | None = N
         task = asyncio.create_task(watchdog())
         yield
         task.cancel()
+        if phone is not None:
+            phone.close()
 
     app = FastAPI(title="SnatchGuard Central", version="0.1.0", lifespan=lifespan)
     app.state.store = store
@@ -127,7 +137,7 @@ def create_app(data_dir: str | Path | None = None, api_keys: set[str] | None = N
             raise HTTPException(422, f"meta is not JSON: {exc}") from exc
         if "event_id" not in data:
             raise HTTPException(422, "event_id missing")
-        snap_url = None
+        snap_url, path = None, None
         if snapshot is not None:
             path = event_dir(data["event_id"]) / "snapshot.jpg"
             path.write_bytes(await snapshot.read())
@@ -135,6 +145,7 @@ def create_app(data_dir: str | Path | None = None, api_keys: set[str] | None = N
         created = store.insert_event(data, snap_url)
         if created:
             bus.publish("event", store.get_event(data["event_id"]))
+            notify(data["event_id"], path)
             log.info("event %s %s from %s/%s", data.get("type"), data.get("level"), data.get("node_id"), data.get("camera_id"))
         return {"ok": True, "duplicate": not created}
 
@@ -149,6 +160,8 @@ def create_app(data_dir: str | Path | None = None, api_keys: set[str] | None = N
         path.write_bytes(await clip.read())
         store.set_clip(event_id, f"/media/{event_id}/clip{ext}")
         bus.publish("event_update", store.get_event(event_id))
+        if phone is not None:
+            phone.clip(event_id, path)
         return {"ok": True}
 
     @app.post("/api/v1/heartbeat", dependencies=[Depends(require_key)])

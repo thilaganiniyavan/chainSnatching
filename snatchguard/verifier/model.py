@@ -6,17 +6,21 @@ candidate's square and resized to SIDE x SIDE. A Kinetics-400 R(2+1)D-18 network
 turns that into a probability. The head is plain numpy, saved with only tensors and primitives.
 
 A model fine-tuned end to end on a GPU (finetune.py) is the same network with its own weights and a linear output;
-Verifier loads either kind, and both run through OpenVINO on a CPU at the same cost.
+Verifier loads either kind, and both run through OpenVINO on a CPU at the same cost. A fine-tuned Swin3D-T
+(finetune.py --arch swin3d_t) runs through PyTorch; on a GPU, so can its multi-view scoring (Verifier.shifts/flip).
 """
 
 from __future__ import annotations
 
+import logging
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
 import cv2
 import numpy as np
+
+log = logging.getLogger(__name__)
 
 NF = 12              # frames per clip
 SIDE = 112           # crop size fed to the network
@@ -176,7 +180,7 @@ class FineTuned(Encoder):
 
     def _torch_net(self):
         from snatchguard.verifier.finetune import build_net
-        net = build_net(pretrained=False)
+        net = build_net(pretrained=False, arch=self.ckpt.get("arch", "r2plus1d_18"))
         net.load_state_dict(self.ckpt["state_dict"])
         return net.eval()
 
@@ -202,16 +206,31 @@ class FineTuned(Encoder):
 
 
 class Verifier:
+    """`shifts` (s): the clip is cut once per shift of its window (the live stage does this); with `flip` each cut is
+    also scored mirrored; the score is the mean logit of all views. tta: True / False / "auto" (what `finetune
+    select` chose for the model); views need a model trained with them, as their threshold is fixed with them."""
+
     def __init__(self, model_path: str | Path, threads: int = 2, device: str = "cpu",
-                 encoder: Encoder | None = None) -> None:
+                 encoder: Encoder | None = None, tta: bool | str = "auto") -> None:
         import torch
         ckpt = torch.load(Path(model_path), map_location="cpu", weights_only=True)
+        self.shifts, self.flip = (0.0,), False
+        self.threshold_confirm: float | None = None       # CONFIRMED alerts at or above this (None: SUSPECT only)
         if ckpt.get("format") == FT_FORMAT:
             clip = ckpt.get("clip", {})
             if (clip.get("nf"), clip.get("side")) != (NF, SIDE):
                 raise ValueError(f"{model_path}: trained for {clip} clips, this code makes {NF} x {SIDE}")
             self.head = None
             self.threshold = float(ckpt["threshold"])
+            self.threshold_confirm = ckpt.get("threshold_confirm")
+            views = ckpt.get("tta")
+            want = bool(ckpt.get("tta_default", False)) if tta == "auto" else bool(tta)
+            if want and views is None:
+                log.warning("%s has no multi-view threshold: scoring the live view only", model_path)
+            elif want:
+                self.threshold, self.flip = float(views["threshold"]), bool(views["flip"])
+                self.threshold_confirm = views.get("threshold_confirm")
+                self.shifts = tuple(float(x) for x in views["shifts_s"])
             self.encoder = FineTuned(ckpt, Path(model_path), threads, device)
         else:
             self.head = Head.load(model_path)
@@ -220,6 +239,15 @@ class Verifier:
         self.backend = self.encoder.backend
 
     def score(self, clips: np.ndarray) -> np.ndarray:
-        if self.head is None:
-            return (1.0 / (1.0 + np.exp(-self.encoder.encode(clips)))).astype(np.float32)
-        return self.head.proba(self.encoder.encode(clips))
+        """(N, NF, SIDE, SIDE, 3) RGB uint8, or (N, len(shifts), NF, SIDE, SIDE, 3) -> (N,) scores."""
+        clips = np.asarray(clips)
+        if clips.ndim == 5:
+            clips = clips[:, None]
+        n, v = clips.shape[:2]
+        flat = clips.reshape(n * v, *clips.shape[2:])
+        if self.head is not None:
+            return self.head.proba(self.encoder.encode(flat)).reshape(n, v).mean(1).astype(np.float32)
+        if self.flip:
+            flat = np.concatenate([flat, flat[:, :, :, ::-1]])
+        z = self.encoder.encode(flat).reshape(-1, n, v).mean(axis=(0, 2))
+        return (1.0 / (1.0 + np.exp(-z))).astype(np.float32)
