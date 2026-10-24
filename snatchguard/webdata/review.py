@@ -47,7 +47,7 @@ def _segments(kind: str, statuses=("ok", "check")) -> list[tuple[str, dict]]:
     return [(k, v) for k, v in dd.items() if v["status"] in statuses]
 
 
-def prescreen(kind: str) -> None:
+def prescreen(kind: str, min_seconds: float | None = None) -> None:
     """People / two-wheelers seen in each segment (2 fps) with the laptop detector."""
     from ultralytics import YOLO
     from snatchguard.core.config import REPO_ROOT
@@ -55,7 +55,8 @@ def prescreen(kind: str) -> None:
     model = YOLO(str(REPO_ROOT / "models" / "yolo26n_512_openvino_model"), task="detect")
     out = REVIEW / f"prescreen_{kind}.json"
     res = json.loads(out.read_text(encoding="utf-8")) if out.exists() else {}
-    min_len = MIN_NORMAL_S if kind == "normal" else 0.0     # shorter normal shots can't make a clean clip
+    min_len = min_seconds if min_seconds is not None else MIN_NORMAL_S if kind == "normal" else 0.0
+    # (shorter normal shots can't make a clean test clip; the training pool takes shorter ones)
     for n, (key, seg) in enumerate(_segments(kind), 1):
         if key in res or seg["end"] - seg["start"] < min_len:
             continue
@@ -299,6 +300,8 @@ def main() -> None:
     for name in ("prescreen", "sheets"):
         s = sub.add_parser(name)
         s.add_argument("--kind", choices=["snatch", "normal"], required=True)
+        if name == "prescreen":
+            s.add_argument("--min-seconds", type=float, help=f"shortest segment (normal default {MIN_NORMAL_S:.0f})")
         if name == "sheets":
             s.add_argument("--new-only", action="store_true", help="unreviewed, unannotated, long-enough segments")
             s.add_argument("--tag", default="", help="suffix for the sheet folder (keeps earlier sheets)")
@@ -314,7 +317,7 @@ def main() -> None:
     sub.add_parser("build")
     args = ap.parse_args()
     if args.cmd == "prescreen":
-        prescreen(args.kind)
+        prescreen(args.kind, args.min_seconds)
     elif args.cmd == "sheets":
         sheets(args.kind, new_only=args.new_only, tag=args.tag)
     elif args.cmd == "fine-batch":

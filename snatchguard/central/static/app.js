@@ -33,7 +33,7 @@ const MODE_TEXT = { motorcycle: "by motorcycle", bicycle: "by bicycle", on_foot:
 const modeOf = (ev) => (ev.payload && MODE_TEXT[ev.payload.mode]) || "";
 const titleOf = (ev) => (LEVEL_LABEL[ev.level] || ev.level) + (ev.type === "snatch" && modeOf(ev) ? ` (${modeOf(ev)})` : "");
 const STATUS_TEXT = { new: "Needs review", acknowledged: "Acknowledged", confirmed: "Confirmed", false_alarm: "False alarm" };
-const SOURCE_TEXT = { rules: "rules", model: "learned scorer", fused: "rules + model" };
+const SOURCE_TEXT = { rules: "rules", model: "learned scorer", fused: "rules + model", verifier: "learned verifier" };
 const pct100 = (x) => Math.round(Number(x) * 100);
 function sourcePills(ev) {
   const p = ev.payload || {};

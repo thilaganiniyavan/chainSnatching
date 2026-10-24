@@ -1,4 +1,22 @@
-# SnatchGuard: run the training and the accuracy test on a GPU laptop
+# SnatchGuard on a GPU laptop: start here
+
+## The job now (October 2026): fine-tune the learned verifier, about 1-3 hours
+
+You need two files from the SnatchGuard team, `snatchguard_code.zip` and `verifier_data.zip`, and an NVIDIA
+GPU with 4 GB or more. Follow **[docs/GPU_VERIFIER.md](docs/GPU_VERIFIER.md)**. In short (Windows):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\setup.ps1
+powershell -ExecutionPolicy Bypass -File scripts\windows\train_verifier.ps1 -Data C:\verifier_data -Quick
+powershell -ExecutionPolicy Bypass -File scripts\windows\train_verifier.ps1 -Data C:\verifier_data
+```
+
+Then send back `verifier_ft_results.zip`. The older, longer job below (detector training and the 90 % acceptance
+test, 13-20 hours) is not needed for this.
+
+---
+
+## The older job: training and the accuracy test
 
 This trains the system's detection models on your NVIDIA GPU and then measures whether it reaches
 the target: **at least 90 % of real chain snatchings caught (recall) and at least 90 % of alerts

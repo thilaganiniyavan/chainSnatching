@@ -38,6 +38,21 @@ learned:
   threads: 1             # CPU threads for the scorer (leave the rest to detection and pose)
   # fusion: configs/fusion.tuned.yaml
 
+# Two-stage verifier (snatchguard/verifier): role-free contact candidates checked by a learned video model
+# (Kinetics R(2+1)D-18 + a head trained on actor-labelled real events). Its alerts are SUSPECT and go to the
+# operator beside the rule alerts. Off by default: on held-out cameras it catches about 1 snatch in 5 at
+# <= 10 false alarms / h (runtime/verifier/report.json), and on a laptop CPU it cannot score every contact of a
+# busy street (0.9 s per clip). Train: python -m snatchguard.verifier.train features && ... fit
+verifier:
+  enabled: false
+  model: models/verifier/verifier.pt
+  threads: 2             # CPU threads for the video network
+  device: cpu
+  isolate: true          # own process at the lowest CPU priority: the rules lose ~15 % of their frame rate, not ~50 %
+  nice: 19
+  # threshold: 0.9       # override the threshold stored in the model
+  max_lag_s: 20          # clips waiting longer than this for the network are dropped (counted in the status)
+
 evidence:
   dir: runtime/edge/evidence
   pre_s: 8               # seconds of video kept before the contact

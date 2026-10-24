@@ -230,6 +230,38 @@ class CameraWorker:
         if lcfg.get("enabled"):
             self._init_learned(lcfg)
 
+        self.verifier = None
+        self.verifier_state = "off"
+        vcfg = node.get("verifier") or {}
+        if vcfg.get("enabled") and self.pipeline is not None:
+            self._init_verifier(vcfg)
+
+    def _init_verifier(self, vcfg: dict) -> None:
+        """Two-stage verifier beside the rules, or a single warning and the rules alone."""
+        model = Path(_path(vcfg.get("model", "models/verifier/verifier.pt")))
+        if not model.exists():
+            log.warning("[%s] verifier enabled but %s does not exist: rules only", self.id, model)
+            self.verifier_state = "missing"
+            return
+        try:
+            from snatchguard.verifier.live import VerifierStage
+            from snatchguard.verifier.model import AFTER_S, Verifier
+            from snatchguard.verifier.serve import ProcessVerifier
+            threads, device = int(vcfg.get("threads", 2)), str(vcfg.get("device", "cpu"))
+            v = (ProcessVerifier(model, threads, device, int(vcfg.get("nice", 19))) if vcfg.get("isolate", True)
+                 else Verifier(model, threads, device))
+        except Exception as exc:
+            log.warning("[%s] verifier unavailable (%s): rules only", self.id, exc)
+            self.verifier_state = "error"
+            return
+        self.verifier = VerifierStage(v, self.id, vcfg.get("threshold"), float(vcfg.get("max_lag_s", 20)))
+        self.verifier_state = "on"
+        # a verifier alert can arrive up to max_lag_s (+ one batch) after its window: keep its footage until then
+        self.recorder.keep_s = max(self.recorder.keep_s,
+                                   self.recorder.pre_s + AFTER_S + self.verifier.max_lag_s + self.recorder.post_s + 10.0)
+        log.info("[%s] verifier %s on (%s%s), threshold %.4f", self.id, model.name, v.backend,
+                 ", own process" if vcfg.get("isolate", True) else "", self.verifier.threshold)
+
     def _init_learned(self, lcfg: dict) -> None:
         """Learned scorer + fusion, or a single warning and the rules alone (exactly as without it)."""
         model = Path(_path(lcfg.get("model", "models/learned/snatch_scorer.pt")))
@@ -287,6 +319,8 @@ class CameraWorker:
                     self.pipeline.reset()
                     self.engine = self.pipeline.engine
                     self.tamper = TamperDetector()
+                    if self.verifier is not None:
+                        self.verifier.reset()
                 if truth is None and frame.t - last_proc < min_dt * 0.95:
                     continue                      # faster than the target rate: skip this frame
                 last_proc = frame.t
@@ -302,6 +336,12 @@ class CameraWorker:
                     self._fuse(self.engine.flush(), last, self._last_img, final=True)
             if self.learned is not None:
                 self.learned.stop()
+            if self.verifier is not None:
+                if self.source.ended and self._last_img is not None:
+                    last = Frame(self._last_img, self.engine.scene.t, time.time(), -1)
+                    for v in self.verifier.finish():      # clips whose window the stream cut short
+                        self._publish_verified(v, last, self._last_img)
+                self.verifier.stop()
             self.recorder.flush()
             self._drain_clips(wait=True)
             self.source.stop()
@@ -321,6 +361,9 @@ class CameraWorker:
             self.stats["det_ms"] = self.pipeline.perception.det_ms
             self.stats["pose_ms"] = self.pipeline.perception.pose_ms
         self._mode = mode
+        if self.verifier is not None and truth is None:     # raw tracker ids, as in training
+            for v in self.verifier.step(frame.t, img, dets):
+                self._publish_verified(v, frame, enhanced)
 
         # clips are labelled with the rule engine's (stitched) track ids
         canon = self.engine.scene.canonical
@@ -434,6 +477,36 @@ class CameraWorker:
         log.warning("[%s] %s (%s) rule=%s model=%s latency=%.1fs", self.id, level, pl["source"],
                     pl.get("rule_score"), ms, frame.t - cs)
 
+    def _publish_verified(self, v, frame: Frame, img: np.ndarray) -> None:
+        """A clip the learned verifier scored over its threshold -> SUSPECT alert for the operator."""
+        self.stats["suspects"] += 1
+        c = v.clip
+        event_id = str(uuid.uuid4())
+        canon = self.engine.scene.canonical
+        roles = {canon(tid): "actor" for pair in c.pairs for tid in pair}
+        title = f"SUSPECT  verifier {v.score:.2f}  {self.name}"
+        snap = self.recorder.snapshot(event_id, c.t, roles, title, fallback=img)
+        self.recorder.schedule_clip(event_id, c.t, v.decided_t, roles, title)   # around the clip, not the queue wait
+        thr = self.verifier.threshold
+        payload = {
+            "event_id": event_id, "type": "snatch", "node_id": self.node.get("node_id"),
+            "site": self.node.get("site"), "camera_id": self.id, "camera_name": self.name,
+            "occurred_at": _iso(frame.wall - (frame.t - c.t)), "detected_at": _iso(frame.wall),
+            "video_time_s": round(c.t, 2), "level": "SUSPECT", "mode": "unknown", "score": round(v.score, 3),
+            "confidence": "low", "lighting": self._mode.value, "contact_start": round(c.t, 3),
+            "contact_end": round(c.t, 3), "decided_at": round(frame.t, 3), "latency_s": round(frame.t - c.t, 3),
+            "components": {}, "penalties": {}, "boxes": {},
+            "evidence": [{"key": "verifier", "group": "model", "passed": True, "value": round(v.score, 3),
+                          "detail": f"learned verifier scored the clip around tracks "
+                                    f"{', '.join(f'{a}-{b}' for a, b in c.pairs[:3])} at {v.score:.2f} "
+                                    f"(alert from {thr:.2f})"}],
+            "source": "verifier", "model_score": round(v.score, 3), "crop": [round(x, 1) for x in c.crop],
+            "pairs": c.pairs,
+        }
+        self.outbox.put("event", payload, {"snapshot": str(snap)})
+        log.warning("[%s] SUSPECT (verifier) score=%.3f pairs=%s latency=%.1fs", self.id, v.score, c.pairs,
+                    frame.t - c.t)
+
     def _queue_tamper(self, cond: str, frame: Frame, active: bool) -> None:
         event_id = str(uuid.uuid4())
         snap = self.recorder.dir / f"{event_id}_snapshot.jpg"
@@ -477,6 +550,7 @@ class CameraWorker:
             "stats": {k: (round(v, 1) if isinstance(v, float) else v) for k, v in self.stats.items()},
             "thumbnail": thumb,
             **self._learned_status(),
+            **(self.verifier.status() if self.verifier is not None else {"verifier": self.verifier_state}),
         }
 
     def _learned_status(self) -> dict:

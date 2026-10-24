@@ -56,6 +56,28 @@ RAW_SNATCH_QUERIES = [
     "chain snatching cctv sri lanka", "ছিনতাই সিসিটিভি", "chain snatching cctv bangladesh",
 ]
 
+# Training pool (2026-10-23): the same rider/pedestrian grab is filmed by street cameras across South-East Asia,
+# Latin America and more Indian states. These feed training only; the test sets stay frozen and are de-duplicated
+# against everything downloaded here.
+INTL_SNATCH_QUERIES = [
+    "giật dây chuyền camera", "camera ghi lại cảnh giật dây chuyền", "cướp giật dây chuyền camera an ninh",
+    "cướp giật điện thoại camera", "camera nóng cướp giật", "giật túi xách camera an ninh", "cướp giật xe máy camera",
+    "กระชากสร้อย กล้องวงจรปิด", "วิ่งราวสร้อย กล้องวงจรปิด", "กระชากกระเป๋า กล้องวงจรปิด", "วิ่งราวโทรศัพท์ กล้องวงจรปิด",
+    "ragut rantai leher cctv", "ragut beg tangan cctv", "kes ragut terakam cctv", "peragut motosikal cctv",
+    "jambret kalung terekam cctv", "penjambretan terekam cctv", "jambret hp terekam cctv", "begal jambret cctv",
+    "arrebato de cadena camara de seguridad", "robo de cadena moto camara", "le arrancan la cadena camara",
+    "motoladrones camara de seguridad", "roban celular a mujer moto camara",
+    "roubo de corrente moto câmera de segurança", "arrancou cordão câmera de segurança", "assalto moto câmera flagra",
+    "飞车抢夺 监控", "飞车抢包 监控视频", "抢项链 监控", "機車搶劫 監視器",
+    "sangili parippu cctv", "mala pottikkal cctv", "മാല പൊട്ടിക്കൽ സിസിടിവി", "മാല കവർന്നു സിസിടിവി ദൃശ്യം",
+    "चेन स्नॅचिंग सीसीटीव्ही", "चेन स्नेचर सीसीटीवी में कैद", "गले से चेन झपटी सीसीटीवी", "चेन लूट सीसीटीवी फुटेज",
+    "ચેન સ્નેચિંગ સીસીટીવી", "চেইন ছিনতাই সিসিটিভি", "ਚੇਨ ਝਪਟ ਸੀਸੀਟੀਵੀ", "ଚେନ ଛଡ଼ାଇ ସିସିଟିଭି",
+    "செயின் பறிப்பு சிசிடிவி வீடியோ", "நகை பறிப்பு சிசிடிவி", "చైన్ స్నాచర్ సీసీ టీవీ", "ಚಿನ್ನದ ಸರ ಕಳ್ಳತನ ಸಿಸಿಟಿವಿ",
+    "chain snatching cctv compilation", "chain snatchers caught on cctv compilation", "snatch theft cctv compilation",
+    "phone snatching cctv compilation", "chain snatching cctv 2024", "chain snatching cctv 2025",
+    "chain snatcher arrested cctv footage", "chain snatching woman walking cctv street",
+]
+
 NEWS_CHANNEL = re.compile(
     r"news|\btv|(?<!cc)tv\b|samachar|times|express|today|\blive\b|24|channel|media|bharat|aaj ?tak|ndtv|abp|zee|etv|"
     r"polimer|thanthi|\bsun\b|v6|ntv|tv9|tv5|sakshi|abn|mirror|republic|\bani\b|oneindia|otv|ibc|asianet|"
@@ -118,8 +140,10 @@ def keep(item: dict, kind: str) -> str | None:
     if kind == "snatch":
         if dur > 900:
             return "too long for an incident clip"
-        if not re.search(r"snatch|chain|स्नैच|स्नेच|चेन|छीन|స్నాచ|గొలుసు|பறிப்பு|செயின்|ಸರ|mangalsutra|purse|bag|mobile|"
-                         r"phone|robo|arrebat|motochorro|ragut|jambret|ছিনতাই|dacoit|street crime", item["title"], re.I):
+        if not re.search(r"snatch|chain|स्नैच|स्नेच|स्नॅच|चेन|छीन|झपट|స్నాచ|గొలుసు|பறிப்பு|செயின்|ಸರ|mangalsutra|purse|bag|"
+                         r"mobile|phone|robo|arrebat|motochorro|motoladr|ragut|jambret|ছিনতাই|dacoit|street crime|"
+                         r"giật|cướp|กระชาก|วิ่งราว|cadena|cord[aã]o|corrente|roubo|assalto|抢|搶|മാല|ચેન|চেইন|ਚੇਨ|ଚେନ|"
+                         r"நகை|parippu|pottik", item["title"], re.I):
             return "title: not about a snatching"
     else:
         if dur < 120:
@@ -134,6 +158,7 @@ def main() -> None:
     ap.add_argument("--per-query", type=int, default=60)
     ap.add_argument("--kind", choices=["snatch", "normal", "both"], default="both")
     ap.add_argument("--raw", action="store_true", help="run the raw-upload snatch queries instead")
+    ap.add_argument("--intl", action="store_true", help="run the training-pool queries (more countries, languages)")
     args = ap.parse_args()
     out_path = DATASET / "meta" / "candidates.jsonl"
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -144,6 +169,8 @@ def main() -> None:
             seen[d["id"]] = d
     if args.raw:
         jobs = [("snatch", q) for q in RAW_SNATCH_QUERIES]
+    elif args.intl:
+        jobs = [("snatch", q) for q in INTL_SNATCH_QUERIES]
     else:
         jobs = ([("snatch", q) for q in SNATCH_QUERIES] if args.kind in ("snatch", "both") else []) + \
                ([("normal", q) for q in NORMAL_QUERIES] if args.kind in ("normal", "both") else [])

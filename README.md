@@ -22,7 +22,8 @@ body keypoints), where it is unavoidable.
  │ camera (RTSP / file / webcam)                                                                  │
  │   └─► latest-frame reader ─► lighting mode (day / low-light / IR) ─► enhancement               │
  │         └─► YOLO26 detect + OC-SORT track ─► riders vs pedestrians ─► (victim, attacker) pairs │
- │               └─► YOLO26-pose (GPU: whole frame, CPU: closest pairs) ─► RULE ENGINE  │
+ │               └─► YOLO26-pose (GPU: whole frame, CPU: closest pairs) ─► RULE ENGINE            │
+ │               └─► contact clips ─► learned video verifier (optional, own process) ─► SUSPECT   │
  │                     └─► CONFIRMED / SUSPECT ─► snapshot + clip ─► SQLite outbox ─┐             │
  │   tamper checks (blackout, blur, moved, frozen) ────────────────────────────────┤             │
  │   supervisor: one process per camera, auto-restart, heartbeat + thumbnails ─────┤             │
@@ -184,6 +185,111 @@ degradation, night variants, pseudo-labels from real Hyderabad CCTV). The accept
 Of the 35 Snatch 1.0 clips, 13 are motorcycle snatches and 12 on-foot snatches (both in scope), and 9 are
 staged videos, a movie scene or screen recordings (out of scope).
 
+## Learned verifier (experimental, off by default)
+
+The rules miss nearly every real snatch: 0 / 25 on Snatch 1.0 and 0 / 25 on the Snatch-Web set (25 snatch
+and 11 normal clips from other cities and cameras, `scripts/snatch_dataset.py`; not redistributed) at the
+deployed setting. Where the rules do pick the right pair, the snatcher's track usually ends within a second
+of the grab (5 of 7), so the getaway the rules wait for is never seen. The verifier is a second, learned path
+beside the rules (`snatchguard/verifier/`):
+
+1. **Candidates** (`candidates.py`): each new close contact between two tracked people (or a person and a
+   rider) opens a clip. Contacts in the same place at the same moment share one clip. No roles are guessed.
+2. **Verification** (`model.py`): 12 frames from 1.5 s before to 2.5 s after the contact, cropped around the
+   pair at 112 px, go through a frozen Kinetics-400 R(2+1)D-18 (OpenVINO on CPU). A small head (standardise →
+   PCA 32 → logistic regression) turns the 512-d embedding into a probability.
+3. **Live** (`live.py`, `serve.py`): clips are scored in a separate process at the lowest CPU priority, newest
+   first. A score over the threshold becomes a SUSPECT alert with snapshot and clip, marked "learned verifier"
+   on the dashboard.
+
+**Labels name the actors** (`data/labels/actors.json`): for each timed event, the track ids of the victim and
+the snatcher. A clip is positive only if it contains that pair inside the event window; bystanders at the
+same moment are negatives. Events where the pair cannot be told apart are left out (`unclear`, 6). Events
+where the detector never tracks one of the two count as misses (`untracked`, 7).
+
+```bash
+python scripts/fetch_models.py --verifier        # Kinetics-400 R(2+1)D-18 weights
+python -m snatchguard.verifier.train features    # candidate clips -> embeddings (~50 min on this laptop's CPU)
+python -m snatchguard.verifier.train fit         # held-out evaluation + final model + threshold
+```
+Then set `verifier.enabled: true` in `configs/edge.yaml`.
+
+**Held-out results** (`runtime/verifier/report.json`). Counted over the events whose actors can be
+identified: 16 of the 25 Snatch 1.0 events and 23 of the 25 Snatch-Web events. False alarms are per hour of
+normal footage.
+
+| protocol | clip AUC | caught at ≤ 10 false alarms / h | caught at ≤ 100 / h |
+|---|---|---|---|
+| train Snatch 1.0 → test Snatch-Web | 0.77 | 3 / 23 (5.7 / h) | 5 / 23 |
+| train Snatch-Web → test Snatch 1.0 | 0.72 | 0 / 16 | 2 / 16 |
+| pooled 5-fold, whole cameras held out: Snatch 1.0 | 0.90 | 3 / 16 (none in a 14 % sample, 95 % bound ≈ 10 / h) | 4 / 16 |
+| pooled 5-fold, whole cameras held out: Snatch-Web | 0.80 | 4 / 23 (8.6 / h) | 10 / 23 |
+
+The verifier trains on Snatch-Web too: pooled cross-validation holds out whole uploads, and the final model
+uses all of it. So for the verifier, Snatch-Web is no longer the untouched external test it is for the rules,
+and the first row is its only fully external number.
+
+This beats the rules, which catch none, but it is far from the 90 % target. On held-out cameras it catches
+about one snatch in five at a tolerable false-alarm rate, and it does not yet transfer from one collection to
+the other. The limit is labelled events (39 usable), not training time. The stored threshold (0.983) is
+the pooled cross-validation threshold for ≤ 10 false alarms per hour.
+
+**Live on this laptop** (Ryzen 3 3200U, 2 cores / 4 threads). The test scene is a crowded Snatch 1.0 normal
+video (`s_23`, 60 s, real time); frame rates are medians of readings every 2 s:
+
+| verifier | rules' analysed frames / s | candidates scored | dropped (waited > 20 s) | false alarms |
+|---|---|---|---|---|
+| off | 2.7 | – | – | 0 |
+| own process, lowest priority (default) | 2.3 | 18 of 30 | 12 | 0 |
+| inside the camera process | 1.3 | 27 of 29 | 2 | 1 (a shopkeeper and a customer at a stall) |
+
+- The network takes 0.86 s per clip (OpenVINO; 1.25 s in PyTorch), so on this CPU it cannot keep up with a busy
+  street.
+- Below about 3 analysed frames per second, frames repeat within a clip. The clips it was trained on are cut
+  from the full-rate video, so live scores here are not the offline scores.
+- In a playlist check (normal footage, then four snatch clips), SUSPECT alerts reached the central server with
+  snapshot and clip. Those clips were in the training set, so this shows the live path works, not how accurate it is.
+- On a GPU the network should take well under 0.1 s per clip. That is not measured on this project's hardware
+  yet.
+
+### More training events and GPU fine-tuning
+
+The binding limit above is labelled events, so a **training pool** of web footage
+(`snatchguard/webdata/trainpool.py`) adds events from the downloads the clean test set did not take: unreviewed
+CCTV-like shots, snatches rejected from the test set for news graphics or a short lead-in, and new searches
+(Vietnam, Thailand, Malaysia, Indonesia, Latin America, more Indian languages, CCTV compilations). It is kept
+apart from both test sets: every upload that gave a Snatch-Web test clip is excluded whole, footage repeated
+from Snatch 1.0 or another upload is dropped by `dedup.py`, and pool events are never scored as test events.
+Each event is reviewed by eye (`review/train_decisions_snatch.csv`: decision, lighting, grab time, note);
+slow-motion replays, zooms during the grab, picture-in-picture, phones filming monitors, hold-ups and vehicle
+thefts are left out. Pool events have grab times but no actor ids, so their candidates inside the event window
+form a bag of which at least one must score high (multiple-instance learning).
+
+With a GPU the whole network can be fine-tuned instead of only the head (`snatchguard/verifier/finetune.py`).
+Detection, tracking, candidates and labels run once on the development laptop and are written as a package of
+JPEG clip strips, so the GPU machine needs only PyTorch: **[docs/GPU_VERIFIER.md](docs/GPU_VERIFIER.md)**.
+
+```bash
+python -m snatchguard.webdata.trainpool sheets             # review images for unreviewed shots
+python -m snatchguard.webdata.trainpool build && python -m snatchguard.webdata.trainpool cache
+python -m snatchguard.verifier.finetune pack --out ~/verifier_data        # development laptop
+python -m snatchguard.verifier.finetune run --data ~/verifier_data        # GPU machine
+```
+
+Snatch 1.0 and web footage look different, and most positives are web clips while most normal footage is
+Snatch 1.0. Trained on that mix as it is, the head-only verifier learned "web footage = snatch": held-out web
+normal footage scored 0.94 (median), and on the Snatch-Web test set a threshold fixed on mostly Snatch 1.0
+validation footage gave 77 false alarms per hour instead of 10 (9 of 21 events caught). So each source's
+negatives are now drawn as often as its share of the positives, validation footage is held out from each
+source, and the threshold must keep each source at or under the budget.
+
+Every protocol fixes its threshold on held-out validation footage (10 false alarms per hour) before its test set
+is scored: `external` trains on Snatch 1.0 + pool and tests the frozen Snatch-Web test set, once fine-tuned and
+once with the network frozen (a linear probe on the same data), so the gain from fine-tuning is measured
+separately from the gain from more data; `s1-cv` holds out Snatch 1.0 cameras in 5 folds; `final` is the model
+to deploy. A fine-tuned model loads like the head-only one (`verifier.model` in `configs/edge.yaml`) and runs
+through OpenVINO on a CPU at the same cost per clip.
+
 ## Training and the 90 % acceptance test (NVIDIA GPU)
 
 Step-by-step for Windows 11 + RTX 4060: **[docs/WINDOWS_GPU_GUIDE.md](docs/WINDOWS_GPU_GUIDE.md)**. In short:
@@ -258,16 +364,21 @@ snatchguard/
   central/     FastAPI app, storage, dashboard (static/)
   sim/         scripted scenes, night simulation, scenario runner
   evaluation/  analyse, benchmark, funnel, perception cache, metrics, cross-validated tuner, acceptance report
+  verifier/    learned verifier: contact candidates, video model, live stage + its process, training, GPU fine-tuning
+  webdata/     web footage: search, download, shots, de-duplication, review, clean test set, training pool
 configs/       edge.yaml (laptop), rules.yaml, tracker.yaml, playlists/ (generated: edge.gpu.yaml, rules.tuned.yaml)
+data/labels/   snatch1.0.csv (events, folds), actors.json (victim / snatcher track ids per event)
 training/      run_all (one-command pipeline), dataset builder, pseudo-labelling, train/export, Colab notebook
-scripts/       windows/ (setup, train_all, run_edge), laptop/run_central.sh, Snatch 1.0 tool, model fetch
-docs/          WINDOWS_GPU_GUIDE.md
-tests/         rules (scripted scenes), scene, edge parts, central API, tuning pipeline
+scripts/       windows/ (setup, train_all, train_verifier, run_edge), train_verifier.sh, laptop/run_central.sh,
+               Snatch 1.0 tool, model fetch
+docs/          WINDOWS_GPU_GUIDE.md, GPU_VERIFIER.md
+tests/         rules (scripted scenes), scene, edge parts, central API, tuning pipeline, verifier, fine-tuning
 ```
 
 ## Data and licences
 
 Snatch 1.0 (Roy et al., Pattern Recognition Letters 2018): CC-BY-SA 4.0 · ExDark: BSD-3, authors ask
 for contact before commercial use · LLVIP: non-commercial · VisDrone: academic use · COCO: CC-BY 4.0 ·
+torchvision R(2+1)D-18 (verifier trunk): BSD-3 code, Kinetics-400 weights for research use ·
 Ultralytics YOLO: AGPL-3.0 (fine for an open or academic project; commercial deployment needs an
 Ultralytics licence or a swap to an Apache-2.0 detector such as RF-DETR).

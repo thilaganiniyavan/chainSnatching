@@ -23,7 +23,8 @@ from snatchguard.core.types import Detection
 
 log = logging.getLogger(__name__)
 
-ROLE_COLORS = {"victim": (60, 200, 255), "vehicle": (40, 40, 230), "rider": (40, 120, 255), "attacker": (40, 40, 230)}
+ROLE_COLORS = {"victim": (60, 200, 255), "vehicle": (40, 40, 230), "rider": (40, 120, 255), "attacker": (40, 40, 230),
+               "actor": (230, 200, 40)}   # actor: one of a pair the role-free verifier flagged
 
 
 @dataclass
@@ -66,6 +67,7 @@ class EvidenceRecorder:
         self.dir = Path(out_dir)
         self.dir.mkdir(parents=True, exist_ok=True)
         self.pre_s, self.post_s, self.width = pre_s, post_s, width
+        self.keep_s = pre_s + post_s + 6.0     # seconds of frames kept for snapshots and clips
         self._buf: deque[_Buffered] = deque()
         self._pending: list[_ClipJob] = []
         self._jobs: queue.Queue[_ClipJob | None] = queue.Queue()
@@ -85,8 +87,7 @@ class EvidenceRecorder:
             return
         boxes = [(d.track_id, d.cls.value, d.box * scale) for d in detections]
         self._buf.append(_Buffered(t, jpg.tobytes(), boxes))
-        keep = self.pre_s + self.post_s + 6.0
-        while self._buf and t - self._buf[0].t > keep:
+        while self._buf and t - self._buf[0].t > self.keep_s:
             self._buf.popleft()
         # hand finished clip jobs (their end time has passed) to the writer thread
         for job in [j for j in self._pending if t >= j.t1]:
