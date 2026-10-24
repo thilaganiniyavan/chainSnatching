@@ -25,7 +25,7 @@ for a in "$@"; do
 done
 .venv/bin/python -m snatchguard.verifier.finetune run --data "$DATA" --out "$OUT" "${EXTRA[@]}" "$@"
 if [ "$OUT" = runtime/verifier_ft ]; then
-    (cd "$OUT" && zip -qr ../../verifier_ft_results.zip .)
+    .venv/bin/python -c "import shutil; shutil.make_archive('verifier_ft_results', 'zip', '$OUT')"
     echo "Done. Send back: $(pwd)/verifier_ft_results.zip"
 else
     echo "Quick check passed. Now run the same command without --quick."
