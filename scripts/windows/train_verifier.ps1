@@ -33,6 +33,9 @@ $k32 = Add-Type -MemberDefinition $sig -Name "Power" -Namespace "Win32" -PassThr
 $code = 0
 $done = @()
 try {
+    Write-Host "== pretrained networks (about 250 MB the first time; a stalled download resumes by itself)"
+    & $py -m snatchguard.verifier.finetune weights
+    if ($LASTEXITCODE -ne 0) { $code = $LASTEXITCODE; throw "could not download the pretrained networks" }
     foreach ($r in $runs) {
         Write-Host ""
         Write-Host "== $($r.Arch) -> $($r.Out)"

@@ -875,6 +875,55 @@ def cmd_frozen(a) -> None:
              p["caught_overlap"], res["events_timed"], p["false_alarms_per_h"], p["fa_ci"])
 
 
+def cmd_weights(a) -> None:
+    """The pretrained networks into PyTorch's cache, before any run: torch.hub's own download has no timeout, so on
+    a flaky connection it can wait forever part-way. Here a stalled download resumes where it stopped, and each
+    file must match the hash prefix in its name (as torchvision checks)."""
+    import hashlib
+    import httpx
+    import torch
+    from torchvision.models.video import R2Plus1D_18_Weights, Swin3D_T_Weights
+
+    def sha256(path: Path) -> str:
+        h = hashlib.sha256()
+        with open(path, "rb") as f:
+            for block in iter(lambda: f.read(1 << 20), b""):
+                h.update(block)
+        return h.hexdigest()
+
+    folder = Path(torch.hub.get_dir()) / "checkpoints"
+    folder.mkdir(parents=True, exist_ok=True)
+    for w in (R2Plus1D_18_Weights.KINETICS400_V1, Swin3D_T_Weights.KINETICS400_V1):
+        name = w.url.rsplit("/", 1)[-1]
+        prefix = name.rsplit("-", 1)[-1].split(".")[0]
+        dst, part = folder / name, folder / (name + ".part")
+        if dst.exists() and sha256(dst).startswith(prefix):
+            log.info("%s: already downloaded", name)
+            continue
+        for attempt in range(a.tries):
+            have = part.stat().st_size if part.exists() else 0
+            try:
+                with httpx.stream("GET", w.url, headers={"Range": f"bytes={have}-"} if have else {},
+                                  timeout=httpx.Timeout(30.0), follow_redirects=True) as r:
+                    if r.status_code == 416:                   # nothing left to fetch
+                        break
+                    r.raise_for_status()
+                    with open(part, "ab" if r.status_code == 206 else "wb") as f:
+                        for chunk in r.iter_bytes(1 << 20):
+                            f.write(chunk)
+                break
+            except (httpx.HTTPError, OSError) as exc:
+                got = part.stat().st_size if part.exists() else 0
+                log.warning("%s: download interrupted at %.0f MB (%s); resuming (%d/%d)", name, got / 1e6, exc,
+                            attempt + 1, a.tries)
+                time.sleep(min(30, 2 ** attempt))
+        if not part.exists() or not sha256(part).startswith(prefix):
+            part.unlink(missing_ok=True)
+            raise SystemExit(f"{name}: download failed or corrupt. Run again; or copy {name} into {folder}")
+        part.replace(dst)
+        log.info("%s: downloaded and checked", name)
+
+
 def cmd_select(a) -> None:
     """The model to deploy, by a rule fixed before any run: most Snatch 1.0 cross-validation events caught (each
     fold at its own threshold), then the higher mean clip AUC there; ties keep the earlier run and the live view
@@ -958,12 +1007,14 @@ def main() -> None:
     fz.add_argument("--budgets", type=float, nargs="+", default=[1, 10, 100])
     fz.add_argument("--threads", type=int, default=2)
     fz.add_argument("--seed", type=int, default=1)
+    wt = sub.add_parser("weights", help="download the pretrained networks (resumes stalled downloads)")
+    wt.add_argument("--tries", type=int, default=30)
     sl = sub.add_parser("select", help="pick the model to deploy from finished runs (Snatch 1.0 cross-validation)")
     sl.add_argument("--runs", nargs="+", required=True, help="output folders of `run` (report.json + verifier_ft.pt)")
     sl.add_argument("--out", default=str(REPO_ROOT / "models" / "verifier" / "verifier_ft.pt"))
     a = ap.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
-    {"pack": cmd_pack, "run": cmd_run, "frozen": cmd_frozen, "select": cmd_select}[a.cmd](a)
+    {"pack": cmd_pack, "run": cmd_run, "frozen": cmd_frozen, "select": cmd_select, "weights": cmd_weights}[a.cmd](a)
 
 
 if __name__ == "__main__":

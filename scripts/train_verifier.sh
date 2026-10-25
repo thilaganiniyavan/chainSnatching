@@ -30,6 +30,7 @@ done
 DEPLOY=models/verifier/verifier_ft.pt
 [ -n "$SFX" ] && DEPLOY=runtime/verifier_ft_quick/deploy/verifier_ft.pt
 RUNS=()
+.venv/bin/python -m snatchguard.verifier.finetune weights     # resumes a stalled download, checks the hashes
 .venv/bin/python -m snatchguard.verifier.finetune run --data "$DATA" --arch r2plus1d_18 --out "runtime/verifier_ft$SFX" \
     --protocols external curve s1-cv final "${EXTRA[@]}" "$@"
 RUNS+=("runtime/verifier_ft$SFX")
