@@ -8,7 +8,7 @@ laptop; the GPU laptop only needs PyTorch and two zip files. Nothing is installe
 | | |
 |---|---|
 | Computer | Windows 10/11 or Linux, **NVIDIA GPU with 4 GB or more** (RTX 2060/3050/3060/4050/4060 or better) |
-| Disk | about 12 GB free (PyTorch with CUDA ~6 GB, the data ~1.2 GB, results and models ~1 GB) |
+| Disk | about 9 GB free on C: (10 GB to be safe): Python with GPU PyTorch ~6 GB, the data 1.1 GB, results and models ~1 GB, demo clips 0.2 GB. `free_space.ps1` brings it down to about 6.5 GB afterwards |
 | Internet | for the setup (PyTorch download, ~3 GB) and, on the first run, the two pretrained networks (~250 MB) |
 | Time | 15 min setup (longer on a slow connection), then about 2-5 hours unattended (`-SkipSwin`: about 40 % less) |
 | Files | `snatchguard_code.zip` and `verifier_data.zip` (from the SnatchGuard team) |
@@ -91,6 +91,16 @@ Send back `~/snatchguard/verifier_ft_results.zip`.
    check their clip before acting. Delays (contact -> alert -> phone) are logged in `runtime\central\notify.jsonl`.
 4. A real camera instead: `-Source 0` (webcam) or `-Source rtsp://user:pass@camera-ip/stream`; it then uses
    `models\verifier\verifier_ft.pt`, the model trained on all the data.
+
+## Afterwards: free the disk space
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows\free_space.ps1 -Data C:\verifier_data
+```
+
+It lists what it will delete with sizes (the training data, the quick-check folders, the model copies inside the
+run folders, the pretrained networks and pip's cache), asks for `y`, and reports the space freed. The live system
+keeps working: it uses `models\verifier`.
 
 ## If something goes wrong
 

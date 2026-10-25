@@ -26,6 +26,11 @@ if (-not $SkipSwin) {
 }
 $deploy = "models\verifier\verifier_ft.pt"
 if ($Quick) { $deploy = "runtime\verifier_ft_quick\deploy\verifier_ft.pt" }
+else {
+    foreach ($q in @("runtime\verifier_ft_quick", "runtime\verifier_ft_swin_quick")) {   # the check's leftovers
+        if (Test-Path $q) { Remove-Item -Recurse -Force $q }
+    }
+}
 # keep Windows awake while training
 $sig = '[DllImport("kernel32.dll")] public static extern uint SetThreadExecutionState(uint esFlags);'
 $k32 = Add-Type -MemberDefinition $sig -Name "Power" -Namespace "Win32" -PassThru

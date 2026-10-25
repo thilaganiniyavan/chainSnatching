@@ -5,6 +5,10 @@ param([string]$PythonVersion = "3.12")
 # Native tools (pip, nvidia-smi) write warnings to stderr; exit codes are checked explicitly instead.
 $ErrorActionPreference = "Continue"
 Set-Location (Resolve-Path "$PSScriptRoot\..\..")
+$drive = (Get-Location).Drive.Name
+$freeGB = [math]::Round((Get-PSDrive $drive).Free / 1GB, 1)
+Write-Host "== free space on ${drive}: $freeGB GB (setup needs about 8 GB while it installs; the whole job about 9 GB)"
+if ($freeGB -lt 8) { Write-Warning "Less than 8 GB free on ${drive}: setup may run out of space. Empty the Recycle Bin or run Disk Cleanup first." }
 
 function Find-Python {
     if (Get-Command py -ErrorAction SilentlyContinue) {
@@ -30,14 +34,14 @@ if (-not (Test-Path ".venv\Scripts\python.exe")) {
 }
 $py = ".\.venv\Scripts\python.exe"
 if (-not (Test-Path $py)) { throw "virtual environment missing: $py" }
-& $py -m pip install --upgrade pip
+& $py -m pip install --no-cache-dir --upgrade pip
 
 Write-Host "== PyTorch with CUDA (trying the newest CUDA builds first)"
 $ok = $false
 foreach ($cu in @("cu130", "cu128", "cu126", "cu124")) {
     # remove any earlier attempt: pip would otherwise keep a same-version build for another CUDA
     & $py -m pip uninstall -y torch torchvision | Out-Null
-    & $py -m pip install torch torchvision --index-url "https://download.pytorch.org/whl/$cu"
+    & $py -m pip install --no-cache-dir torch torchvision --index-url "https://download.pytorch.org/whl/$cu"   # no 3 GB cache left behind
     if ($LASTEXITCODE -ne 0) { continue }
     & $py -c "import sys, torch; sys.exit(0 if torch.cuda.is_available() else 1)"
     if ($LASTEXITCODE -eq 0) { $ok = $true; Write-Host "   CUDA build $cu works"; break }
@@ -45,7 +49,7 @@ foreach ($cu in @("cu130", "cu128", "cu126", "cu124")) {
 if (-not $ok) { throw "No CUDA-enabled PyTorch could see the GPU. Update the NVIDIA driver and re-run this script." }
 
 Write-Host "== SnatchGuard and its dependencies"
-& $py -m pip install -e ".[edge,central,dev,train,learned]"
+& $py -m pip install --no-cache-dir -e ".[edge,central,dev,train,learned]"
 if ($LASTEXITCODE -ne 0) { throw "installing SnatchGuard failed (see the pip output above)" }
 & $py -c "import torch, ultralytics; print('GPU:', torch.cuda.get_device_name(0), '| torch', torch.__version__, '| ultralytics', ultralytics.__version__)"
 
