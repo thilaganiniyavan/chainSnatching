@@ -2,15 +2,17 @@
 
 **Live, rule-based chain-snatching detection at the edge, with alerts to a central dashboard.**
 
-An edge node sits next to existing CCTV cameras, watches the streams continuously, and when a
-chain snatching happens it sends an alert (annotated snapshot, video clip and the evidence
-behind the decision) to a central dashboard within a few seconds. It covers snatchers on a
-motorcycle and on foot, works at night (IR and colour low-light cameras) and is built to tell a
-snatch apart from friends playing, chatting, hugging or handing something over.
+An edge node sits next to existing CCTV cameras and watches the streams continuously. When it judges
+that a chain snatching is happening it sends an alert (annotated snapshot, video clip and the evidence
+behind the decision) to a central dashboard. It is built for snatchers on a motorcycle and on foot, has
+day, low-light and IR processing modes, and is designed to tell a snatch apart from friends playing,
+chatting, hugging or handing something over.
 
-**Target:** event-level **recall ≥ 90 % and precision ≥ 90 %**, measured with cross-validation on the
-labelled Snatch 1.0 dataset. The whole path from raw data to that measurement is one command on an
-NVIDIA GPU: see [docs/WINDOWS_GPU_GUIDE.md](docs/WINDOWS_GPU_GUIDE.md).
+**Status, measured on real footage:** few false alarms (0 CONFIRMED and 2.0 SUSPECT per hour on 2.0 h of
+held-out CCTV), but a low detection rate so far: the rules catch none of 50 real events, and the learned
+verifier 3 of 25 on unseen cameras at 11 false alarms per hour. The original target, event-level recall and
+precision of at least 90 %, has not been reached. What is measured, what is only built, and what is not done:
+**[docs/CLAIMS.md](docs/CLAIMS.md)**.
 
 The decision is **rule-based and explainable**: a small state machine over physical
 measurements (distances, speeds, hand-to-neck contact, victim reaction, getaway). Machine
