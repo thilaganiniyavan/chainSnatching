@@ -891,6 +891,8 @@ def cmd_weights(a) -> None:
                 h.update(block)
         return h.hexdigest()
 
+    import shutil
+    from snatchguard.core.config import REPO_ROOT
     folder = Path(torch.hub.get_dir()) / "checkpoints"
     folder.mkdir(parents=True, exist_ok=True)
     for w in (R2Plus1D_18_Weights.KINETICS400_V1, Swin3D_T_Weights.KINETICS400_V1):
@@ -899,6 +901,12 @@ def cmd_weights(a) -> None:
         dst, part = folder / name, folder / (name + ".part")
         if dst.exists() and sha256(dst).startswith(prefix):
             log.info("%s: already downloaded", name)
+            continue
+        local = REPO_ROOT / "models" / "pretrained" / name          # shipped with the code: no download needed
+        if local.exists() and sha256(local).startswith(prefix):
+            shutil.copyfile(local, part)
+            part.replace(dst)
+            log.info("%s: copied from %s", name, local.parent)
             continue
         for attempt in range(a.tries):
             have = part.stat().st_size if part.exists() else 0

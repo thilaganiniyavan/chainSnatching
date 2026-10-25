@@ -102,7 +102,7 @@ Send back `~/snatchguard/verifier_ft_results.zip`.
 | `swin3d_t failed ... continuing` | nothing: the R(2+1)D-18 results are complete; send the zip as usual |
 | it is very slow (more than 6 hours) | close games / browsers using the GPU; add `-Batch 8` or `-SkipSwin` |
 | `download interrupted ... resuming` | nothing: a stalled download of the pretrained networks resumes by itself |
-| `download failed or corrupt` | run the same command again; or copy `r2plus1d_18-91a641e6.pth` and `swin3d_t-7615ae03.pth` (from the team) into `%USERPROFILE%\.cache\torch\hub\checkpoints` |
+| `download failed or corrupt` | run the same command again (the code zip normally ships both networks in `models\pretrained`, so nothing is downloaded) |
 | `has no index.json` | `-Data` must point at the folder that contains `index.json` and `strips` |
 | the laptop slept or restarted | run the same command again (it starts the runs from the beginning) |
 | anything else | send a screenshot and `runtime\verifier_ft\run.log` |
