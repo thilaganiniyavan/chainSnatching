@@ -5,7 +5,7 @@ and numbers given here. Items in C are said to be "built, not yet demonstrated" 
 only under a roadmap, marked as not done. When something moves (a test is run, a result comes back), this file
 changes first.
 
-Last checked: 2026-10-25.
+Last checked: 2026-11-11.
 
 ## A. Measured on real footage
 
@@ -24,7 +24,10 @@ rates). Snatch 1.0: 25 in-scope events, 2.0 h of held-out normal footage. Snatch
 | Learned window scorer | 6 / 25 at 10.5 per hour (Snatch 1.0, out of fold); 6 / 25 at 45.7 per hour (Snatch-Web) | website Table 4 |
 | Candidate-stage fix (2026-10-24) | events with a candidate between the labelled victim and attacker: **24 -> 28 of 50**; candidates per normal hour 3,240 -> 3,653 | README "Where events were lost"; `snatchguard/verifier/candidates.py` (`ABSENT_S`) |
 | Laptop CPU throughput | **2-5** analysed frames per second on crowded scenes (2.7 on s_23), Ryzen 3 3200U; verifier **0.86 s** per clip | website section 5.5 |
-| GPU fine-tuned verifier (R(2+1)D-18, Swin3D-T, six-view scoring, CONFIRMED / SUSPECT thresholds) | **pending** (`verifier_ft_results.zip`) | `docs/GPU_VERIFIER.md` |
+| GPU fine-tuned verifier (R(2+1)D-18 from `layer3`, six-view scoring, chosen by the pre-declared Snatch 1.0 cross-validation rule), trained on Snatch 1.0 + 75 web pool events, thresholds fixed on validation normal footage | Snatch-Web: **6 / 21** events, actor match (14-50 %), **8 / 23** time overlap (19-55 %) at **42** false alarms per hour (22-73) at SUSPECT; CONFIRMED 0 / 21 at 3.5 per hour (0.1-19.5). Snatch 1.0 5-fold, cameras held out: **2 / 14** (4-40 %) at **1.0** per hour (0.1-3.6) | `runtime/verifier_ft/report.json`, `selection.json` (run 2026-10-30, RTX 3050 6 GB, 103 min) |
+| GPU verifier ranks clips | clip AUC **0.92** on Snatch-Web (unseen cameras); same data with the network frozen (linear probe): 0.89 and 0 / 21 at its fixed threshold | same report, protocols `external`, `external-probe` |
+| More web events raise ranking quality | clip AUC on Snatch-Web **0.73 / 0.90 / 0.91 / 0.92** with 0 / 28 / 55 / 75 web events added to the 9 Snatch 1.0 training events | same report, protocol `curve` |
+| Verifier threshold transfer | set for 10 false alarms per hour on 0.21 h of web validation footage, it gave 42 per hour on the Snatch-Web test cameras | same report |
 
 ## B. Built and tested
 

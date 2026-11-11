@@ -87,11 +87,33 @@ def drop_replays(path: Path, segs: list[dict]) -> list[dict]:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--kind", choices=["snatch", "normal"], required=True)
+    ap.add_argument("--reverse", action="store_true",
+                    help="a second worker: walk the videos from the end, skip what the forward worker (re-read every "
+                         "10 videos) has done, write segments_<kind>.rev.json; `--merge` folds it into the main file")
+    ap.add_argument("--merge", action="store_true", help="fold segments_<kind>.rev.json into segments_<kind>.json")
     args = ap.parse_args()
     out = DATASET / "meta" / f"segments_{args.kind}.json"
+    rev = DATASET / "meta" / f"segments_{args.kind}.rev.json"
+    if args.merge:
+        main_ = json.loads(out.read_text(encoding="utf-8")) if out.exists() else {}
+        extra = json.loads(rev.read_text(encoding="utf-8")) if rev.exists() else {}
+        added = {k: v for k, v in extra.items() if k not in main_}
+        main_.update(added)
+        out.write_text(json.dumps(main_, indent=1), encoding="utf-8")
+        print(f"merged {len(added)} videos from {rev.name}; {len(main_)} in {out.name}")
+        return
     done = json.loads(out.read_text(encoding="utf-8")) if out.exists() else {}
     vids = sorted((DATASET / "raw" / args.kind).glob("*.mp4"))
+    if args.reverse:
+        vids = vids[::-1]
+        mine = json.loads(rev.read_text(encoding="utf-8")) if rev.exists() else {}
+        done.update(mine)
     for n, p in enumerate(vids, 1):
+        if args.reverse and out.exists() and n % 10 == 0:
+            try:                                                        # the forward worker's progress
+                done.update(json.loads(out.read_text(encoding="utf-8")))
+            except json.JSONDecodeError:
+                pass                                                    # caught mid-write: next time
         if p.stem in done:
             continue
         try:
@@ -104,7 +126,12 @@ def main() -> None:
         good = [s for s in segs if s.get("static") and not s.get("replay_of_other")]
         print(f"[{n}/{len(vids)}] {p.stem}: {len(segs)} shots, {len(good)} fixed-camera "
               f"({sum(s['end'] - s['start'] for s in good):.0f} s)", flush=True)
-        out.write_text(json.dumps(done, indent=1), encoding="utf-8")
+        if args.reverse:
+            mine[p.stem] = segs
+            rev.write_text(json.dumps(mine, indent=1), encoding="utf-8")
+        else:
+            out.write_text(json.dumps(done, indent=1), encoding="utf-8")
+    print("all videos segmented", flush=True)
 
 
 if __name__ == "__main__":

@@ -340,6 +340,140 @@ def bag_sheets(package: Path, per_sheet: int = 4) -> None:
     print(f"{len(events)} events -> {(len(events) + per_sheet - 1) // per_sheet} sheets in {out_dir}")
 
 
+KITS = REVIEW / "kits"
+KITS_ISSUED = KITS / "issued.json"     # segment key -> kit name: a segment goes to one reviewer only
+DECISION_CHOICES = ("snatch_bike", "snatch_foot", "no_event", "not_cctv", "other", "unclear")
+KIT_COLUMNS = ["n", "clip", "decision", "start_s", "end_s", "lighting", "notes", "key", "offset_s", "duration_s"]
+KIT_HEIGHT = 360                       # px: enough to see a grab, small enough to pass kits around
+KIT_README = """\
+SnatchGuard training-pool review kit: {name} ({count} clips)
+
+Watch each clip in clips/ (any video player; 1.5-2x speed is fine, slow down around people meeting) and fill in the
+row with the same number in review.csv (Excel, LibreOffice or Google Sheets; keep it CSV, UTF-8, keep every column).
+
+decision   one of
+  snatch_bike   someone on a two-wheeler grabs a chain, phone or bag from a person on foot
+  snatch_foot   someone on foot grabs a chain, phone or bag from another person on foot
+  no_event      ordinary footage, nothing is grabbed in this clip
+  not_cctv      not a fixed camera: a news studio, a phone filming a screen, a moving camera, a slideshow
+  other         a grab that is out of scope (armed hold-up, vehicle theft, victim on a vehicle, indoors) or
+                one hidden off camera / under graphics so the grab itself cannot be seen
+  unclear       you cannot tell; say why in notes
+start_s    (snatches only) the clip time, in seconds, when the attacker's hand reaches the item
+end_s      (snatches only) the clip time when the attacker has it and starts to pull away
+lighting   (snatches only) day or night
+notes      anything useful: "second grab at 31 s", "victim falls", "circles drawn over the attacker"
+
+Times are clip seconds as your player shows them (0:12.5 -> 12.5). Rows you leave without a decision count as not
+reviewed. Do not change n, clip, key, offset_s or duration_s. Send review.csv back when done.
+Research data from public uploads: do not share or upload the clips anywhere; delete them after review.
+"""
+
+
+def kits(batches: int, per_batch: int, tag: str) -> None:
+    """Review kits for people on other computers: per kit, the next most promising unreviewed segments as small
+    H.264 clips, a review.csv to fill in, and HOW_TO_REVIEW.txt; zipped for passing around."""
+    import shutil
+    issued = _load(KITS_ISSUED)
+    segs = [(k, s) for k, s in by_promise(pool()) if k not in issued]
+    KITS.mkdir(parents=True, exist_ok=True)
+    for b in range(batches):
+        chunk = segs[b * per_batch:(b + 1) * per_batch]
+        if not chunk:
+            break
+        name = f"{tag}_{b + 1:02d}"
+        out = KITS / name
+        (out / "clips").mkdir(parents=True, exist_ok=True)
+        rows = []
+        for n, (key, seg) in enumerate(chunk, 1):
+            clip = f"clips/{n:04d}.mp4"
+            _cut_small(raw(key), seg["start"], seg["end"], out / clip)
+            rows.append({"n": n, "clip": clip, "decision": "", "start_s": "", "end_s": "", "lighting": "",
+                         "notes": "", "key": key, "offset_s": f"{seg['start']:.2f}",
+                         "duration_s": f"{seg['end'] - seg['start']:.2f}"})
+            issued[key] = name
+        with open(out / "review.csv", "w", newline="", encoding="utf-8-sig") as f:
+            w = csv.DictWriter(f, fieldnames=KIT_COLUMNS)
+            w.writeheader()
+            w.writerows(rows)
+        (out / "HOW_TO_REVIEW.txt").write_text(KIT_README.format(name=name, count=len(rows)), encoding="utf-8")
+        shutil.make_archive(str(out), "zip", out.parent, out.name)
+        KITS_ISSUED.write_text(json.dumps(issued, indent=1), encoding="utf-8")
+        size = (KITS / f"{name}.zip").stat().st_size / 1e6
+        print(f"{name}: {len(rows)} clips, {sum(float(r['duration_s']) for r in rows) / 60:.0f} min, "
+              f"{size:.0f} MB -> {KITS / (name + '.zip')}", flush=True)
+
+
+def _cut_small(src: Path, start: float, end: float, out: Path) -> None:
+    import imageio_ffmpeg
+    if out.exists():
+        return
+    subprocess.run([imageio_ffmpeg.get_ffmpeg_exe(), "-y", "-loglevel", "error", "-ss", f"{start:.2f}",
+                    "-to", f"{end:.2f}", "-i", str(src), "-an", "-vf", f"scale=-2:'min({KIT_HEIGHT},ih)'",
+                    "-c:v", "libx264", "-preset", "veryfast", "-crf", "28", "-pix_fmt", "yuv420p",
+                    "-movflags", "+faststart", str(out)], check=True)
+
+
+def parse_kit_rows(rows: list[dict]) -> tuple[list[dict], list[str]]:
+    """Filled kit rows -> training decisions in source-video seconds, and the problems found (row numbers)."""
+    out, problems = [], []
+    for r in rows:
+        r = {k.strip().lower(): (v or "").strip() for k, v in r.items() if k}
+        dec = r.get("decision", "").lower().replace(" ", "_").replace("-", "_")
+        if not dec:
+            continue
+        where = f"row n={r.get('n', '?')}"
+        if dec not in DECISION_CHOICES:
+            problems.append(f"{where}: unknown decision {dec!r}")
+            continue
+        off, dur = float(r["offset_s"]), float(r["duration_s"])
+        d = {"key": r["key"], "decision": dec, "lighting": "", "event_start_s": "", "event_end_s": "",
+             "notes": r.get("notes", "")}
+        if dec.startswith("snatch"):
+            light = r.get("lighting", "").lower()
+            try:
+                t0 = float(r.get("start_s", "").replace(",", "."))
+                t1 = float(r.get("end_s", "").replace(",", ".") or t0 + 1.0)
+            except ValueError:
+                problems.append(f"{where}: a snatch needs start_s (and end_s) in seconds")
+                continue
+            if not (0 <= t0 <= t1 <= dur + 0.5):
+                problems.append(f"{where}: times {t0}-{t1} s are outside the clip (0-{dur:.1f} s)")
+                continue
+            if light not in ("day", "night"):
+                problems.append(f"{where}: lighting must be day or night")
+                continue
+            d.update(lighting=light, event_start_s=f"{off + t0:.2f}", event_end_s=f"{off + t1:.2f}")
+        out.append(d)
+    return out, problems
+
+
+def import_kits(paths: list[Path], overwrite: bool = False) -> None:
+    """Merge filled review.csv files into the training decisions; nothing is written if any row has a problem."""
+    have = train_decisions()
+    new, problems = {}, []
+    for p in paths:
+        with open(p, newline="", encoding="utf-8-sig") as f:
+            got, bad = parse_kit_rows(list(csv.DictReader(f)))
+        problems += [f"{p}: {b}" for b in bad]
+        for d in got:
+            if d["key"] in have and not overwrite:
+                continue
+            new[d["key"]] = d
+    if problems:
+        print("not imported; fix these rows first:\n  " + "\n  ".join(problems))
+        raise SystemExit(1)
+    have.update(new)
+    with open(DECISIONS, "w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=FIELDS)
+        w.writeheader()
+        w.writerows(have[k] for k in sorted(have))
+    counts: dict[str, int] = {}
+    for d in new.values():
+        counts[d["decision"]] = counts.get(d["decision"], 0) + 1
+    print(f"imported {len(new)} decisions {counts}; {len(have)} in {DECISIONS.name}")
+
+
 def pool_config() -> dict:
     """The live perception without pose: the verifier's candidates need detections and tracks only."""
     from snatchguard.core.config import REPO_ROOT, load_yaml
@@ -378,8 +512,19 @@ def main() -> None:
     sub.add_parser("cache")
     bg = sub.add_parser("bags")
     bg.add_argument("package", type=Path)
+    kt = sub.add_parser("kit", help="review kits (clips + review.csv) for reviewers on other computers")
+    kt.add_argument("--batches", type=int, default=4)
+    kt.add_argument("--per-batch", type=int, default=150)
+    kt.add_argument("--tag", default="kit")
+    im = sub.add_parser("import", help="merge filled review.csv files into the training decisions")
+    im.add_argument("csv", nargs="+", type=Path)
+    im.add_argument("--overwrite", action="store_true", help="replace decisions already made for the same segment")
     a = ap.parse_args()
-    if a.cmd == "sheets":
+    if a.cmd == "kit":
+        kits(a.batches, a.per_batch, a.tag)
+    elif a.cmd == "import":
+        import_kits([p.expanduser() for p in a.csv], a.overwrite)
+    elif a.cmd == "sheets":
         sheets(tag=a.tag, limit=a.limit)
     elif a.cmd == "fine":
         fine("snatch", a.key, a.start, a.end, a.out)

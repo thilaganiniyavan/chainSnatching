@@ -78,6 +78,33 @@ INTL_SNATCH_QUERIES = [
     "chain snatcher arrested cctv footage", "chain snatching woman walking cctv street",
 ]
 
+# Training pool, second sweep (2026-11-11): countries and languages the first sweeps did not search. Phone, bag and
+# chain grabs from a passing rider or runner are the same motion as an Indian chain snatching.
+GLOBAL_SNATCH_QUERIES = [
+    # Brazil, Portugal
+    "roubo de celular moto câmera de segurança", "ladrão de moto rouba celular câmera", "ladrão arranca celular câmera flagra",
+    "roubo de bolsa moto câmera de segurança", "furto de celular na rua câmera de segurança", "arrancou corrente do pescoço câmera",
+    # Colombia, Peru, Mexico, Chile, Argentina, Spain
+    "raponazo cámara de seguridad", "raponero moto cámara de seguridad", "fleteo moto cámara de seguridad",
+    "arranchador celular cámara de seguridad", "robo de celular al paso cámara", "le arrebatan el celular cámara de seguridad",
+    "tirón bolso cámara de seguridad", "robo por tirón cámara", "motochorros arrebatan cartera cámara de seguridad",
+    # Philippines
+    "snatcher nahuli sa cctv", "snatching incident cctv philippines", "riding in tandem snatcher cctv",
+    # Pakistan, Bangladesh, Sri Lanka (local scripts)
+    "موبائل چھیننے کی واردات سی سی ٹی وی", "اسٹریٹ کرائم سی سی ٹی وی فوٹیج", "ছিনতাই সিসি ক্যামেরায় ধরা", "මාල කැඩීම cctv",
+    # Middle East, Turkey, Iran
+    "خطف موبايل كاميرا مراقبة", "خطف شنطة موتوسيكل كاميرا مراقبة", "خطف سلسلة كاميرا مراقبة", "kapkaç güvenlik kamerası",
+    "kapkaççı motosiklet kamera", "کیف قاپی دوربین مداربسته", "موبایل قاپی موتور دوربین",
+    # Europe
+    "scippo telecamere di sorveglianza", "scippo collana telecamere", "vol à l'arraché vidéosurveillance",
+    "vol de collier à l'arraché caméra", "Handy aus der Hand gerissen Überwachungskamera", "грабитель сорвал цепочку камера видеонаблюдения",
+    "phone snatcher e-bike cctv", "phone snatch caught on cctv uk", "necklace snatch cctv",
+    # Africa
+    "phone snatching cctv south africa", "phone snatcher caught on camera nairobi", "phone snatching cctv lagos",
+    # East Asia
+    "ひったくり 防犯カメラ", "날치기 cctv", "오토바이 날치기 cctv 영상", "抢手机 监控", "飞车抢手机 监控视频", "搶項鍊 監視器",
+]
+
 NEWS_CHANNEL = re.compile(
     r"news|\btv|(?<!cc)tv\b|samachar|times|express|today|\blive\b|24|channel|media|bharat|aaj ?tak|ndtv|abp|zee|etv|"
     r"polimer|thanthi|\bsun\b|v6|ntv|tv9|tv5|sakshi|abn|mirror|republic|\bani\b|oneindia|otv|ibc|asianet|"
@@ -105,7 +132,7 @@ NORMAL_QUERIES = [
 ] + [f"{c} street cctv footage" for c in CITIES[:15]]
 
 REJECT_TITLE = re.compile(
-    r"prank|movie|film|scene|drama|serial|web ?series|trailer|song|animat|cartoon|\bai\b|a\.i\.|generated|"
+    r"prank|movie|\bfilms?\b|\bfilme\b|pel[ií]cula|telenovela|novela|curta-metragem|cortometraje|scene|drama|serial|web ?series|trailer|song|animat|cartoon|\bai\b|a\.i\.|generated|"
     r"awareness|skit|comedy|funny|spoof|parody|game|gta|minecraft|roblox|tutorial|how to|reaction|podcast|"
     r"interview|debate|explained|documentary|episode|short film|staged|fake|mock ?drill|re-?enact|"
     r"recreat|simulation|dashcam|dash cam|drone|vlog|unboxing|review|asmr|live stream|livestream", re.I)
@@ -143,7 +170,9 @@ def keep(item: dict, kind: str) -> str | None:
         if not re.search(r"snatch|chain|स्नैच|स्नेच|स्नॅच|चेन|छीन|झपट|స్నాచ|గొలుసు|பறிப்பு|செயின்|ಸರ|mangalsutra|purse|bag|"
                          r"mobile|phone|robo|arrebat|motochorro|motoladr|ragut|jambret|ছিনতাই|dacoit|street crime|"
                          r"giật|cướp|กระชาก|วิ่งราว|cadena|cord[aã]o|corrente|roubo|assalto|抢|搶|മാല|ચેન|চেইন|ਚੇਨ|ଚେନ|"
-                         r"நகை|parippu|pottik", item["title"], re.I):
+                         r"நகை|parippu|pottik|celular|bolsa|ladr[aã]o|furto|raponaz|raponer|fleteo|arranch|tir[oó]n|"
+                         r"cartera|snatcher|چھین|اسٹریٹ|ছিনতাই|මාල|خطف|kapka|قاپی|scipp|arrach|gerissen|сорвал|"
+                         r"ひったくり|날치기|手机|項鍊|necklace", item["title"], re.I):
             return "title: not about a snatching"
     else:
         if dur < 120:
@@ -159,6 +188,8 @@ def main() -> None:
     ap.add_argument("--kind", choices=["snatch", "normal", "both"], default="both")
     ap.add_argument("--raw", action="store_true", help="run the raw-upload snatch queries instead")
     ap.add_argument("--intl", action="store_true", help="run the training-pool queries (more countries, languages)")
+    ap.add_argument("--global", dest="global_", action="store_true",
+                    help="run the second training-pool sweep (Latin America, Africa, Middle East, Europe, East Asia)")
     args = ap.parse_args()
     out_path = DATASET / "meta" / "candidates.jsonl"
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -171,6 +202,8 @@ def main() -> None:
         jobs = [("snatch", q) for q in RAW_SNATCH_QUERIES]
     elif args.intl:
         jobs = [("snatch", q) for q in INTL_SNATCH_QUERIES]
+    elif args.global_:
+        jobs = [("snatch", q) for q in GLOBAL_SNATCH_QUERIES]
     else:
         jobs = ([("snatch", q) for q in SNATCH_QUERIES] if args.kind in ("snatch", "both") else []) + \
                ([("normal", q) for q in NORMAL_QUERIES] if args.kind in ("normal", "both") else [])
