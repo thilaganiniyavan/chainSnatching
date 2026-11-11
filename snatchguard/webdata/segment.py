@@ -103,7 +103,8 @@ def main() -> None:
         print(f"merged {len(added)} videos from {rev.name}; {len(main_)} in {out.name}")
         return
     done = json.loads(out.read_text(encoding="utf-8")) if out.exists() else {}
-    vids = sorted((DATASET / "raw" / args.kind).glob("*.mp4"))
+    # not hidden files: a Mac writing to an exFAT drive adds "._<name>" metadata files next to the videos
+    vids = sorted(p for p in (DATASET / "raw" / args.kind).glob("*.mp4") if not p.name.startswith("."))
     if args.reverse:
         vids = vids[::-1]
         mine = json.loads(rev.read_text(encoding="utf-8")) if rev.exists() else {}
