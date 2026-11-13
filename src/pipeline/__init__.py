@@ -3,6 +3,15 @@
 from src.core.interfaces import Stage
 from src.core.models import FrameContext
 from src.pipeline.detection_stage import DetectionStage
+from src.pipeline.low_light_enhancement_stage import LowLightEnhancementStage
 from src.pipeline.pipeline import Pipeline
 from src.pipeline.tracking_stage import TrackingStage
 
+__all__ = [
+    "Stage",
+    "FrameContext",
+    "DetectionStage",
+    "LowLightEnhancementStage",
+    "Pipeline",
+    "TrackingStage",
+]
