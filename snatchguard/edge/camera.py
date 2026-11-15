@@ -233,6 +233,8 @@ class CameraWorker:
         self.verifier = None
         self.verifier_state = "off"
         vcfg = node.get("verifier") or {}
+        self._verifier_incident = None
+        self._verifier_merge_s = float(vcfg.get("merge_s", 20.0))
         if vcfg.get("enabled") and self.pipeline is not None:
             self._init_verifier(vcfg)
 
@@ -370,7 +372,7 @@ class CameraWorker:
         # clips are labelled with the rule engine's (stitched) track ids
         canon = self.engine.scene.canonical
         dets = [Detection(canon(d.track_id), d.cls, d.box, d.conf) for d in dets]
-        self.recorder.push(enhanced, frame.t, dets)
+        self.recorder.push(enhanced, frame.t, dets, frame.wall)
         self._last_img = enhanced
         if self.fuser is None:
             for d in decisions:
@@ -484,14 +486,24 @@ class CameraWorker:
         it also clears the model's stricter threshold (fixed on held-out footage at fewer false alarms per hour)."""
         conf = self.verifier.threshold_confirm
         level = "CONFIRMED" if conf is not None and v.score >= conf else "SUSPECT"
-        self.stats["alerts" if level == "CONFIRMED" else "suspects"] += 1
         c = v.clip
+        # one incident, one alert: clips within merge_s of the last verifier alert on this camera are folded into it,
+        # unless they lift a SUSPECT incident to CONFIRMED (then sent as an upgrade of it)
+        last = self._verifier_incident
+        supersedes = None
+        if last is not None and abs(c.t - last["t"]) <= self._verifier_merge_s:
+            if not (level == "CONFIRMED" and last["level"] == "SUSPECT"):
+                self.stats["merged"] = self.stats.get("merged", 0) + 1
+                return
+            supersedes = last["event_id"]
+        self.stats["alerts" if level == "CONFIRMED" else "suspects"] += 1
         event_id = str(uuid.uuid4())
+        self._verifier_incident = {"t": c.t, "level": level, "event_id": event_id}
         canon = self.engine.scene.canonical
         roles = {canon(tid): "actor" for pair in c.pairs for tid in pair}
         title = f"{level}  verifier {v.score:.2f}  {self.name}"
         snap = self.recorder.snapshot(event_id, c.t, roles, title, fallback=img)
-        self.recorder.schedule_clip(event_id, c.t, v.decided_t, roles, title)   # around the clip, not the queue wait
+        self.recorder.schedule_clip(event_id, c.t, c.t, roles, title)   # pre_s before to post_s after the contact (10 s)
         thr = self.verifier.threshold
         payload = {
             "event_id": event_id, "type": "snatch", "node_id": self.node.get("node_id"),
@@ -507,8 +519,10 @@ class CameraWorker:
                                     f"(alert from {thr:.2f}"
                                     f"{f', confirmed from {conf:.2f}' if conf is not None else ''})"}],
             "source": "verifier", "model_score": round(v.score, 3), "crop": [round(x, 1) for x in c.crop],
-            "pairs": c.pairs,
+            "pairs": c.pairs, "clip_event_at_s": self.recorder.pre_s,
         }
+        if supersedes:
+            payload["supersedes"] = supersedes
         self.outbox.put("event", payload, {"snapshot": str(snap)})
         log.warning("[%s] %s (verifier) score=%.3f pairs=%s latency=%.1fs", self.id, level, v.score, c.pairs,
                     frame.t - c.t)
@@ -532,7 +546,9 @@ class CameraWorker:
         while True:
             for event_id, path in self.recorder.finished():
                 if path is not None:
-                    self.outbox.put("clip", {"event_id": event_id}, {"clip": str(path)})
+                    boxes = path.parent / f"{event_id}_boxes.json"
+                    files = {"clip": str(path), **({"boxes": str(boxes)} if boxes.exists() else {})}
+                    self.outbox.put("clip", {"event_id": event_id}, files)
             if not wait or not self.recorder.busy() or time.monotonic() > deadline:
                 return
             time.sleep(0.2)
@@ -541,8 +557,9 @@ class CameraWorker:
     def status(self) -> dict:
         thumb = None
         if self._last_img is not None:
-            small = cv2.resize(self._last_img, (320, int(320 * self._last_img.shape[0] / self._last_img.shape[1])))
-            ok, jpg = cv2.imencode(".jpg", small, [cv2.IMWRITE_JPEG_QUALITY, 60])
+            w = int(self.node.get("thumbnail_width", 320))     # the dashboard's camera view; the footage page asks for more
+            small = cv2.resize(self._last_img, (w, int(w * self._last_img.shape[0] / self._last_img.shape[1])))
+            ok, jpg = cv2.imencode(".jpg", small, [cv2.IMWRITE_JPEG_QUALITY, 60 if w <= 320 else 75])
             thumb = base64.b64encode(jpg.tobytes()).decode() if ok else None
         fps = self.stats["fps_proc"]
         return {

@@ -1,0 +1,32 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Performance metrics | SnatchGuard</title><link rel="stylesheet" href="/static/style.css?v=20261115-deleted-filter"></head><body><div class="shell"><aside class="sidebar"><a class="identity" href="/"><span class="logo">S<span>✦</span></span><span><strong>SnatchGuard</strong><small>CONTROL ROOM</small></span></a><div class="nav-label">WORKSPACE</div><nav class="side-nav"><a href="/"><span>◫</span> Overview</a><a href="/#cameras-section"><span>◉</span> Cameras</a><a href="/footage"><span>⇧</span> Footage</a><a class="selected" aria-current="page" href="/static/metrics.html"><span>▥</span> Performance metrics</a><a href="/#alerts-section"><span>▤</span> Alert history</a></nav><div class="side-bottom"><span class="side-icon">◈</span><div><strong>Operator workspace</strong><small>Human review required</small></div></div></aside><div class="workspace"><header class="topbar"><div><div class="eyebrow">WORKSPACE / METRICS</div><h1>Performance metrics</h1></div><div class="topbar-right"><a class="ghost back-link" href="/">← Back to overview</a></div></header><main class="content">
+<section class="panel job-card report-metrics" id="report-metrics" aria-labelledby="metrics-title">
+  <div class="metrics-heading"><div><div class="eyebrow accent">PROJECT EVALUATION</div><h2 id="metrics-title">Performance metrics</h2><p>Results reported in the project review, dated 16 November 2026.</p></div><span class="metrics-tag">V1 / HIGH SETTING</span></div>
+  <p class="metrics-context">Held-out test: 23 incidents. At the High threshold of 0.30, V1 detected 20 incidents. Incident detection and clip precision / recall use different denominators.</p>
+  <dl class="report-stat-grid">
+    <div><dt>Incident detection</dt><dd>87<span>%</span></dd><small>20 / 23 incidents · 95% interval: 68–96%</small></div>
+    <div><dt>Clip precision</dt><dd>87<span>%</span></dd><small>71 true positives / 82 positive clips</small></div>
+    <div><dt>Clip recall</dt><dd>82<span>%</span></dd><small>71 true positives / 87 labelled positive clips</small></div>
+    <div><dt>False alerts / hour</dt><dd>11</dd><small>Reported 95% interval: 5–20 / hour</small></div>
+  </dl>
+  <h3>Threshold comparison</h3>
+  <div class="metrics-table-wrap" role="region" aria-label="Threshold comparison" tabindex="0"><table class="metrics-table"><caption>Team-reported held-out test results · report Table 3</caption><thead><tr><th scope="col">Configuration</th><th scope="col">Threshold</th><th scope="col">Incidents detected</th><th scope="col">False alerts / hour</th><th scope="col">Clip precision</th><th scope="col">Clip recall</th></tr></thead><tbody>
+    <tr><th scope="row">V1 Standard</th><td>0.854</td><td>19 / 23 · 83%</td><td>6</td><td>91%</td><td>78%</td></tr>
+    <tr class="metrics-selected"><th scope="row">V1 High</th><td>0.30</td><td>20 / 23 · 87%</td><td>11</td><td>87%</td><td>82%</td></tr>
+    <tr><th scope="row">V1 Maximum</th><td>0.05</td><td>21 / 23 · 91%</td><td>19</td><td>82%</td><td>88%</td></tr>
+    <tr><th scope="row">Model B</th><td>0.854</td><td>11 / 23 · 48%</td><td>14</td><td>79%</td><td>44%</td></tr>
+  </tbody></table></div>
+  <p class="metrics-note">High-setting clip counts: 71 true positives, 16 false negatives, 11 false positives and 522 true negatives. The report describes a compact normal test of approximately 0.29 hours.</p>
+  <div class="metrics-secondary"><h3>Broader video evaluation</h3><p><strong>86 / 100 incidents detected (86%)</strong> across a reported 142 unseen videos with approximately 5.2 hours of normal footage. Reported clip precision: <strong>87%</strong>; clip recall: <strong>81%</strong>. This is a separate evaluation from the 23-incident comparison above.</p></div>
+  <details class="metrics-history"><summary>Historical results and candidate coverage</summary>
+    <div class="metrics-table-wrap" role="region" aria-label="Historical evaluation results" tabindex="0"><table class="metrics-table"><caption>Separate historical protocols · report Tables 4 and 5</caption><thead><tr><th scope="col">Evaluation</th><th scope="col">Event recall</th><th scope="col">Normal-footage alerts</th></tr></thead><tbody>
+      <tr><th scope="row">Rules · Snatch 1.0</th><td>18 / 25 · 72%</td><td>4 / 2.0 h · 2.0 / hour</td></tr>
+      <tr><th scope="row">Rules · Snatch-Web</th><td>16 / 25 · 64%</td><td>Not paired in the report</td></tr>
+      <tr><th scope="row">Fine-tuned verifier · Snatch-Web</th><td>19 / 21 actor-matched · 90.5%</td><td>3 / 0.286 h · 10.5 / hour</td></tr>
+    </tbody></table></div>
+    <p class="metrics-note">The historical verifier reported clip AUC of 0.96, an event-recall 95% interval of approximately 71–97%, and a false-alert interval of approximately 2–31 / hour. Different protocols and model-selection overlap prevent a controlled model comparison.</p>
+    <p class="metrics-note">Candidate coverage increased from <strong>74% to 92%</strong> across 50 labelled events (25 per dataset). Normal-footage candidate generation increased from <strong>3,240 to 3,653 / hour</strong>. Coverage measures whether a candidate contains the labelled pair, rather than final detection accuracy.</p>
+  </details>
+  <p class="metrics-source">Source: G024_Report.pdf · Section 5.1, pages 5–6. These are reported experiment results, not live measurements. The report notes that V1 source artefacts were unavailable for independent audit and live-camera performance was unverified.</p>
+</section>
+<footer>SNATCHGUARD <span>Project evaluation · Reported experiment results</span></footer>
+</main></div></div></body></html>

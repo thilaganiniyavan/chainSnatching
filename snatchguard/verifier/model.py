@@ -59,6 +59,9 @@ class Encoder:
         import torch
         torch.set_num_threads(max(1, int(threads)))
         self.torch = torch
+        if device == "auto":     # a CUDA or Apple GPU when present (OpenVINO on an Apple-silicon CPU takes ~2 min a clip)
+            device = ("cuda" if torch.cuda.is_available() else
+                      "mps" if getattr(torch.backends, "mps", None) and torch.backends.mps.is_available() else "cpu")
         self.device = device
         self.net = self.ov = None
         if backend in ("auto", "openvino") and device == "cpu":

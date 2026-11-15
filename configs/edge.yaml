@@ -45,18 +45,20 @@ learned:
 # busy street (0.9 s per clip). Train: python -m snatchguard.verifier.train features && ... fit
 verifier:
   enabled: false
-  model: models/verifier/verifier.pt
+  model: models/verifier/snatchguard_final_v1.pt
   threads: 2             # CPU threads for the video network
-  device: cpu
+  device: auto           # auto = CUDA / Apple GPU (mps) when present, else CPU (OpenVINO)
+  tta: true              # 6 views per clip (shifts + mirror), the setting the stored multi-view threshold was set with
   isolate: true          # own process at the lowest CPU priority: the rules lose ~15 % of their frame rate, not ~50 %
   nice: 19
-  # threshold: 0.9       # override the threshold stored in the model
+  # threshold: 0.9       # override the threshold stored in the model (the dashboard sets it from its sensitivity choice)
+  merge_s: 20            # verifier alerts within this many seconds of an incident's first alert join that incident
   max_lag_s: 20          # clips waiting longer than this for the network are dropped (counted in the status)
 
 evidence:
   dir: runtime/edge/evidence
-  pre_s: 8               # seconds of video kept before the contact
-  post_s: 4              # seconds recorded after the decision
+  pre_s: 10              # seconds of video kept before the contact
+  post_s: 10             # seconds recorded after the contact (10 + 10 = a 20 s evidence clip)
   clip_width: 960
 
 outbox: runtime/edge/outbox.db

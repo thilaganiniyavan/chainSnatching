@@ -401,3 +401,7 @@ for contact before commercial use · LLVIP: non-commercial · VisDrone: academic
 torchvision R(2+1)D-18 (verifier trunk): BSD-3 code, Kinetics-400 weights for research use ·
 Ultralytics YOLO: AGPL-3.0 (fine for an open or academic project; commercial deployment needs an
 Ultralytics licence or a swap to an Apache-2.0 detector such as RF-DETR).
+
+For hosted browser cameras and cross-camera evidence links, see [Hosted camera network](docs/HOSTED_CAMERA_NETWORK.md).
+
+For Vercel portal deployment, see [Vercel deployment](docs/VERCEL_DEPLOYMENT.md).

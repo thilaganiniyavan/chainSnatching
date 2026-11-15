@@ -22,3 +22,6 @@ configs/edge.baseline.yaml
 configs/rules.tuned.yaml
 configs/fusion.tuned.yaml
 data/snatch_web
+
+# Vercel project metadata and generated deploy output
+.vercel/

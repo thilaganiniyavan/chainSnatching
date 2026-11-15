@@ -10,6 +10,9 @@ from pathlib import Path
 from typing import Any
 
 SCHEMA = """
+CREATE TABLE IF NOT EXISTS portal_settings (
+    key TEXT PRIMARY KEY, value TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS events (
     id TEXT PRIMARY KEY,
     type TEXT NOT NULL,              -- snatch | tamper | camera_offline | camera_online
@@ -23,6 +26,14 @@ CREATE TABLE IF NOT EXISTS events (
     reviewed_at TEXT, review_note TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_events_received ON events(received_at DESC);
+CREATE TABLE IF NOT EXISTS event_links (
+    event_a TEXT NOT NULL REFERENCES events(id),
+    event_b TEXT NOT NULL REFERENCES events(id),
+    relation TEXT NOT NULL,
+    note TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL,
+    PRIMARY KEY(event_a, event_b)
+);
 CREATE TABLE IF NOT EXISTS cameras (
     key TEXT PRIMARY KEY,            -- node_id/camera_id
     node_id TEXT, camera_id TEXT, name TEXT, site TEXT,
@@ -38,6 +49,19 @@ EVENT_COLS = ["id", "type", "level", "node_id", "site", "camera_id", "camera_nam
               "reviewed_at", "review_note"]
 
 
+# Alerts held for AI review, or rejected by it, are not shown anywhere (they stay in the table for audit).
+BASE_VISIBLE = ("type NOT IN ('camera_offline', 'camera_online') AND "
+                "COALESCE(json_extract(payload, '$.ai_review.state'), '') NOT IN ('pending', 'rejected', 'merged') "
+                "AND received_at >= COALESCE((SELECT value FROM portal_settings WHERE key='activity_start'), '')")
+DELETED = ("(COALESCE(json_extract(payload, '$.deleted'),0)=1 OR COALESCE(json_extract(payload, '$.dismissed'),0)=1 "
+           "OR COALESCE(json_extract(payload, '$.clip_removed'),0)=1 "
+           "OR INSTR(COALESCE(review_note,''),'[Deleted from portal]')>0 "
+           "OR INSTR(COALESCE(review_note,''),'[Dismissed from portal]')>0 "
+           "OR INSTR(COALESCE(review_note,''),'[Video removed from alert]')>0)")
+VISIBLE = BASE_VISIBLE + " AND NOT " + DELETED
+
+
+
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="milliseconds")
 
@@ -51,6 +75,22 @@ class Store:
         with self.lock:
             self.db.execute("PRAGMA journal_mode=WAL")
             self.db.executescript(SCHEMA)
+            self.db.commit()
+
+    def archive_activity(self) -> dict:
+        """Start an empty operational view; keep prior events, media and camera rows recoverable."""
+        cutoff = now_iso()
+        with self.lock:
+            events = self.db.execute("SELECT COUNT(*) FROM events WHERE received_at < ?", (cutoff,)).fetchone()[0]
+            cameras = self.db.execute("SELECT COUNT(*) FROM cameras WHERE last_seen < ?", (cutoff,)).fetchone()[0]
+            self.db.execute("INSERT INTO portal_settings VALUES ('activity_start', ?) "
+                            "ON CONFLICT(key) DO UPDATE SET value=excluded.value", (cutoff,))
+            self.db.commit()
+        return {"events": events, "cameras": cameras, "since": cutoff}
+
+    def restore_activity(self) -> None:
+        with self.lock:
+            self.db.execute("DELETE FROM portal_settings WHERE key='activity_start'")
             self.db.commit()
 
     # ---- events ------------------------------------------------------------
@@ -75,9 +115,63 @@ class Store:
 
     def set_clip(self, event_id: str, clip: str) -> bool:
         with self.lock:
-            cur = self.db.execute("UPDATE events SET clip = ? WHERE id = ?", (clip, event_id))
+            cur = self.db.execute(
+                "UPDATE events SET clip=CASE WHEN json_extract(payload, '$.clip_removed')=1 THEN NULL ELSE ? END, "
+                "payload=CASE WHEN json_extract(payload, '$.clip_removed')=1 "
+                "THEN json_set(payload, '$.removed_clip', ?) ELSE payload END WHERE id=?", (clip, clip, event_id))
             self.db.commit()
             return cur.rowcount == 1
+
+    def delete_alert(self, event_id: str, restore: bool = False) -> bool:
+        with self.lock:
+            if restore:
+                cur = self.db.execute(
+                    "UPDATE events SET clip=COALESCE(clip,json_extract(payload,'$.removed_clip')), "
+                    "payload=json_remove(payload,'$.deleted','$.dismissed','$.clip_removed','$.removed_clip'), "
+                    "review_note=TRIM(REPLACE(REPLACE(REPLACE(COALESCE(review_note,''), "
+                    "'[Deleted from portal]',''),'[Dismissed from portal]',''),'[Video removed from alert]','')) WHERE id=?",
+                    (event_id,))
+            else:
+                cur = self.db.execute("UPDATE events SET payload=json_set(payload,'$.deleted',json('true')) WHERE id=?",
+                                      (event_id,))
+            self.db.commit()
+            return cur.rowcount == 1
+
+    def dismiss_tamper(self, event_id: str) -> bool:
+        with self.lock:
+            cur = self.db.execute(
+                "UPDATE events SET payload=json_set(payload, '$.dismissed', json('true')) WHERE id=? AND type='tamper'",
+                (event_id,))
+            self.db.commit()
+            return cur.rowcount == 1
+
+    def video_visibility(self, event_id: str, visible: bool) -> bool:
+        with self.lock:
+            if visible:
+                cur = self.db.execute(
+                    "UPDATE events SET clip=CASE WHEN json_extract(payload, '$.clip_removed')=1 "
+                    "THEN json_extract(payload, '$.removed_clip') ELSE clip END, "
+                    "payload=json_remove(payload, '$.clip_removed', '$.removed_clip'), "
+                    "review_note=REPLACE(COALESCE(review_note,''), '[Video removed from alert]', '') WHERE id=?", (event_id,))
+            else:
+                cur = self.db.execute(
+                    "UPDATE events SET payload=json_set(payload, '$.clip_removed', json('true'), '$.removed_clip', clip), "
+                    "clip=NULL WHERE id=? AND clip IS NOT NULL", (event_id,))
+            self.db.commit()
+            return cur.rowcount == 1
+
+    def set_ai_review(self, event_id: str, review: dict) -> bool:
+        with self.lock:
+            cur = self.db.execute("UPDATE events SET payload = json_set(payload, '$.ai_review', json(?)) WHERE id = ?",
+                                  (json.dumps(review), event_id))
+            self.db.commit()
+            return cur.rowcount == 1
+
+    def set_level(self, event_id: str, level: str) -> None:
+        with self.lock:
+            self.db.execute("UPDATE events SET level = ?, payload = json_set(payload, '$.level', ?) WHERE id = ?",
+                            (level, level, event_id))
+            self.db.commit()
 
     def review(self, event_id: str, status: str, note: str | None) -> bool:
         with self.lock:
@@ -92,9 +186,10 @@ class Store:
         return self._event(r) if r else None
 
     def list_events(self, limit: int = 100, type_: str | None = None, status: str | None = None,
-                    level: str | None = None) -> list[dict]:
-        q, args = "SELECT * FROM events WHERE 1=1", []
-        for col, val in (("type", type_), ("status", status), ("level", level)):
+                    level: str | None = None, node_id: str | None = None, deleted: bool | None = False) -> list[dict]:
+        visibility = BASE_VISIBLE if deleted is None else BASE_VISIBLE + (" AND " if deleted else " AND NOT ") + DELETED
+        q, args = "SELECT * FROM events WHERE " + visibility, []
+        for col, val in (("type", type_), ("status", status), ("level", level), ("node_id", node_id)):
             if val:
                 q += f" AND {col} = ?"
                 args.append(val)
@@ -108,12 +203,16 @@ class Store:
     def _event(r: sqlite3.Row) -> dict:
         d = dict(r)
         d["payload"] = json.loads(d["payload"])
+        if "[Video removed from alert]" in (d.get("review_note") or ""):
+            d["payload"]["clip_removed"] = True
+            d["payload"]["removed_clip"] = d["clip"]
+            d["clip"] = None
         return d
 
     def stats(self, since_iso: str, real_only: bool = False) -> dict:
         with self.lock:
             rows = self.db.execute(
-                "SELECT type, level, status, COUNT(*) n FROM events WHERE received_at >= ? "
+                "SELECT type, level, status, COUNT(*) n FROM events WHERE received_at >= ? AND " + VISIBLE + " "
                 + ("AND COALESCE(node_id, '') NOT IN ('edge-sim-01', 'recorded-examples') AND COALESCE(site, '') != 'Scripted demonstration' " if real_only else "")
                 + "GROUP BY type, level, status",
                 (since_iso,)).fetchall()
@@ -130,6 +229,26 @@ class Store:
             if r["status"] == "new":
                 out["open"] += r["n"]
         return out
+
+    def link_events(self, first: str, second: str, relation: str, note: str) -> None:
+        a, b = sorted((first, second))
+        with self.lock:
+            self.db.execute("INSERT INTO event_links VALUES (?, ?, ?, ?, ?) "
+                            "ON CONFLICT(event_a, event_b) DO UPDATE SET relation=excluded.relation, note=excluded.note",
+                            (a, b, relation, note, now_iso()))
+            self.db.commit()
+
+    def event_links(self, event_id: str) -> list[dict]:
+        with self.lock:
+            rows = self.db.execute("SELECT * FROM event_links WHERE event_a=? OR event_b=? ORDER BY created_at DESC",
+                                   (event_id, event_id)).fetchall()
+        return [{**dict(r), "other_id": r["event_b"] if r["event_a"] == event_id else r["event_a"]} for r in rows]
+
+    def unlink_events(self, first: str, second: str) -> None:
+        a, b = sorted((first, second))
+        with self.lock:
+            self.db.execute("DELETE FROM event_links WHERE event_a=? AND event_b=?", (a, b))
+            self.db.commit()
 
     # ---- health ------------------------------------------------------------
     def upsert_heartbeat(self, hb: dict) -> None:
@@ -158,10 +277,10 @@ class Store:
 
     def nodes(self) -> list[dict]:
         with self.lock:
-            rows = self.db.execute("SELECT * FROM nodes").fetchall()
+            rows = self.db.execute("SELECT * FROM nodes WHERE last_seen >= COALESCE((SELECT value FROM portal_settings WHERE key='activity_start'), '')").fetchall()
         return [{**dict(r), "payload": json.loads(r["payload"] or "{}")} for r in rows]
 
     def cameras(self) -> list[dict]:
         with self.lock:
-            rows = self.db.execute("SELECT * FROM cameras ORDER BY node_id, camera_id").fetchall()
+            rows = self.db.execute("SELECT * FROM cameras WHERE last_seen >= COALESCE((SELECT value FROM portal_settings WHERE key='activity_start'), '') ORDER BY node_id, camera_id").fetchall()
         return [{**dict(r), "payload": json.loads(r["payload"] or "{}")} for r in rows]

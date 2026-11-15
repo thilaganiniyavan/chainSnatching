@@ -1,0 +1,18 @@
+# Only the deployment build script and public portal files are uploaded.
+*
+!vercel.json
+!scripts/
+scripts/*
+!scripts/build_vercel.mjs
+!snatchguard/
+snatchguard/*
+!snatchguard/central/
+snatchguard/central/*
+!snatchguard/central/static/
+snatchguard/central/static/*
+!snatchguard/central/static/index.html
+!snatchguard/central/static/footage.html
+!snatchguard/central/static/metrics.html
+!snatchguard/central/static/app.js
+!snatchguard/central/static/footage.js
+!snatchguard/central/static/style.css

@@ -9,6 +9,7 @@ dashboard is notified without waiting for video encoding.
 
 from __future__ import annotations
 
+import json
 import logging
 import queue
 import threading
@@ -32,6 +33,8 @@ class _Buffered:
     t: float
     jpeg: bytes
     boxes: list[tuple[int, str, np.ndarray]]   # (track_id, class, box) in buffered-image pixels
+    wall: float | None = None                  # wall-clock time of the frame (live sources)
+    size: tuple[int, int] = (0, 0)             # buffered image (width, height)
 
 
 @dataclass
@@ -78,7 +81,7 @@ class EvidenceRecorder:
         self._thread.start()
 
     # ------------------------------------------------------------------
-    def push(self, img: np.ndarray, t: float, detections: list[Detection]) -> None:
+    def push(self, img: np.ndarray, t: float, detections: list[Detection], wall: float | None = None) -> None:
         h, w = img.shape[:2]
         scale = min(1.0, self.width / w)
         small = cv2.resize(img, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA) if scale < 1 else img
@@ -86,7 +89,7 @@ class EvidenceRecorder:
         if not ok:
             return
         boxes = [(d.track_id, d.cls.value, d.box * scale) for d in detections]
-        self._buf.append(_Buffered(t, jpg.tobytes(), boxes))
+        self._buf.append(_Buffered(t, jpg.tobytes(), boxes, wall, (small.shape[1], small.shape[0])))
         while self._buf and t - self._buf[0].t > self.keep_s:
             self._buf.popleft()
         # hand finished clip jobs (their end time has passed) to the writer thread
@@ -153,7 +156,25 @@ class EvidenceRecorder:
                 log.exception("clip %s failed", job.event_id)
                 self._done.put((job.event_id, None))
 
+    def _write_boxes(self, job: _ClipJob, frames: list[_Buffered]) -> None:
+        """The tracked boxes of every analysed frame in the clip window (normalised 0..1), so the server can draw
+        them on the trimmed detected video. Sent next to the clip."""
+        out = []
+        for f in frames:
+            w, h = f.size
+            if not w or not h:
+                continue
+            out.append({"t": round(f.t, 3), "wall": f.wall,
+                        "boxes": [[int(tid), cls, *(round(float(v) / s, 4) for v, s in zip(b, (w, h, w, h)))]
+                                  for tid, cls, b in f.boxes]})
+        (self.dir / f"{job.event_id}_boxes.json").write_text(
+            json.dumps({"roles": {str(k): v for k, v in job.roles.items()}, "frames": out}))
+
     def _write_clip(self, job: _ClipJob, frames: list[_Buffered]) -> Path | None:
+        try:
+            self._write_boxes(job, frames)
+        except Exception:  # noqa: BLE001 - boxes are optional
+            log.exception("boxes for %s failed", job.event_id)
         if len(frames) < 2:
             return None
         span = frames[-1].t - frames[0].t

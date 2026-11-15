@@ -1,3 +1,4 @@
+(() => {
 // SnatchGuard dashboard: live alert feed + camera health over Server-Sent Events.
 "use strict";
 
@@ -59,12 +60,23 @@ const clock = (iso) => (iso ? new Date(iso).toLocaleTimeString() : "–");
 
 function isSystem(ev) { return ev.type !== "snatch"; }
 
-function isSynthetic(ev) { return ev.node_id === "edge-sim-01" || ev.site === "Scripted demonstration"; }
+function isDismissed(ev) {
+  const p = ev.payload || {};
+  return !!(p.deleted || p.dismissed || p.clip_removed) ||
+    ["[Deleted from portal]", "[Dismissed from portal]", "[Video removed from alert]"].some(marker => (ev.review_note || "").includes(marker));
+}
+
+function isSynthetic(ev) {
+  return ["camera_offline", "camera_online"].includes(ev.type) ||
+    ["edge-sim-01", "recorded-examples"].includes(ev.node_id) ||
+    ["Scripted demonstration", "Real CCTV demonstration · training clip"].includes(ev.site) || !!ev.payload?.recorded_example;
+}
 function passesFilter(ev) {
-  if (isSynthetic(ev)) return false;
+  if (isSynthetic(ev) || (state.filter === "deleted") !== isDismissed(ev)) return false;
   const query = $("#search").value.trim().toLowerCase();
   if (query && ![ev.camera_name, ev.camera_id, ev.site, ev.level, ev.type, ev.status, titleOf(ev)].some((v) => String(v || "").toLowerCase().includes(query))) return false;
   switch (state.filter) {
+    case "deleted": return true;
     case "open": return ev.status === "new";
     case "snatch": return ev.type === "snatch";
     case "system": return isSystem(ev);
@@ -90,7 +102,46 @@ function renderFeed() {
   const feed = $("#feed");
   feed.innerHTML = list.map(cardHtml).join("");
   $("#feed-empty").classList.toggle("hidden", list.length > 0);
-  feed.querySelectorAll(".card").forEach((el) => el.addEventListener("click", () => openDetail(el.dataset.id)));
+  feed.querySelectorAll(".card").forEach((el) => el.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-video-action]");
+    if (button) { changeVideo(el.dataset.id, button.dataset.videoAction, button); return; }
+    openDetail(el.dataset.id);
+  }));
+}
+
+function normalizeVideo(ev) {
+  if (isDismissed(ev) && ev.payload?.removed_clip) ev.clip = ev.clip || ev.payload.removed_clip;
+  return ev;
+}
+
+function videoAction(ev) {
+  if (isDismissed(ev)) return state.filter === "deleted" ? '<button class="btn video-action" data-video-action="restore" title="Restore alert" aria-label="Restore alert">↶</button>' : '';
+  return '<button class="btn video-action" data-video-action="delete" title="Move alert to Deleted" aria-label="Move alert to Deleted">🗑</button>';
+}
+
+async function changeVideo(id, action, button) {
+  button.disabled = true;
+  try {
+    const restore = action === "restore";
+    let res = await fetch(`/api/v1/events/${encodeURIComponent(id)}${restore ? "/restore" : ""}`, {method: restore ? "POST" : "DELETE"});
+    if ([404, 405, 422].includes(res.status)) {
+      const detail = await fetch(`/api/v1/events/${encodeURIComponent(id)}`);
+      if (!detail.ok) throw new Error("This alert could not be loaded. Refresh and retry.");
+      const event = await detail.json();
+      let note = event.review_note || "";
+      for (const marker of ["[Deleted from portal]", "[Dismissed from portal]", "[Video removed from alert]"]) note = note.split(marker).join("");
+      note = note.trim();
+      if (!restore) note = `[Deleted from portal]${note ? " " + note : ""}`;
+      res = await fetch(`/api/v1/events/${encodeURIComponent(id)}/review`, {
+        method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({status: event.status || "new", note: note || null})
+      });
+    }
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(typeof result.detail === "string" ? result.detail : `Could not save this change (${res.status}). Please retry.`);
+    upsert(result, false);
+    refreshStats();
+    if (state.openId === id) closeDetail();
+  } catch (error) { button.disabled = false; button.textContent = error.message; }
 }
 
 function cardHtml(ev) {
@@ -110,13 +161,14 @@ function cardHtml(ev) {
       <div class="meta">${esc(ev.camera_name || ev.camera_id || "")} · ${esc(displaySite(ev))} · ${p.recorded_example ? "Recorded example · event time unknown" : `${clock(ev.occurred_at)} (${timeAgo(ev.received_at)})`}</div>
       <div class="why">${esc(summary(ev))}</div>
     </div>
-    <div class="side">${score}<span class="pill status-${esc(ev.status)}">${esc(p.recorded_example ? "Recorded example" : (STATUS_TEXT[ev.status] || ev.status))}</span></div>
+    <div class="side">${score}<span class="pill status-${esc(ev.status)}">${esc(p.recorded_example ? "Recorded example" : (STATUS_TEXT[ev.status] || ev.status))}</span>${videoAction(ev)}</div>
   </article>`;
 }
 
 function renderCameras() {
   const box = $("#cams");
-  const cams = state.cameras.filter((c) => !isSynthetic(c));
+  const cams = state.cameras.filter((c) => !isSynthetic(c) && c.site !== "Uploaded footage" &&
+    Date.now() - new Date(c.last_seen).getTime() <= 5 * 60 * 1000);
   $("#cams-empty").classList.toggle("hidden", cams.length > 0);
   const live = cams.filter((c) => c.status === "online").length;
   $("#k-cams").textContent = `${live}/${cams.length}`;
@@ -240,16 +292,16 @@ function detailHtml(ev) {
   const ann = p.incident_annotation;
   const media = ev.snapshot || ev.clip
     ? `<div class="media-tabs">${ev.clip ? `<button data-media="clip" class="active">Clip</button>` : ""}${ev.snapshot ? `<button data-media="snap" class="${ev.clip ? "" : "active"}">Snapshot</button>` : ""}</div>
-       <div id="media-clip" class="${ev.clip ? "" : "hidden"}">${ev.clip ? `<div class="video-stage"><video id="evidence-video" src="${esc(ev.clip)}" controls muted playsinline></video><div id="incident-region" class="incident-region hidden"><span>ACTOR TRACKS</span></div></div>${ann ? `<div class="incident-timeline"><div class="timeline-heading"><span><i></i> LABELLED INCIDENT WINDOW</span><strong>${Number(ann.start_s).toFixed(1)}s – ${Number(ann.end_s).toFixed(1)}s</strong></div><div class="timeline-track"><div id="incident-window" class="timeline-window"></div><div id="timeline-playhead" class="timeline-playhead"></div></div><div class="timeline-caption"><span>Clip start</span><button id="jump-incident" class="jump-incident">↗ Jump to incident</button><span id="clip-duration">–</span></div><p>Highlighted region follows cached actor tracks where both actors are visible. Event timing is labelled footage, not a verified live detection time.</p></div>` : `<p class="annotation-unavailable">No labelled event timestamp is available for this clip. Live evidence may already include tracking overlays.</p>`}` : ""}</div>
+       <div id="media-clip" class="${ev.clip ? "" : "hidden"}">${ev.clip ? `<div class="video-stage"><video id="evidence-video" src="${esc(ev.clip)}" controls muted playsinline></video><div id="incident-region" class="incident-region hidden"><span>ACTOR TRACKS</span></div></div><a class="action secondary clip-download" href="${esc(ev.clip)}" download="snatchguard_${esc(ev.id)}.webm">⇩ Download trimmed video</a>${ann ? `<div class="incident-timeline"><div class="timeline-heading"><span><i></i> LABELLED INCIDENT WINDOW</span><strong>${Number(ann.start_s).toFixed(1)}s – ${Number(ann.end_s).toFixed(1)}s</strong></div><div class="timeline-track"><div id="incident-window" class="timeline-window"></div><div id="timeline-playhead" class="timeline-playhead"></div></div><div class="timeline-caption"><span>Clip start</span><button id="jump-incident" class="jump-incident">↗ Jump to incident</button><span id="clip-duration">–</span></div><p>Highlighted region follows cached actor tracks where both actors are visible. Event timing is labelled footage, not a verified live detection time.</p></div>` : `<p class="annotation-unavailable">No labelled event timestamp is available for this clip. Live evidence may already include tracking overlays.</p>`}` : ""}</div>
        <div id="media-snap" class="${ev.clip ? "hidden" : ""}">${ev.snapshot ? `<img src="${esc(ev.snapshot)}" alt="snapshot">` : ""}</div>
-       ${ev.type === "snatch" && !ev.clip ? `<div class="clip-wait">Evidence clip is not available yet.</div>` : ""}`
-    : `<div class="clip-wait">No image for this event.</div>`;
+       ${ev.type === "snatch" && !ev.clip ? `<div class="clip-wait">${p.clip_removed ? "Video removed from this alert." : "Evidence clip is not available yet."}</div>` : ""}`
+    : `<div class="clip-wait">${p.clip_removed ? "Video removed from this alert." : "No image for this event."}</div>`;
 
   const lat = p.latency_s != null ? `${Number(p.latency_s).toFixed(1)} s after contact` : "–";
   return `
     ${p.recorded_example ? `<div class="notice">Previously analysed CCTV footage. The highlighted interval is a labelled event window; this entry is not a live alert.</div>` : ""}
     <div class="detail-head">
-      <h3>${esc(titleOf(ev))}</h3>
+      <h3>${esc(titleOf(ev))}</h3>${videoAction(ev)}
       <span class="pill ${esc(ev.level)}">${esc(ev.level === "CONFIRMED" ? "HIGH PRIORITY" : ev.level)}</span>
       ${ev.lighting ? `<span class="pill">${esc(LIGHT_ICON[ev.lighting] || ev.lighting)}</span>` : ""}
       <span class="pill status-${esc(ev.status)}">${esc(STATUS_TEXT[ev.status] || ev.status)}</span>
@@ -269,6 +321,7 @@ function detailHtml(ev) {
       </div>
       <div>
         ${right}
+        ${ev.type === "snatch" ? `<section class="cross-camera"><div class="section-title">Across cameras</div><p class="muted">Compare evidence and save an operator link. Track numbers apply only to their own camera.</p><label>Relationship<select id="link-relation"><option value="related_incident">Related incident</option><option value="possible_same_person">Possible same person (operator assessment)</option></select></label><label>Evidence note<input id="link-note" maxlength="1000" placeholder="What connects these views?"></label><div id="related-events">Loading related alerts…</div></section>` : ""}
         <div class="review">
           <div class="section-title">Operator review</div>
           <textarea id="review-note" placeholder="Note (optional): what you saw, who was dispatched…">${esc(ev.review_note || "")}</textarea>
@@ -282,7 +335,42 @@ function detailHtml(ev) {
     </div>`;
 }
 
+async function loadRelated(ev) {
+  const host = $("#related-events");
+  if (!host) return;
+  const labels = {related_incident: "Related incident", possible_same_person: "Possible same person (operator noted)"};
+  try {
+    const res = await fetch(`/api/v1/events/${encodeURIComponent(ev.id)}/related`);
+    if (!res.ok) throw new Error("Could not load related alerts.");
+    const data = await res.json();
+    if (state.openId !== ev.id || !host.isConnected) return;
+    host.innerHTML = `<p class="muted">${esc(data.basis)}</p>`;
+    const row = (item, linked) => {
+      const other = item.event;
+      const card = document.createElement("div"); card.className = "related-card";
+      card.innerHTML = `<strong>${esc(other.camera_name || other.camera_id)} · ${esc(new Date(other.occurred_at).toLocaleString())}</strong><p>${esc(linked ? labels[item.relation] : item.reason)}${linked && item.note ? " · " + esc(item.note) : ""}</p>${other.snapshot ? `<img src="${esc(other.snapshot)}" alt="Related camera evidence" loading="lazy">` : ""}${other.clip ? `<video src="${esc(other.clip)}" controls muted playsinline preload="none"></video>` : ""}`;
+      const open = document.createElement("button"); open.className = "btn"; open.textContent = "Open alert";
+      open.onclick = () => { state.events.set(other.id, other); openDetail(other.id); }; card.append(open);
+      const action = document.createElement("button"); action.className = "btn"; action.textContent = linked ? "Remove link" : "Link incident";
+      action.onclick = async () => {
+        action.disabled = true;
+        const response = await fetch(`/api/v1/events/${encodeURIComponent(ev.id)}/links${linked ? "/" + encodeURIComponent(other.id) : ""}`, {
+          method: linked ? "DELETE" : "POST", headers: {"Content-Type": "application/json"},
+          ...(linked ? {} : {body: JSON.stringify({event_id: other.id, relation: $("#link-relation").value, note: $("#link-note").value})})
+        });
+        if (response.ok) loadRelated(ev); else { action.disabled = false; action.textContent = "Unable to save; retry"; }
+      }; card.append(action); host.append(card);
+    };
+    data.links.forEach(i => row(i, true)); data.candidates.forEach(i => row(i, false));
+    if (!data.links.length && !data.candidates.length) host.insertAdjacentHTML("beforeend", '<p class="muted">No related alerts found. Give nearby cameras the same site name to find incidents within two minutes.</p>');
+  } catch (error) { if (host.isConnected) host.textContent = error.message; }
+}
+
 function wireDetail(ev) {
+  document.querySelectorAll("#modal-body [data-video-action]").forEach(button => {
+    button.addEventListener("click", () => changeVideo(ev.id, button.dataset.videoAction, button));
+  });
+  if (ev.type === "snatch") loadRelated(ev);
   const video = $("#evidence-video");
   const annotation = ev.payload?.incident_annotation;
   if (video && annotation) {
@@ -331,23 +419,41 @@ function wireDetail(ev) {
 
 // ---------------------------------------------------------------------------
 let audioCtx = null;
-function beep(level) {
+const soundedDetections = new Set();
+function soundLabel() {
+  const ready = audioCtx?.state === "running";
+  $("#sound-btn").textContent = !state.sound ? "🔕 Sound off" : ready ? "🔔 Sound on" : "🔔 Enable sound";
+}
+async function unlockSound() {
   if (!state.sound) return;
   try {
     audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
-    const pattern = level === "CONFIRMED" ? [880, 660, 880, 660] : [660];
+    if (audioCtx.state !== "running") await audioCtx.resume();
+  } catch (_) { /* button remains available when audio is blocked */ }
+  soundLabel();
+}
+function soundDetection(ev) {
+  if (isSynthetic(ev) || ev.recorded_example || soundedDetections.has(ev.id)) return;
+  soundedDetections.add(ev.id);
+  if (soundedDetections.size > 2000) soundedDetections.delete(soundedDetections.values().next().value);
+  beep(ev.level || "SUSPECT");
+}
+function beep(level) {
+  if (!state.sound || audioCtx?.state !== "running") { soundLabel(); return; }
+  try {
+    const pattern = level === "CONFIRMED" ? [880, 660, 880, 660] : [660, 880];
     pattern.forEach((f, i) => {
       const o = audioCtx.createOscillator();
       const g = audioCtx.createGain();
       o.frequency.value = f;
-      o.type = "square";
-      g.gain.setValueAtTime(0.08, audioCtx.currentTime + i * 0.22);
+      o.type = "sine";
+      g.gain.setValueAtTime(0.12, audioCtx.currentTime + i * 0.22);
       g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + i * 0.22 + 0.2);
       o.connect(g).connect(audioCtx.destination);
       o.start(audioCtx.currentTime + i * 0.22);
       o.stop(audioCtx.currentTime + i * 0.22 + 0.21);
     });
-  } catch (_) { /* audio blocked until the user interacts with the page */ }
+  } catch (_) { soundLabel(); }
 }
 
 function notify(ev) {
@@ -359,7 +465,8 @@ function notify(ev) {
   t.addEventListener("click", () => { openDetail(ev.id); t.remove(); });
   $("#toasts").prepend(t);
   setTimeout(() => t.remove(), ev.level === "CONFIRMED" ? 30000 : 12000);
-  if (["CONFIRMED", "SUSPECT", "TAMPER", "OFFLINE"].includes(ev.level)) beep(ev.level);
+  if (ev.type === "snatch") soundDetection(ev);
+  else if (ev.level === "TAMPER") beep(ev.level);
   if ("Notification" in window && Notification.permission === "granted" && ["CONFIRMED", "TAMPER", "OFFLINE"].includes(ev.level)) {
     new Notification(`SnatchGuard: ${label}`, { body: where, tag: ev.id });
   }
@@ -378,8 +485,10 @@ function flashTitle(text) {
 }
 
 function upsert(ev, fresh) {
+  normalizeVideo(ev);
+  if (isSynthetic(ev)) return;
   const prev = state.events.get(ev.id);
-  ev._fresh = fresh && !prev && !isSynthetic(ev);
+  ev._fresh = fresh && !prev && !isSynthetic(ev) && !isDismissed(ev);
   state.events.set(ev.id, ev);
   renderFeed();
   if (state.openId === ev.id) { $("#modal-body").innerHTML = detailHtml(ev); wireDetail(ev); }
@@ -392,8 +501,9 @@ function connect() {
   const conn = $("#conn");
   es.onopen = () => { document.querySelector(".live-tag").textContent = "● LIVE FEED"; conn.className = "conn live"; $("#conn-text").textContent = "Live"; loadInitial(); };
   es.onerror = () => { document.querySelector(".live-tag").textContent = "FEED DISCONNECTED"; conn.className = "conn down"; $("#conn-text").textContent = "Reconnecting…"; };
+  es.addEventListener("detection", (m) => soundDetection(JSON.parse(m.data)));
   es.addEventListener("event", (m) => { upsert(JSON.parse(m.data), true); refreshStats(); });
-  es.addEventListener("event_update", (m) => upsert(JSON.parse(m.data), false));
+  es.addEventListener("event_update", (m) => { upsert(JSON.parse(m.data), false); refreshStats(); });
   es.addEventListener("risk", (m) => updateRisk(JSON.parse(m.data).cameras));
   es.addEventListener("cameras", (m) => {
     const d = JSON.parse(m.data);
@@ -404,7 +514,7 @@ function connect() {
 
 async function loadInitial() {
   const [events, cams] = await Promise.all([
-    fetch("/api/v1/events?limit=200").then((r) => r.json()),
+    fetch("/api/v1/events?limit=500&include_deleted=true").then((r) => r.json()),
     fetch("/api/v1/cameras").then((r) => r.json()),
   ]);
   events.forEach((ev) => { if (!state.events.has(ev.id)) state.events.set(ev.id, ev); });
@@ -424,29 +534,22 @@ document.querySelectorAll("#tabs button").forEach((b) => b.addEventListener("cli
 $("#modal-close").addEventListener("click", closeDetail);
 $("#modal").addEventListener("click", (e) => { if (e.target.id === "modal") closeDetail(); });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeDetail(); });
-$("#sound-btn").addEventListener("click", () => {
-  state.sound = !state.sound;
-  $("#sound-btn").textContent = state.sound ? "🔔 Sound on" : "🔕 Sound off";
+$("#sound-btn").addEventListener("click", async () => {
+  if (!audioCtx || audioCtx.state !== "running") state.sound = true;
+  else state.sound = !state.sound;
+  await unlockSound();
+  soundLabel();
   if (state.sound) beep("SUSPECT");
-  if ("Notification" in window && Notification.permission === "default") Notification.requestPermission();
 });
+document.addEventListener("pointerdown", event => { if (!event.target.closest("#sound-btn")) unlockSound(); }, {once: true});
+document.addEventListener("keydown", unlockSound, {once: true});
+soundLabel();
 document.addEventListener("click", () => {
   if ("Notification" in window && Notification.permission === "default") Notification.requestPermission();
 }, { once: true });
-setInterval(renderFeed, 30000);   // keep "x min ago" fresh
+setInterval(() => { renderFeed(); renderCameras(); }, 30000);   // keep "x min ago" fresh
 loadInitial().catch(() => {});    // show stored alerts even if the live stream is blocked
 connect();
 
-$("#start-real-demo").addEventListener("click", async () => {
-  const button = $("#start-real-demo");
-  const message = $("#demo-message");
-  button.disabled = true;
-  message.textContent = "Starting recorded footage…";
-  try {
-    const response = await fetch("/api/v1/footage/real-demo", {method: "POST"});
-    const result = await response.json();
-    if (!response.ok) throw new Error(result.detail || "Unable to start demonstration");
-    message.textContent = "Processing real footage. Camera updates and alerts will appear below.";
-  } catch (error) { message.textContent = error.message || "Could not start demonstration."; }
-  finally { button.disabled = false; }
-});
+
+})();

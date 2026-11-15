@@ -78,7 +78,7 @@ def test_heartbeat_and_thumbnail(client):
     assert client.get("/api/v1/cameras/n1/c1/thumbnail.jpg").content == b"jpg"
 
 
-def test_silent_node_raises_offline_alert(tmp_path, monkeypatch):
+def test_silent_node_changes_camera_status_without_feed_alert(tmp_path, monkeypatch):
     import snatchguard.central.app as appmod
     monkeypatch.setattr(appmod, "OFFLINE_AFTER_S", 0.5)
     with TestClient(create_app(tmp_path, {"test-key"})) as c:
@@ -86,15 +86,16 @@ def test_silent_node_raises_offline_alert(tmp_path, monkeypatch):
         import time
         deadline = time.time() + 12
         while time.time() < deadline:
-            evs = c.get("/api/v1/events").json()
-            if any(e["level"] == "OFFLINE" for e in evs):
+            cameras = c.get("/api/v1/cameras").json()["cameras"]
+            if cameras[0]["status"] == "offline":
                 break
             time.sleep(0.5)
-        assert any(e["level"] == "OFFLINE" and e["node_id"] == "n9" for e in evs)
+        assert c.get("/api/v1/events").json() == []
         assert c.get("/api/v1/cameras").json()["cameras"][0]["status"] == "offline"
-        # heartbeat again -> back online event
+        # Heartbeat restores camera status without a new alert.
         c.post("/api/v1/heartbeat", json={"node_id": "n9", "cameras": [{"id": "c1", "status": "online"}]}, headers=KEY)
-        assert any(e["level"] == "ONLINE" for e in c.get("/api/v1/events").json())
+        assert c.get("/api/v1/events").json() == []
+        assert c.get("/api/v1/cameras").json()["cameras"][0]["status"] == "online"
 
 
 def test_dashboard_password(tmp_path):
