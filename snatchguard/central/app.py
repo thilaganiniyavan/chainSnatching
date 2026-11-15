@@ -17,6 +17,7 @@ import os
 import re
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
@@ -47,6 +48,12 @@ class Broadcaster:
 class Review(BaseModel):
     status: str
     note: str | None = None
+
+
+class LiveCamera(BaseModel):
+    source: str
+    name: str = "Live camera"
+    model: str
 
 
 def create_app(data_dir: str | Path | None = None, api_keys: set[str] | None = None,
@@ -223,6 +230,29 @@ def create_app(data_dir: str | Path | None = None, api_keys: set[str] | None = N
     @app.get("/api/v1/footage")
     def footage_status():
         return runner.status()
+
+    @app.get("/api/v1/footage/models")
+    def footage_models():
+        return {"models": runner.models()}
+
+    @app.post("/api/v1/footage/live")
+    def footage_live(camera: LiveCamera, request: Request):
+        source = camera.source.strip()
+        try:
+            parsed = urlsplit(source)
+            valid = source.isascii() and source.isdigit() and len(source) <= 3
+            valid = valid or (parsed.scheme in ("rtsp", "rtsps", "http", "https") and bool(parsed.hostname))
+        except ValueError:
+            valid = False
+        if not valid or len(source) > 2048 or any(ord(c) < 32 for c in source):
+            raise HTTPException(422, "Enter a webcam index or an RTSP/HTTP camera URL.")
+        try:
+            return runner.start(source, camera.name.strip()[:100] or "Live camera", request.url.port or 8000,
+                                live=True, model=camera.model)
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from exc
+        except RuntimeError as exc:
+            raise HTTPException(409, str(exc)) from exc
 
     @app.post("/api/v1/footage/real-demo")
     def footage_real_demo(request: Request):
