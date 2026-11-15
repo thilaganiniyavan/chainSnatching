@@ -110,10 +110,12 @@ class Store:
         d["payload"] = json.loads(d["payload"])
         return d
 
-    def stats(self, since_iso: str) -> dict:
+    def stats(self, since_iso: str, real_only: bool = False) -> dict:
         with self.lock:
             rows = self.db.execute(
-                "SELECT type, level, status, COUNT(*) n FROM events WHERE received_at >= ? GROUP BY type, level, status",
+                "SELECT type, level, status, COUNT(*) n FROM events WHERE received_at >= ? "
+                + ("AND COALESCE(node_id, '') NOT IN ('edge-sim-01', 'recorded-examples') AND COALESCE(site, '') != 'Scripted demonstration' " if real_only else "")
+                + "GROUP BY type, level, status",
                 (since_iso,)).fetchall()
         out = {"confirmed": 0, "suspect": 0, "tamper": 0, "open": 0, "reviewed_true": 0, "reviewed_false": 0}
         for r in rows:

@@ -25,6 +25,7 @@ from pydantic import BaseModel
 
 from snatchguard.central.db import Store, now_iso
 from snatchguard.central.notify import TelegramNotifier
+from snatchguard.central.footage import FootageRunner
 
 log = logging.getLogger(__name__)
 STATIC = Path(__file__).parent / "static"
@@ -56,6 +57,7 @@ def create_app(data_dir: str | Path | None = None, api_keys: set[str] | None = N
     keys = api_keys or set(filter(None, os.environ.get("SNATCHGUARD_API_KEYS", "dev-edge-key").split(",")))
     store = Store(data_dir / "central.db")
     bus = Broadcaster()
+    runner = FootageRunner(data_dir / "footage", next(iter(keys)))
     thumbnails: dict[str, bytes] = {}
     live_risk: dict[str, dict] = {}          # node/camera -> latest learned-scorer risk (memory only)
     phone = notifier if notifier is not None else TelegramNotifier.from_env(data_dir)   # None: no phone alerts
@@ -217,6 +219,56 @@ def create_app(data_dir: str | Path | None = None, api_keys: set[str] | None = N
     def get_live():
         return {"cameras": list(live_risk.values())}
 
+    # One local processing job at a time; uploads are kept outside the public media directory.
+    @app.get("/api/v1/footage")
+    def footage_status():
+        return runner.status()
+
+    @app.post("/api/v1/footage/real-demo")
+    def footage_real_demo(request: Request):
+        from snatchguard.core.config import REPO_ROOT
+        clip = REPO_ROOT / "data/snatch_web/clips/snatch/OTGVGhOqJOo_0.mp4"
+        if not clip.is_file():
+            raise HTTPException(404, "The real demonstration clip is not available.")
+        try:
+            return runner.start(str(clip), "Real CCTV demo (training clip)", request.url.port or 8000, real_demo=True)
+        except RuntimeError as exc:
+            raise HTTPException(409, str(exc)) from exc
+
+    @app.post("/api/v1/footage/stop")
+    def footage_stop():
+        return runner.stop()
+
+    @app.post("/api/v1/footage/upload")
+    async def footage_upload(request: Request, video: UploadFile = File(...)):
+        if runner.status()["state"] == "running":
+            raise HTTPException(409, "A video is already being processed.")
+        suffix = Path(video.filename or "").suffix.lower()
+        if suffix not in (".mp4", ".avi", ".mov", ".mkv", ".webm"):
+            raise HTTPException(422, "Choose an MP4, AVI, MOV, MKV or WebM video.")
+        import uuid
+        path = runner.directory / (uuid.uuid4().hex + suffix)
+        size = 0
+        try:
+            with path.open("wb") as out:
+                while chunk := await video.read(1024 * 1024):
+                    size += len(chunk)
+                    if size > 500 * 1024 * 1024:
+                        raise HTTPException(413, "Video exceeds the 500 MB limit.")
+                    out.write(chunk)
+            import cv2
+            cap = cv2.VideoCapture(str(path))
+            valid, _ = cap.read()
+            cap.release()
+            if not valid:
+                raise HTTPException(422, "The video could not be decoded.")
+            return runner.start(str(path), Path(video.filename or "Uploaded video").name[:100], request.url.port or 8000)
+        except Exception:
+            path.unlink(missing_ok=True)
+            raise
+        finally:
+            await video.close()
+
     # ---- dashboard-facing --------------------------------------------------
     @app.get("/api/v1/events")
     def list_events(limit: int = 100, type: str | None = None, status: str | None = None, level: str | None = None):
@@ -254,7 +306,7 @@ def create_app(data_dir: str | Path | None = None, api_keys: set[str] | None = N
     @app.get("/api/v1/stats")
     def stats():
         since = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
-        return store.stats(since)
+        return store.stats(since, real_only=True)
 
     @app.get("/api/v1/stream")
     async def stream(request: Request):
@@ -280,6 +332,10 @@ def create_app(data_dir: str | Path | None = None, api_keys: set[str] | None = N
     @app.get("/healthz")
     def healthz():
         return JSONResponse({"ok": True, "time": now_iso()})
+
+    @app.get("/footage")
+    def footage_page():
+        return FileResponse(STATIC / "footage.html")
 
     @app.get("/")
     def index():
